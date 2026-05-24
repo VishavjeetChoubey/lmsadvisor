@@ -113,8 +113,11 @@ $router->get('/admin/reports/chart-data',       'Admin\ReportController@chartDat
 $router->get('/learn',                              'Student\DashboardController@index');
 $router->get('/learn/dashboard',                    'Student\DashboardController@index');
 $router->get('/learn/courses',                      'Student\DashboardController@courses');
-$router->get('/learn/courses/:uuid/learn',          'Student\DashboardController@learn');
-$router->post('/learn/courses/:uuid/complete-lesson','Student\DashboardController@completeLesson');
+$router->get('/learn/courses/:uuid/learn',                    'Student\DashboardController@learn');
+$router->post('/learn/courses/:uuid/complete-lesson',         'Student\DashboardController@completeLesson');
+$router->get('/learn/courses/:uuid/quiz/:lessonId',           'Student\QuizController@show');
+$router->post('/learn/courses/:uuid/quiz/:lessonId/submit',   'Student\QuizController@submit');
+$router->get('/learn/courses/:uuid/quiz/:lessonId/result',    'Student\QuizController@result');
 $router->get('/learn/calendar',                     'Student\DashboardController@calendar');
 $router->get('/learn/leaderboard',                  'Student\DashboardController@leaderboard');
 $router->get('/learn/profile',                      'Student\DashboardController@profile');

@@ -32,11 +32,30 @@ class App
             session_start();
         }
 
-        // Load routes — $router is available in the routes file
+        // Load routes
         $router = $this->router;
         require BASE_PATH . '/config/routes.php';
 
-        // Dispatch
-        $this->router->dispatch($this->request, $this->response);
+        // Dispatch — wrap in exception handler so errors show properly
+        try {
+            $this->router->dispatch($this->request, $this->response);
+        } catch (\Throwable $e) {
+            error_log('[LMSAdvisor] Unhandled exception: ' . $e->getMessage()
+                . ' in ' . $e->getFile() . ':' . $e->getLine()
+                . "\n" . $e->getTraceAsString());
+
+            if (defined('APP_ENV') && APP_ENV === 'development') {
+                http_response_code(500);
+                echo '<pre style="background:#1e293b;color:#f8fafc;padding:20px;font-size:13px">';
+                echo '<strong style="color:#f87171">Error:</strong> ' . htmlspecialchars($e->getMessage()) . "\n\n";
+                echo '<strong style="color:#93c5fd">File:</strong> ' . htmlspecialchars($e->getFile()) . ':' . $e->getLine() . "\n\n";
+                echo '<strong style="color:#86efac">Trace:</strong>' . "\n" . htmlspecialchars($e->getTraceAsString());
+                echo '</pre>';
+            } else {
+                http_response_code(500);
+                echo '<!DOCTYPE html><html><head><title>500 — Server Error</title></head><body>'
+                   . '<h1>Something went wrong</h1><p>Please try again later.</p></body></html>';
+            }
+        }
     }
 }
