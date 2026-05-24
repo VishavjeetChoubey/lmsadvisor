@@ -139,7 +139,7 @@ $typeColors  = ['text'=>'rgba(255,255,255,.5)','video'=>'#f87171','document'=>'#
         <!-- Prev lesson -->
         <?php if ($prevLesson): ?>
         <a href="<?= $url('learn/courses/' . $course['uuid'] . '/learn?lesson=' . $prevLesson['id']) ?>"
-           class="lp-topbar-btn" title="Previous: <?= $e($prevLesson['title']) ?>">
+           class="lp-topbar-btn lp-prev-btn" title="Previous: <?= $e($prevLesson['title']) ?>">
           <i class="bi bi-skip-backward-fill"></i>
         </a>
         <?php endif; ?>
@@ -147,7 +147,7 @@ $typeColors  = ['text'=>'rgba(255,255,255,.5)','video'=>'#f87171','document'=>'#
         <!-- Next lesson -->
         <?php if ($nextLesson): ?>
         <a href="<?= $url('learn/courses/' . $course['uuid'] . '/learn?lesson=' . $nextLesson['id']) ?>"
-           class="lp-topbar-btn" title="Next: <?= $e($nextLesson['title']) ?>">
+           class="lp-topbar-btn lp-next-btn" title="Next: <?= $e($nextLesson['title']) ?>">
           <i class="bi bi-skip-forward-fill"></i>
         </a>
         <?php endif; ?>
@@ -290,7 +290,7 @@ $typeColors  = ['text'=>'rgba(255,255,255,.5)','video'=>'#f87171','document'=>'#
 ══════════════════════════════════════════════════════════ */
 .lp-shell {
   display: flex;
-  height: calc(100vh - 60px); /* 60px = student topnav */
+  height: 100%; /* fills st-content in player-mode */
   overflow: hidden;
   background: var(--content-bg);
 }
@@ -698,9 +698,10 @@ const fsBtn  = document.getElementById('lpFullscreenBtn');
 const fsIcon = document.getElementById('lpFsIcon');
 
 function enterFullscreen() {
-  document.querySelector('.student-topnav')?.style.setProperty('display','none');
+  document.getElementById('stTopbar')?.style.setProperty('display','none');
+window.__topbarHidden = true;
   document.getElementById('bottomNav')?.style.setProperty('display','none');
-  document.querySelector('.student-body')?.style.setProperty('padding-top','0');
+  
   lpShell.style.height = '100vh';
   lpShell.classList.add('fullscreen');
   fsIcon.className = 'bi bi-fullscreen-exit';
@@ -708,9 +709,10 @@ function enterFullscreen() {
 }
 
 function exitFullscreen() {
-  document.querySelector('.student-topnav')?.style.removeProperty('display');
+  document.getElementById('stTopbar')?.style.removeProperty('display');
+window.__topbarHidden = false;
   document.getElementById('bottomNav')?.style.removeProperty('display');
-  document.querySelector('.student-body')?.style.removeProperty('padding-top');
+  
   lpShell.style.height = '';
   lpShell.classList.remove('fullscreen');
   fsIcon.className = 'bi bi-fullscreen';

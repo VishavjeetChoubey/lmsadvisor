@@ -77,3 +77,122 @@ window.LMS.toast = function (type, message) {
 window.LMS.confirm = function (message, onConfirm) {
   if (window.confirm(message)) onConfirm();
 };
+
+/* ── Dark mode ───────────────────────────────────────────────────────────── */
+$(function () {
+  var dark = localStorage.getItem('lms_dark_mode') === '1';
+  applyTheme(dark);
+
+  $('#darkModeToggle').on('click', function () {
+    dark = !dark;
+    localStorage.setItem('lms_dark_mode', dark ? '1' : '0');
+    applyTheme(dark);
+  });
+
+  function applyTheme(isDark) {
+    document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+    $('#darkModeToggle i')
+      .toggleClass('bi-moon-stars', !isDark)
+      .toggleClass('bi-sun', isDark);
+  }
+
+  /* ── Mobile sidebar toggle ─────────────────────────────────────────────── */
+  $('#stHamburger').on('click', function () {
+    $('#stSidebar').toggleClass('mobile-open');
+    $('#stOverlay').toggleClass('visible');
+  });
+  $('#stOverlay').on('click', function () {
+    $('#stSidebar').removeClass('mobile-open');
+    $('#stOverlay').removeClass('visible');
+  });
+});
+
+/* ── LESSON PLAYER — AJAX navigation (no flicker) ─────────────────────────
+   Intercepts all .lp-lesson link clicks, loads content via fetch,
+   updates the DOM without a full page reload.
+   Fallback: normal navigation if AJAX fails.
+──────────────────────────────────────────────────────────────────────────── */
+(function () {
+  'use strict';
+
+  function initLessonNav() {
+    const shell = document.getElementById('lpShell');
+    if (!shell) return; // not on player page
+
+    // Intercept lesson sidebar clicks
+    document.addEventListener('click', function (e) {
+      const link = e.target.closest('.lp-lesson[href]');
+      if (!link) return;
+      e.preventDefault();
+      loadLesson(link.href, link);
+    });
+
+    // Intercept prev/next lesson buttons in topbar
+    document.addEventListener('click', function (e) {
+      const btn = e.target.closest('.lp-prev-btn[href], .lp-next-btn[href]');
+      if (!btn) return;
+      e.preventDefault();
+      loadLesson(btn.href, null);
+    });
+  }
+
+  function loadLesson(href, clickedLink) {
+    const body   = document.getElementById('lpBody');
+    const topbar = document.getElementById('lpTopbar');
+    if (!body) { window.location.href = href; return; }
+
+    // Show loading overlay
+    body.style.opacity   = '.4';
+    body.style.transition = 'opacity .15s';
+
+    fetch(href, { headers: { 'X-Requested-With': 'LessonAJAX' } })
+      .then(r => {
+        if (!r.ok) throw new Error('load failed');
+        return r.text();
+      })
+      .then(html => {
+        const parser  = new DOMParser();
+        const doc     = parser.parseFromString(html, 'text/html');
+
+        // Extract new lesson body content
+        const newBody  = doc.getElementById('lpBody');
+        const newTopbar= doc.getElementById('lpTopbar');
+        const newSidebar= doc.getElementById('lpSections');
+
+        if (newBody)   body.innerHTML     = newBody.innerHTML;
+        if (newTopbar) topbar.innerHTML   = newTopbar.innerHTML;
+        if (newSidebar) {
+          const curSidebar = document.getElementById('lpSections');
+          if (curSidebar) curSidebar.innerHTML = newSidebar.innerHTML;
+        }
+
+        // Update page title
+        const newTitle = doc.querySelector('title');
+        if (newTitle) document.title = newTitle.textContent;
+
+        // Update URL without reload
+        history.pushState({}, '', href);
+
+        // Restore fullscreen if it was active
+        if (sessionStorage.getItem('lp_fullscreen') === '1') {
+          setTimeout(() => {
+            if (typeof enterFullscreen === 'function') enterFullscreen();
+          }, 50);
+        }
+
+        // Re-init mark-complete forms (they use normal POST)
+        body.style.opacity = '1';
+      })
+      .catch(() => {
+        // Fallback to normal navigation on error
+        window.location.href = href;
+      });
+  }
+
+  // Initialize when DOM is ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initLessonNav);
+  } else {
+    initLessonNav();
+  }
+})();
