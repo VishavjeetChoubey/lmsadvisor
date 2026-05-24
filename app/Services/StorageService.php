@@ -10,6 +10,14 @@ class StorageService
         'document' => ['application/pdf', 'application/msword',
                        'application/vnd.openxmlformats-officedocument.wordprocessingml.document'],
         'image'    => ['image/jpeg', 'image/png', 'image/gif', 'image/webp'],
+        'scorm'    => [
+            'application/zip',
+            'application/x-zip',
+            'application/x-zip-compressed',
+            'application/octet-stream', // some browsers report this for .zip
+            'multipart/x-zip',
+            'application/x-compressed',
+        ],
         'material' => ['application/pdf', 'application/zip', 'application/x-zip-compressed',
                        'application/msword',
                        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
@@ -21,6 +29,7 @@ class StorageService
         'video'    => 512 * 1024 * 1024, // 512 MB
         'document' => 50  * 1024 * 1024, // 50 MB
         'image'    => 5   * 1024 * 1024, // 5 MB
+        'scorm'    => 256 * 1024 * 1024, // 256 MB
         'material' => 100 * 1024 * 1024, // 100 MB
     ];
 

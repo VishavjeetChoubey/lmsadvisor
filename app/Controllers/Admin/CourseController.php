@@ -381,11 +381,22 @@ class CourseController extends Controller
         $id   = (int)($params['id'] ?? 0);
         $type = Sanitizer::string($this->request->post('type', 'text'), 20);
 
-        // Handle file upload for video/document lessons
+        // Handle file upload for video / document / scorm lessons
         $filePath = $this->request->post('existing_file', null);
         if (!empty($_FILES['lesson_file']['name'])) {
-            $uploadType = in_array($type, ['video']) ? 'video' : 'document';
-            $subDir     = $uploadType === 'video' ? 'videos' : 'documents';
+            // Map lesson type → StorageService type + subdirectory
+            $uploadType = match($type) {
+                'video'    => 'video',
+                'scorm'    => 'scorm',
+                'document' => 'document',
+                default    => 'document',
+            };
+            $subDir = match($uploadType) {
+                'video'    => 'videos',
+                'scorm'    => 'scorm',
+                'document' => 'documents',
+                default    => 'documents',
+            };
             try {
                 if ($filePath) StorageService::delete($filePath);
                 $filePath = StorageService::upload('lesson_file', $uploadType, $subDir);
