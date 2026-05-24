@@ -396,11 +396,11 @@ function mountLessonQuill() {
   if (!document.querySelector('link[href*="quill"]')) {
     const css = document.createElement('link');
     css.rel  = 'stylesheet';
-    css.href = 'https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.snow.css';
+    css.href = 'https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.snow.css';
     document.head.appendChild(css);
   }
   const s = document.createElement('script');
-  s.src   = 'https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.umd.min.js';
+  s.src   = 'https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.js';
   s.onload = function () { setTimeout(doMount, 50); };
   document.head.appendChild(s);
 }

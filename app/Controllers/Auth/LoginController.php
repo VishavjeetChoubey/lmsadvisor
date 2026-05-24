@@ -25,17 +25,17 @@ class LoginController extends Controller
     // ── GET /login ────────────────────────────────────────────────────────────
     public function showLogin(array $params): void
     {
-        AuthMiddleware::guest(); // redirect if already logged in
+        AuthMiddleware::guest();
 
-        $csrfToken        = CsrfMiddleware::token();
-        $recaptchaEnabled = (bool)(int)Setting::get('recaptcha_enabled', 0);
-        $recaptchaSiteKey = Setting::get('recaptcha_site_key', '');
+        $csrfToken         = CsrfMiddleware::token();
+        $recaptchaEnabled  = (bool)(int)Setting::get('recaptcha_enabled', 0);
+        $recaptchaSiteKey  = Setting::get('recaptcha_site_key', '');
 
         echo View::renderWithLayout('auth', 'auth.login', [
-            'title'            => 'Sign In — LMSAdvisor',
-            'flash'            => $this->getFlash(),
-            'csrf_token'       => $csrfToken,
-            'recaptcha_enabled'=> $recaptchaEnabled,
+            'title'             => 'Sign In — LMSAdvisor',
+            'flash'             => $this->getFlash(),
+            'csrf_token'        => $csrfToken,
+            'recaptcha_enabled' => $recaptchaEnabled,
             'recaptcha_site_key'=> $recaptchaSiteKey,
         ]);
     }
@@ -49,7 +49,6 @@ class LoginController extends Controller
         $email    = Sanitizer::email($this->request->post('email', ''));
         $password = (string)$this->request->post('password', '');
 
-        // Basic validation
         $v = (new Validator())
             ->required('email',    $email,    'Email')
             ->email('email',       $email)
@@ -60,7 +59,7 @@ class LoginController extends Controller
             $this->redirect('/login');
         }
 
-        // reCAPTCHA check
+        // reCAPTCHA
         $recaptchaEnabled = (bool)(int)Setting::get('recaptcha_enabled', 0);
         if ($recaptchaEnabled) {
             $token = (string)$this->request->post('g-recaptcha-response', '');
@@ -70,7 +69,6 @@ class LoginController extends Controller
             }
         }
 
-        // Attempt login
         $result = $this->auth->attempt(
             $email,
             $password,
@@ -83,14 +81,27 @@ class LoginController extends Controller
             $this->redirect('/login');
         }
 
-        // Redirect to intended URL or role-based default
+        // ── Redirect after login ──────────────────────────────────────────────
+        // $intended is the raw REQUEST_URI (e.g. /lmsadvisor-dev/admin/dashboard).
+        // We strip the app subfolder prefix so redirect() doesn't double it.
         $intended = $_SESSION['intended'] ?? null;
         unset($_SESSION['intended']);
 
-        if ($intended && str_starts_with($intended, '/')) {
-            $this->redirect($intended);
+        if ($intended) {
+            // Strip the subfolder prefix (same logic as Request.php)
+            $scriptDir = rtrim(dirname($_SERVER['SCRIPT_NAME'] ?? '/index.php'), '/\\');
+            if ($scriptDir !== '' && $scriptDir !== '/' && str_starts_with($intended, $scriptDir)) {
+                $intended = substr($intended, strlen($scriptDir));
+            }
+            $intended = '/' . ltrim($intended, '/');
+
+            // Only redirect to internal paths that look safe
+            if (strlen($intended) > 1 && str_starts_with($intended, '/')) {
+                $this->redirect($intended);
+            }
         }
 
+        // Default redirect by role
         $role = AuthService::role();
         if (in_array($role, ['admin', 'super_admin', 'manager'], true)) {
             $this->redirect('/admin/dashboard');

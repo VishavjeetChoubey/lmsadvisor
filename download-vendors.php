@@ -28,8 +28,8 @@ $files = [
     'sortablejs/Sortable.min.js'         => 'https://cdn.jsdelivr.net/npm/sortablejs@1.15.3/Sortable.min.js',
 
     // Quill editor
-    'quill/quill.snow.css'               => 'https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.snow.css',
-    'quill/quill.umd.min.js'             => 'https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.umd.min.js',
+    'quill/quill.snow.css'               => 'https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.snow.css',
+    'quill/quill.js'             => 'https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.js',
 
     // Chart.js
     'chartjs/chart.umd.min.js'           => 'https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js',

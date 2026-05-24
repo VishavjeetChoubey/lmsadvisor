@@ -110,8 +110,12 @@ $router->get('/admin/reports/export/:type',     'Admin\ReportController@export')
 $router->get('/admin/reports/chart-data',       'Admin\ReportController@chartData');
 
 // Student
-$router->get('/learn',           'Student\DashboardController@index');
-$router->get('/learn/dashboard', 'Student\DashboardController@index');
+$router->get('/learn',                'Student\DashboardController@index');
+$router->get('/learn/dashboard',      'Student\DashboardController@index');
+$router->get('/learn/courses',        'Student\DashboardController@courses');
+$router->get('/learn/calendar',       'Student\DashboardController@calendar');
+$router->get('/learn/leaderboard',    'Student\DashboardController@leaderboard');
+$router->get('/learn/profile',        'Student\DashboardController@profile');
 
 // 404
 $router->get('/404', 'ErrorController@notFound');

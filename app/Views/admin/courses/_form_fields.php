@@ -255,13 +255,13 @@ document.getElementById('visibilitySelect')?.addEventListener('change', function
     if (!document.querySelector('link[href*="quill"]')) {
       const css = document.createElement('link');
       css.rel  = 'stylesheet';
-      css.href = 'https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.snow.css';
+      css.href = 'https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.snow.css';
       document.head.appendChild(css);
     }
 
     // Load JS
     const script = document.createElement('script');
-    script.src   = 'https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.umd.min.js';
+    script.src   = 'https://cdn.jsdelivr.net/npm/quill@2.0.2/dist/quill.js';
     script.onload = function () {
       // Small delay so the tab-pane is fully visible before Quill measures height
       setTimeout(mountQuill, 50);
