@@ -197,7 +197,7 @@ class Quiz extends Model
              WHERE quiz_id=? AND user_id=? AND completed_at IS NOT NULL',
             [$quizId, $userId]
         );
-        return $row ? $row['best'] : null;
+        return ($row && $row['best'] !== null) ? (float)$row['best'] : null;
     }
 
     // ── Stats for admin ───────────────────────────────────────────────────────
@@ -215,6 +215,14 @@ class Quiz extends Model
              FROM quiz_attempts WHERE quiz_id=? AND completed_at IS NOT NULL',
             [$quizId]
         );
-        return $row ?? [];
+        if (!$row) return [];
+        return [
+            'total_attempts' => (int)$row['total_attempts'],
+            'passes'         => (int)$row['passes'],
+            'fails'          => (int)$row['fails'],
+            'avg_score'      => $row['avg_score'] !== null ? (float)$row['avg_score'] : null,
+            'best_score'     => $row['best_score'] !== null ? (float)$row['best_score'] : null,
+            'avg_time_sec'   => $row['avg_time_sec'] !== null ? (int)$row['avg_time_sec'] : null,
+        ];
     }
 }

@@ -83,7 +83,12 @@ class Review extends Model
                ROUND(AVG(rating), 1) AS avg_rating
              FROM course_reviews'
         );
-        return $row ?? ['total' => 0, 'pending' => 0, 'approved' => 0, 'avg_rating' => 0];
+        return $row ? [
+            'total'      => (int)$row['total'],
+            'pending'    => (int)$row['pending'],
+            'approved'   => (int)$row['approved'],
+            'avg_rating' => $row['avg_rating'] !== null ? (float)$row['avg_rating'] : 0.0,
+        ] : ['total' => 0, 'pending' => 0, 'approved' => 0, 'avg_rating' => 0];
     }
 
     public function ratingDistribution(): array
