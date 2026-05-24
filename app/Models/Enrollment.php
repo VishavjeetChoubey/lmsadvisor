@@ -197,13 +197,45 @@ class Enrollment extends Model
 
     public function markLessonProgress(int $enrollmentId, int $lessonId, string $status, int $pct = 0): void
     {
-        $this->execute(
-            'INSERT INTO lesson_progress
-             (enrollment_id, lesson_id, user_id, status, progress_pct, started_at)
-             SELECT ?, ?, user_id, ?, ?, NOW() FROM enrollments WHERE id = ?
-             ON DUPLICATE KEY UPDATE status = VALUES(status), progress_pct = VALUES(progress_pct),
-               completed_at = IF(VALUES(status) = "completed", NOW(), completed_at)',
-            [$enrollmentId, $lessonId, $status, $pct, $enrollmentId]
+        // Get user_id from enrollment first
+        $enrollment = $this->queryOne(
+            'SELECT user_id FROM enrollments WHERE id = ? LIMIT 1',
+            [$enrollmentId]
         );
+        if (!$enrollment) return;
+
+        $userId = (int)$enrollment['user_id'];
+
+        // Check if a progress row already exists
+        $existing = $this->queryOne(
+            'SELECT id FROM lesson_progress WHERE enrollment_id = ? AND lesson_id = ? LIMIT 1',
+            [$enrollmentId, $lessonId]
+        );
+
+        if ($existing) {
+            // Update existing row
+            $completedAt = $status === 'completed' ? date('Y-m-d H:i:s') : null;
+            $this->execute(
+                'UPDATE lesson_progress
+                 SET status = ?, progress_pct = ?, completed_at = COALESCE(?, completed_at)
+                 WHERE enrollment_id = ? AND lesson_id = ?',
+                [$status, $pct, $completedAt, $enrollmentId, $lessonId]
+            );
+        } else {
+            // Insert new row
+            $this->insert(
+                'INSERT INTO lesson_progress
+                 (enrollment_id, lesson_id, user_id, status, progress_pct, started_at, completed_at)
+                 VALUES (?, ?, ?, ?, ?, NOW(), ?)',
+                [
+                    $enrollmentId,
+                    $lessonId,
+                    $userId,
+                    $status,
+                    $pct,
+                    $status === 'completed' ? date('Y-m-d H:i:s') : null,
+                ]
+            );
+        }
     }
 }

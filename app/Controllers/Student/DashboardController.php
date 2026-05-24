@@ -215,7 +215,13 @@ class DashboardController extends Controller
 
         $lessonId = (int)$this->request->post('lesson_id', 0);
         if ($lessonId) {
-            $enrollModel->markLessonProgress((int)$enrollment['id'], $lessonId, 'completed', 100);
+            try {
+                $enrollModel->markLessonProgress((int)$enrollment['id'], $lessonId, 'completed', 100);
+            } catch (\Throwable $e) {
+                error_log('[completeLesson] markLessonProgress failed: ' . $e->getMessage());
+                $this->flash('error', 'Could not save progress. Please try again.');
+                $this->redirect('/learn/courses/' . ($course['uuid'] ?? '') . '/learn?lesson=' . $lessonId);
+            }
         }
 
         // Check if all lessons are complete → mark enrollment complete
@@ -254,6 +260,8 @@ class DashboardController extends Controller
         $redirect = '/learn/courses/' . $course['uuid'] . '/learn?lesson=' . ($nextId ?? $lessonId);
         $this->redirect($redirect);
     }
+
+    // ── GET /learn/profile ────────────────────────────────────────────────────
     public function profile(array $params): void
     {
         $this->guard();
