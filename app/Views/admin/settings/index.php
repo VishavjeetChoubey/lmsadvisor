@@ -127,7 +127,7 @@ $tabIcons = [
               <?php $logo = Setting::get('site_logo',''); ?>
               <?php if ($logo): ?>
                 <div class="mb-2">
-                  <img src="<?= $e(APP_URL . $logo) ?>" alt="Logo" style="max-height:48px;border-radius:6px;border:1px solid var(--border-color);padding:4px">
+                  <img src="<?= $e(View::asset($logo)) ?>" alt="Logo" style="max-height:48px;border-radius:6px;border:1px solid var(--border-color);padding:4px">
                 </div>
               <?php endif; ?>
               <input type="file" class="form-control" name="site_logo" accept="image/*">
@@ -140,7 +140,7 @@ $tabIcons = [
               <?php $fav = Setting::get('site_favicon',''); ?>
               <?php if ($fav): ?>
                 <div class="mb-2">
-                  <img src="<?= $e(APP_URL . $fav) ?>" alt="Favicon" style="max-height:32px;border-radius:4px;border:1px solid var(--border-color);padding:2px">
+                  <img src="<?= $e(View::asset($fav)) ?>" alt="Favicon" style="max-height:32px;border-radius:4px;border:1px solid var(--border-color);padding:2px">
                 </div>
               <?php endif; ?>
               <input type="file" class="form-control" name="site_favicon" accept="image/*,.ico">

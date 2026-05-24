@@ -144,28 +144,37 @@ class SettingsService
             throw new \RuntimeException('Image too large. Max 2MB.');
         }
 
-        $ext     = pathinfo($file['name'], PATHINFO_EXTENSION) ?: 'png';
-        $name    = $settingKey . '_' . time() . '.' . strtolower($ext);
-        $destDir = BASE_PATH . '/public/assets/uploads/';
+        $ext     = strtolower(pathinfo($file['name'], PATHINFO_EXTENSION) ?: 'png');
+        $name    = $settingKey . '_' . time() . '.' . $ext;
 
+        // Store inside public/assets/uploads/ so Apache can serve it directly
+        $destDir = BASE_PATH . '/public/assets/uploads/';
         if (!is_dir($destDir)) {
             mkdir($destDir, 0755, true);
         }
 
         $dest = $destDir . $name;
         if (!move_uploaded_file($file['tmp_name'], $dest)) {
-            throw new \RuntimeException('Failed to save uploaded file.');
+            throw new \RuntimeException('Failed to save uploaded file. Check directory permissions on public/assets/uploads/');
         }
 
-        // Delete old file
+        // Delete old file (stored as relative path from public/assets/)
         $old = Setting::get($settingKey, '');
-        if ($old && file_exists(BASE_PATH . '/public' . $old)) {
-            @unlink(BASE_PATH . '/public' . $old);
+        if ($old) {
+            // Support both old format (/assets/uploads/...) and new format (uploads/...)
+            $oldAbs = str_starts_with($old, '/')
+                ? BASE_PATH . '/public' . $old
+                : BASE_PATH . '/public/assets/' . $old;
+            if (file_exists($oldAbs)) {
+                @unlink($oldAbs);
+            }
         }
 
-        $path = '/assets/uploads/' . $name;
-        Setting::set($settingKey, $path);
-        return $path;
+        // Store as path relative to public/assets/ — used via View::asset()
+        // e.g. "uploads/site_logo_1234.png" → View::asset('uploads/site_logo_1234.png')
+        $relativePath = 'uploads/' . $name;
+        Setting::set($settingKey, $relativePath);
+        return $relativePath;
     }
 
     // ── Test Email ────────────────────────────────────────────────────────────
