@@ -1,0 +1,29 @@
+-- Migration 0008: Knowledge Base
+SET NAMES utf8mb4;
+SET FOREIGN_KEY_CHECKS = 0;
+
+CREATE TABLE IF NOT EXISTS kb_categories (
+  id         INT UNSIGNED  PRIMARY KEY AUTO_INCREMENT,
+  name       VARCHAR(120)  NOT NULL,
+  slug       VARCHAR(120)  NOT NULL UNIQUE,
+  sort_order INT UNSIGNED  DEFAULT 0,
+  created_at TIMESTAMP     DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS kb_articles (
+  id          INT UNSIGNED  PRIMARY KEY AUTO_INCREMENT,
+  uuid        CHAR(36)      NOT NULL UNIQUE,
+  category_id INT UNSIGNED,
+  title       VARCHAR(255)  NOT NULL,
+  slug        VARCHAR(255)  NOT NULL UNIQUE,
+  body        LONGTEXT      NOT NULL,
+  status      ENUM('draft','published') DEFAULT 'draft',
+  views       INT UNSIGNED  DEFAULT 0,
+  created_by  INT UNSIGNED  NOT NULL,
+  created_at  TIMESTAMP     DEFAULT CURRENT_TIMESTAMP,
+  updated_at  TIMESTAMP     DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (category_id) REFERENCES kb_categories(id) ON DELETE SET NULL,
+  FOREIGN KEY (created_by)  REFERENCES users(id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+SET FOREIGN_KEY_CHECKS = 1;

@@ -1,0 +1,43 @@
+# Environment
+.env
+
+# Storage (uploads, logs, cache — not committed)
+storage/logs/*
+storage/cache/*
+storage/uploads/*
+storage/certificates/*
+!storage/logs/.gitkeep
+!storage/cache/.gitkeep
+!storage/uploads/.gitkeep
+!storage/certificates/.gitkeep
+
+# Local vendor copies (downloaded via download-vendors.php)
+public/assets/vendor/bootstrap/
+public/assets/vendor/bootstrap-icons/
+public/assets/vendor/fontawesome/
+public/assets/vendor/jquery/
+public/assets/vendor/sortablejs/
+public/assets/vendor/quill/
+public/assets/vendor/chartjs/
+public/assets/vendor/plyr/
+public/assets/vendor/tom-select/
+public/assets/vendor/fullcalendar/
+
+# Uploaded assets (runtime)
+public/assets/uploads/
+
+# mPDF cache (Phase 12)
+app/Vendor/mpdf/
+
+# OS / IDE
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+.idea/
+.vscode/
+*.sublime-project
+*.sublime-workspace
+
+# PHP
+*.phar

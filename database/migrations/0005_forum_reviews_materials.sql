@@ -1,0 +1,31 @@
+-- Migration 0005: Forum threads and replies
+SET NAMES utf8mb4;
+SET FOREIGN_KEY_CHECKS = 0;
+
+CREATE TABLE IF NOT EXISTS forum_threads (
+  id          INT UNSIGNED  PRIMARY KEY AUTO_INCREMENT,
+  course_id   INT UNSIGNED  NOT NULL,
+  user_id     INT UNSIGNED  NOT NULL,
+  title       VARCHAR(255)  NOT NULL,
+  body        LONGTEXT      NOT NULL,
+  is_pinned   TINYINT(1)    DEFAULT 0,
+  is_locked   TINYINT(1)    DEFAULT 0,
+  reply_count INT UNSIGNED  DEFAULT 0,
+  created_at  TIMESTAMP     DEFAULT CURRENT_TIMESTAMP,
+  updated_at  TIMESTAMP     DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  FOREIGN KEY (course_id) REFERENCES courses(id) ON DELETE CASCADE,
+  FOREIGN KEY (user_id)   REFERENCES users(id)   ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS forum_replies (
+  id          INT UNSIGNED  PRIMARY KEY AUTO_INCREMENT,
+  thread_id   INT UNSIGNED  NOT NULL,
+  user_id     INT UNSIGNED  NOT NULL,
+  body        LONGTEXT      NOT NULL,
+  is_solution TINYINT(1)    DEFAULT 0,
+  created_at  TIMESTAMP     DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (thread_id) REFERENCES forum_threads(id) ON DELETE CASCADE,
+  FOREIGN KEY (user_id)   REFERENCES users(id)         ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+SET FOREIGN_KEY_CHECKS = 1;

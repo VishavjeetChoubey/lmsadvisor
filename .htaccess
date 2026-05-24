@@ -1,0 +1,14 @@
+Options -MultiViews -Indexes
+RewriteEngine On
+
+# ── Allow direct access to real files (CSS, JS, images, fonts) ───────────────
+# This catches /lmsadvisor-dev/public/assets/... requests
+RewriteCond %{REQUEST_FILENAME} -f
+RewriteRule ^ - [L]
+
+# ── Allow direct access to real directories ───────────────────────────────────
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+# ── Send everything else through the front controller ────────────────────────
+RewriteRule ^ index.php [L,QSA]
