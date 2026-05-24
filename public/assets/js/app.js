@@ -3,20 +3,31 @@
 
 $(function () {
 
-  // ── Sidebar toggle (mobile) ──────────────────────────────────
+  // ── Sidebar toggle (desktop + mobile) ────────────────────────────────────
+  var $sidebar = $('#studentSidebar');
+  var $main    = $('#studentMain');
+
+  // Desktop sidebar toggle (hamburger in topbar)
   $('#studentSidebarToggle').on('click', function () {
-    $('#studentSidebar').toggleClass('open');
+    $sidebar.toggleClass('collapsed');
+    $main.toggleClass('sidebar-collapsed');
   });
 
+  // Mobile sidebar toggle
+  $('#studentSidebarToggleMobile').on('click', function () {
+    $sidebar.toggleClass('open');
+  });
+
+  // Close mobile sidebar when clicking outside
   $(document).on('click', function (e) {
-    if (window.innerWidth <= 768) {
-      if (!$(e.target).closest('#studentSidebar, #studentSidebarToggle').length) {
-        $('#studentSidebar').removeClass('open');
+    if (window.innerWidth < 992) {
+      if (!$(e.target).closest('#studentSidebar, #studentSidebarToggle, #studentSidebarToggleMobile').length) {
+        $sidebar.removeClass('open');
       }
     }
   });
 
-  // ── Dark mode toggle ─────────────────────────────────────────
+  // ── Dark mode toggle ──────────────────────────────────────────────────────
   var darkMode = localStorage.getItem('lms_dark_mode') === '1';
   applyTheme(darkMode);
 
@@ -30,7 +41,7 @@ $(function () {
     document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
     $('#darkModeToggle i')
       .toggleClass('bi-moon-stars', !isDark)
-      .toggleClass('bi-sun', isDark);
+      .toggleClass('bi-sun',        isDark);
   }
 
 });

@@ -265,18 +265,148 @@ class DashboardController extends Controller
     public function profile(array $params): void
     {
         $this->guard();
-        $user      = AuthService::user();
-        $model     = new Enrollment();
-        $enrolled  = $model->forUser((int)$user['id']);
-        $points    = LeaderboardService::totalPoints((int)$user['id']);
+        $user     = AuthService::user();
+        $model    = new Enrollment();
+        $enrolled = $model->forUser((int)$user['id']);
+        $points   = LeaderboardService::totalPoints((int)$user['id']);
+
+        // Load full user row for form fields
+        $userModel = new \App\Models\User();
+        $fullUser  = $userModel->findWithRole((int)$user['id']);
 
         $this->view('student.profile.index', [
             'title'      => 'My Profile — LMSAdvisor',
             'page_title' => 'My Profile',
             'auth_user'  => $user,
+            'full_user'  => $fullUser,
             'flash'      => $this->getFlash(),
             'enrolled'   => $enrolled,
             'points'     => $points,
+            'csrf_token' => \App\Middleware\CsrfMiddleware::token(),
+        ], 'student');
+    }
+
+    // ── POST /learn/profile/update ────────────────────────────────────────────
+    public function updateProfile(array $params): void
+    {
+        $this->guard();
+        \App\Middleware\CsrfMiddleware::verify();
+
+        $user      = AuthService::user();
+        $userModel = new \App\Models\User();
+
+        $firstName = \App\Helpers\Sanitizer::string($this->request->post('first_name', ''), 80);
+        $lastName  = \App\Helpers\Sanitizer::string($this->request->post('last_name', ''), 80);
+        $email     = \App\Helpers\Sanitizer::email($this->request->post('email', ''));
+
+        $v = (new \App\Helpers\Validator())
+            ->required('first_name', $firstName, 'First name')
+            ->required('last_name',  $lastName,  'Last name')
+            ->required('email',      $email,     'Email')
+            ->email('email',         $email);
+
+        if ($v->fails()) {
+            $this->flash('error', $v->firstError());
+            $this->redirect('/learn/profile');
+        }
+
+        // Check email not taken by another user
+        $existing = $userModel->findByEmail($email);
+        if ($existing && (int)$existing['id'] !== (int)$user['id']) {
+            $this->flash('error', 'That email address is already in use.');
+            $this->redirect('/learn/profile');
+        }
+
+        $userModel->update((int)$user['id'], [
+            'first_name' => $firstName,
+            'last_name'  => $lastName,
+            'email'      => $email,
+        ]);
+
+        // Refresh session name
+        $_SESSION['user_name']  = $firstName . ' ' . $lastName;
+        $_SESSION['user_email'] = $email;
+
+        \App\Models\AuditLog::write('user.profile_update', 'user', (int)$user['id']);
+        $this->flash('success', 'Profile updated successfully.');
+        $this->redirect('/learn/profile');
+    }
+
+    // ── POST /learn/profile/change-password ───────────────────────────────────
+    public function changePassword(array $params): void
+    {
+        $this->guard();
+        \App\Middleware\CsrfMiddleware::verify();
+
+        $user      = AuthService::user();
+        $userModel = new \App\Models\User();
+        $fullUser  = $userModel->find((int)$user['id']);
+
+        $current  = $this->request->post('current_password', '');
+        $new      = $this->request->post('new_password', '');
+        $confirm  = $this->request->post('confirm_password', '');
+
+        if (!$current || !$new || !$confirm) {
+            $this->flash('error', 'All password fields are required.');
+            $this->redirect('/learn/profile');
+        }
+
+        // Verify current password
+        if (!password_verify($current, $fullUser['password_hash'] ?? '')) {
+            $this->flash('error', 'Current password is incorrect.');
+            $this->redirect('/learn/profile');
+        }
+
+        if (strlen($new) < 8) {
+            $this->flash('error', 'New password must be at least 8 characters.');
+            $this->redirect('/learn/profile');
+        }
+
+        if ($new !== $confirm) {
+            $this->flash('error', 'New passwords do not match.');
+            $this->redirect('/learn/profile');
+        }
+
+        $userModel->update((int)$user['id'], [
+            'password_hash' => password_hash($new, PASSWORD_BCRYPT, ['cost' => 12]),
+        ]);
+
+        \App\Models\AuditLog::write('user.password_change', 'user', (int)$user['id']);
+        $this->flash('success', 'Password changed successfully. Please use your new password next time you log in.');
+        $this->redirect('/learn/profile');
+    }
+
+    // ── GET /learn/certificate/:enrollmentId ──────────────────────────────────
+    public function certificate(array $params): void
+    {
+        $this->guard();
+        $user        = AuthService::user();
+        $enrollmentId = (int)($params['enrollmentId'] ?? 0);
+
+        // Load enrollment
+        $enrollModel = new Enrollment();
+        $enrollment  = $enrollModel->findById($enrollmentId);
+
+        if (!$enrollment || (int)$enrollment['user_id'] !== (int)$user['id']) {
+            $this->flash('error', 'Certificate not found.');
+            $this->redirect('/learn/courses');
+        }
+
+        if ($enrollment['status'] !== 'completed') {
+            $this->flash('error', 'You must complete the course before receiving a certificate.');
+            $this->redirect('/learn/courses');
+        }
+
+        // Load course
+        $courseModel = new \App\Models\Course();
+        $course      = $courseModel->findByUuidFull($enrollment['course_uuid']);
+
+        $this->view('student.certificate.view', [
+            'title'      => 'Certificate — ' . $enrollment['course_title'],
+            'page_title' => 'Certificate of Completion',
+            'auth_user'  => $user,
+            'enrollment' => $enrollment,
+            'course'     => $course,
         ], 'student');
     }
 }

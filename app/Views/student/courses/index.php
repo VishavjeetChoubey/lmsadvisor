@@ -121,8 +121,9 @@ $statusColors = ['active'=>'success','completed'=>'primary','suspended'=>'warnin
       <!-- Footer — START BUTTON -->
       <div class="sc-footer">
         <?php if ($isDone && $e2['certificate_enabled']): ?>
-          <a href="<?= $url('learn/profile') ?>" class="sc-btn-secondary">
-            <i class="bi bi-award me-1"></i> Certificate
+          <a href="<?= $url('learn/certificate/' . $e2['id']) ?>"
+             class="sc-btn-secondary" title="View Certificate">
+            <i class="bi bi-award-fill me-1" style="color:#e3a008"></i> Certificate
           </a>
         <?php else: ?>
           <div></div>

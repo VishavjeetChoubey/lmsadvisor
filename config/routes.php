@@ -121,3 +121,8 @@ $router->get('/learn/profile',                      'Student\DashboardController
 
 // 404
 $router->get('/404', 'ErrorController@notFound');
+
+// Student — Profile update & certificate
+$router->post('/learn/profile/update',           'Student\DashboardController@updateProfile');
+$router->post('/learn/profile/change-password',  'Student\DashboardController@changePassword');
+$router->get('/learn/certificate/:enrollmentId', 'Student\DashboardController@certificate');
