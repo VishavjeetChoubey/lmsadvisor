@@ -36,6 +36,9 @@ class App
         $router = $this->router;
         require BASE_PATH . '/config/routes.php';
 
+        // Apply rate limiting (login + API routes)
+        \App\Middleware\RateLimitMiddleware::api();
+
         // Dispatch — wrap in exception handler so errors show properly
         try {
             $this->router->dispatch($this->request, $this->response);

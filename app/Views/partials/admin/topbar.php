@@ -22,9 +22,27 @@ $firstName = explode(' ', $authUser['name'] ?? 'Admin')[0];
   <div class="topbar-title"><?= $e($page_title ?? 'Dashboard') ?></div>
   <div class="flex-grow-1"></div>
 
-  <button class="topbar-icon-btn position-relative" title="Notifications">
-    <i class="bi bi-bell"></i>
-  </button>
+  <!-- Notification bell with live unread count -->
+  <div class="dropdown">
+    <button class="topbar-icon-btn position-relative" id="notifBell" data-bs-toggle="dropdown" title="Notifications">
+      <i class="bi bi-bell"></i>
+      <span class="notif-badge d-none" id="notifBadge">0</span>
+    </button>
+    <div class="dropdown-menu dropdown-menu-end shadow" id="notifDropdown"
+         style="width:340px;max-height:420px;overflow:hidden;border-radius:14px;margin-top:8px">
+      <div class="d-flex align-items-center justify-content-between px-3 py-2 border-bottom">
+        <span class="fw-semibold" style="font-size:14px">Notifications</span>
+        <button class="btn btn-xs btn-outline-secondary" id="markAllRead" style="font-size:11px;border-radius:6px;padding:2px 8px">
+          Mark all read
+        </button>
+      </div>
+      <div id="notifList" style="max-height:340px;overflow-y:auto">
+        <div class="text-center py-4 text-muted" style="font-size:13px" id="notifEmpty">
+          <i class="bi bi-bell-slash" style="font-size:1.5rem;opacity:.3"></i><br>No notifications
+        </div>
+      </div>
+    </div>
+  </div>
 
   <div class="topbar-divider"></div>
 

@@ -179,3 +179,18 @@ $router->post('/api/v1/enrollments',             'Api\EnrollmentApiController@st
 $router->post('/api/v1/lessons/:id/complete',    'Api\LessonApiController@complete');
 $router->get('/api/v1/profile',                  'Api\ProfileApiController@show');
 $router->get('/api/v1/leaderboard',              'Api\ProfileApiController@leaderboard');
+
+// ── Phase 15: Webinars ────────────────────────────────────────────────────────
+$router->get('/admin/webinars',              'Admin\WebinarController@index');
+$router->post('/admin/webinars/create',      'Admin\WebinarController@create');
+$router->post('/admin/webinars/:uuid/cancel','Admin\WebinarController@cancel');
+$router->post('/admin/webinars/:uuid/start', 'Admin\WebinarController@start');
+
+// ── Phase 18: Notification API ────────────────────────────────────────────────
+$router->get('/api/notifications',           'Api\NotificationApiController@index');
+$router->get('/api/notifications/count',     'Api\NotificationApiController@unreadCount');
+$router->post('/api/notifications/read-all', 'Api\NotificationApiController@readAll');
+$router->post('/api/notifications/:id/read', 'Api\NotificationApiController@read');
+
+// ── Student review submission ─────────────────────────────────────────────────
+$router->post('/learn/courses/:uuid/review', 'Student\DashboardController@submitReview');

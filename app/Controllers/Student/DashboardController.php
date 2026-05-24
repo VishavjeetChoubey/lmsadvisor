@@ -155,6 +155,19 @@ class DashboardController extends Controller
             $currentIndex  = 0;
         }
 
+        // ── Drip enforcement ──────────────────────────────────────────────────
+        // If the course has drip enabled, check if this lesson is unlocked
+        $dripEnabled = (bool)(int)($course['drip_enabled'] ?? 0);
+        if ($dripEnabled && $currentLesson && (int)($currentLesson['drip_days'] ?? 0) > 0) {
+            $enrolledAt  = strtotime($enrollment['enrolled_at']);
+            $unlockAt    = $enrolledAt + ((int)$currentLesson['drip_days'] * 86400);
+            if (time() < $unlockAt) {
+                // Lesson is locked — redirect to first available lesson
+                $this->flash('error', 'This lesson unlocks on ' . date('d M Y', $unlockAt) . '. Keep progressing!');
+                $this->redirect('/learn/courses/' . ($course['uuid'] ?? '') . '/learn');
+            }
+        }
+
         $prevLesson = $allLessons[$currentIndex - 1] ?? null;
         $nextLesson = $allLessons[$currentIndex + 1] ?? null;
 
@@ -239,6 +252,10 @@ class DashboardController extends Controller
         if ($total > 0 && $done >= $total) {
             $enrollModel->updateStatus((int)$enrollment['id'], 'completed');
             $this->flash('success', '🎉 Congratulations! You have completed this course.');
+
+            // Fire completion notification + auto-issue certificate
+            \App\Services\NotificationService::onCompletion((int)$user['id'], $course['title']);
+            try { \App\Services\CertificateService::issue((int)$enrollment['id'], (int)$user['id'], (int)$course['id']); } catch (\Throwable) {}
         }
 
         // Find next lesson
@@ -259,6 +276,47 @@ class DashboardController extends Controller
 
         $redirect = '/learn/courses/' . $course['uuid'] . '/learn?lesson=' . ($nextId ?? $lessonId);
         $this->redirect($redirect);
+    }
+
+    // ── POST /learn/courses/:uuid/review ─────────────────────────────────────
+    public function submitReview(array $params): void
+    {
+        $this->guard();
+        \App\Middleware\CsrfMiddleware::verify();
+
+        $user        = AuthService::user();
+        $courseModel = new \App\Models\Course();
+        $course      = $courseModel->findByUuidFull($params['uuid'] ?? '');
+        if (!$course) { $this->json(['success'=>false,'message'=>'Course not found.']); }
+
+        $enrollModel = new Enrollment();
+        $enrollment  = $enrollModel->findEnrollment((int)$course['id'], (int)$user['id']);
+        if (!$enrollment) { $this->json(['success'=>false,'message'=>'You are not enrolled.']); }
+        if ($enrollment['status'] !== 'completed') {
+            $this->json(['success'=>false,'message'=>'Complete the course before leaving a review.']);
+        }
+
+        $rating  = min(5, max(1, (int)$this->request->post('rating', 5)));
+        $comment = \App\Helpers\Sanitizer::string($this->request->post('comment', ''), 1000);
+
+        $pdo = \App\Core\Database::getInstance();
+
+        // Check for existing review
+        $existing = $pdo->prepare('SELECT id FROM course_reviews WHERE course_id=? AND user_id=? LIMIT 1');
+        $existing->execute([$course['id'], $user['id']]);
+        if ($existing->fetch()) {
+            $this->json(['success'=>false,'message'=>'You have already reviewed this course.']);
+        }
+
+        $autoApprove = (bool)(int)\App\Models\Setting::get('reviews_auto_approve', 0);
+
+        $pdo->prepare(
+            'INSERT INTO course_reviews (course_id, user_id, rating, comment, is_approved)
+             VALUES (?,?,?,?,?)'
+        )->execute([$course['id'], $user['id'], $rating, $comment, $autoApprove ? 1 : 0]);
+
+        \App\Models\AuditLog::write('review.submit', 'course', (int)$course['id'], null, ['rating'=>$rating]);
+        $this->json(['success'=>true,'message'=>$autoApprove ? 'Review published!' : 'Review submitted and awaiting approval. Thank you!']);
     }
 
     // ── GET /learn/profile ────────────────────────────────────────────────────
