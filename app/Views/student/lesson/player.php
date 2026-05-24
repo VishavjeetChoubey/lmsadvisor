@@ -243,11 +243,258 @@ $typeColors  = ['text'=>'rgba(255,255,255,.5)','video'=>'#f87171','document'=>'#
 
         <!-- ── SCORM ── -->
         <?php elseif ($type === 'scorm'): ?>
-          <div class="lp-empty">
-            <i class="bi bi-box-seam" style="color:#38bdf8"></i>
-            <h5>SCORM Package</h5>
-            <p>SCORM player coming soon.</p>
+          <?php
+            $scormExtracted = \App\Services\ScormService::isExtracted((int)$currentLesson['id']);
+            $scormEntry     = '';
+            if ($scormExtracted) {
+              try {
+                $scormEntry = \App\Services\ScormService::findEntryPoint(
+                  STORE_PATH . '/scorm_packages/' . $currentLesson['id'] . '/',
+                  (int)$currentLesson['id']
+                );
+              } catch (\Throwable $e) { $scormEntry = ''; }
+            }
+            $scormSrc = $scormExtracted && $scormEntry
+              ? (APP_URL . '/scorm/' . $currentLesson['id'] . '/' . ltrim($scormEntry, '/'))
+              : '';
+          ?>
+
+          <?php if ($scormSrc): ?>
+          <!-- SCORM player shell -->
+          <div class="scorm-player-wrap" id="scormPlayerWrap">
+            <!-- Toolbar -->
+            <div class="scorm-toolbar">
+              <div class="d-flex align-items-center gap-2">
+                <i class="bi bi-box-seam text-info me-1"></i>
+                <span class="fw-semibold" style="font-size:13.5px"><?= $e($currentLesson['title']) ?></span>
+                <span class="badge bg-info-subtle text-info ms-1" style="font-size:11px">SCORM</span>
+              </div>
+              <div class="scorm-toolbar-right">
+                <span id="scormStatusBadge" class="badge bg-secondary" style="font-size:11.5px">Loading…</span>
+                <button class="scorm-toolbar-btn" onclick="document.getElementById('scormFrame').requestFullscreen()" title="Fullscreen content">
+                  <i class="bi bi-fullscreen"></i>
+                </button>
+                <button class="scorm-toolbar-btn" onclick="reloadScorm()" title="Restart">
+                  <i class="bi bi-arrow-clockwise"></i>
+                </button>
+              </div>
+            </div>
+            <!-- iframe -->
+            <iframe
+              id="scormFrame"
+              src="<?= $e($scormSrc) ?>"
+              class="scorm-frame"
+              allow="fullscreen"
+              allowfullscreen
+            ></iframe>
           </div>
+
+          <style>
+          .scorm-player-wrap {
+            display: flex; flex-direction: column;
+            border: 1px solid var(--border-color);
+            border-radius: 14px; overflow: hidden;
+            background: #000;
+            margin-bottom: 24px;
+            box-shadow: 0 8px 32px rgba(0,0,0,.15);
+          }
+          .scorm-toolbar {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 10px 16px;
+            background: var(--card-bg);
+            border-bottom: 1px solid var(--border-color);
+          }
+          .scorm-toolbar-right { display: flex; align-items: center; gap: 8px; }
+          .scorm-toolbar-btn {
+            width: 30px; height: 30px; border-radius: 7px;
+            border: 1px solid var(--border-color); background: transparent;
+            color: var(--text-muted); cursor: pointer; font-size: 14px;
+            display: flex; align-items: center; justify-content: center;
+            transition: all .15s;
+          }
+          .scorm-toolbar-btn:hover { background: var(--content-bg); color: var(--primary); }
+          .scorm-frame {
+            width: 100%; border: none;
+            height: 600px; min-height: 500px;
+            background: #fff;
+          }
+          .bg-info-subtle { background: #e0f7fa !important; }
+          </style>
+
+          <script>
+          (function () {
+            const LESSON_ID    = <?= (int)$currentLesson['id'] ?>;
+            const ENROLLMENT_ID= <?= (int)($enrollment['id'] ?? 0) ?>;
+            const CSRF         = document.getElementById('csrfToken')?.value || '<?= $e($csrf_token) ?>';
+            const API_URL      = '<?= APP_URL ?>/scorm/api/' + LESSON_ID;
+            const frame        = document.getElementById('scormFrame');
+            const statusBadge  = document.getElementById('scormStatusBadge');
+
+            // ── In-memory SCORM data store ──────────────────────────────────
+            let scormData = {};
+            let saveTimer = null;
+            let isCompleted = false;
+
+            // ── Status badge helper ────────────────────────────────────────
+            function setStatus(text, cls) {
+              if (!statusBadge) return;
+              statusBadge.textContent  = text;
+              statusBadge.className    = 'badge ' + cls;
+            }
+
+            // ── Persist to server ──────────────────────────────────────────
+            function persistData() {
+              fetch(API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: 'csrf_token=' + encodeURIComponent(CSRF)
+                    + '&action=save'
+                    + '&data=' + encodeURIComponent(JSON.stringify(scormData)),
+              }).then(r => r.json()).then(d => {
+                if (d.success && isCompleted) {
+                  setStatus('Completed ✓', 'bg-success');
+                }
+              }).catch(() => {});
+            }
+
+            // Load saved progress from server
+            function loadProgress() {
+              fetch(API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body: 'csrf_token=' + encodeURIComponent(CSRF) + '&action=load',
+              }).then(r => r.json()).then(d => {
+                if (d.success && d.data) scormData = d.data;
+              }).catch(() => {});
+            }
+
+            // ── SCORM 1.2 API (window.API) ────────────────────────────────
+            function makeApi12() {
+              return {
+                LMSInitialize: function () {
+                  loadProgress();
+                  setStatus('In Progress', 'bg-primary');
+                  return 'true';
+                },
+                LMSFinish: function () {
+                  persistData();
+                  return 'true';
+                },
+                LMSGetValue: function (key) {
+                  return scormData[key] !== undefined ? String(scormData[key]) : '';
+                },
+                LMSSetValue: function (key, value) {
+                  scormData[key] = value;
+                  // Track status
+                  const s = scormData['cmi.core.lesson_status'] || '';
+                  if (s === 'passed' || s === 'completed') {
+                    isCompleted = true;
+                    setStatus('Completed ✓', 'bg-success');
+                  } else if (s === 'failed') {
+                    setStatus('Failed', 'bg-danger');
+                  } else if (s === 'incomplete') {
+                    setStatus('In Progress', 'bg-warning');
+                  }
+                  // Debounced save
+                  clearTimeout(saveTimer);
+                  saveTimer = setTimeout(persistData, 5000);
+                  return 'true';
+                },
+                LMSCommit: function () { persistData(); return 'true'; },
+                LMSGetLastError:   function () { return '0'; },
+                LMSGetErrorString: function () { return ''; },
+                LMSGetDiagnostic:  function () { return ''; },
+              };
+            }
+
+            // ── SCORM 2004 API (window.API_1484_11) ───────────────────────
+            function makeApi2004() {
+              return {
+                Initialize: function () {
+                  loadProgress();
+                  setStatus('In Progress', 'bg-primary');
+                  return 'true';
+                },
+                Terminate: function () {
+                  persistData();
+                  return 'true';
+                },
+                GetValue: function (key) {
+                  return scormData[key] !== undefined ? String(scormData[key]) : '';
+                },
+                SetValue: function (key, value) {
+                  scormData[key] = value;
+                  const completion = scormData['cmi.completion_status'] || '';
+                  const success    = scormData['cmi.success_status'] || '';
+                  if (completion === 'completed' || success === 'passed') {
+                    isCompleted = true;
+                    setStatus('Completed ✓', 'bg-success');
+                  } else if (completion === 'incomplete') {
+                    setStatus('In Progress', 'bg-warning');
+                  }
+                  clearTimeout(saveTimer);
+                  saveTimer = setTimeout(persistData, 5000);
+                  return 'true';
+                },
+                Commit:           function () { persistData(); return 'true'; },
+                GetLastError:     function () { return '0'; },
+                GetErrorString:   function () { return ''; },
+                GetDiagnostic:    function () { return ''; },
+              };
+            }
+
+            // ── Inject API into iframe when it loads ─────────────────────
+            frame.addEventListener('load', function () {
+              try {
+                const w = frame.contentWindow;
+                if (!w) return;
+                // Inject both SCORM 1.2 and 2004 APIs
+                w.API         = makeApi12();
+                w.API_1484_11 = makeApi2004();
+                // Also make the frame's parent chain see our API
+                setStatus('Running', 'bg-primary');
+              } catch (e) {
+                // Cross-origin — APIs already injected via same-origin serving
+                console.warn('SCORM API injection:', e.message);
+              }
+            });
+
+            // Also inject at global level so SCORM content can find API
+            // by traversing window.parent chain
+            window.API         = makeApi12();
+            window.API_1484_11 = makeApi2004();
+
+            // ── Save before page unload ───────────────────────────────────
+            window.addEventListener('beforeunload', function () {
+              persistData();
+            });
+
+            // ── Reload helper ─────────────────────────────────────────────
+            window.reloadScorm = function () {
+              scormData = {};
+              frame.src = frame.src;
+              setStatus('Restarted', 'bg-secondary');
+            };
+
+          })();
+          </script>
+
+          <?php else: ?>
+          <!-- Package not extracted yet -->
+          <div class="lp-doc-wrap">
+            <div style="width:80px;height:80px;border-radius:20px;background:linear-gradient(135deg,#0891b2,#0e7490);display:flex;align-items:center;justify-content:center;margin:0 auto 16px;box-shadow:0 8px 24px rgba(8,145,178,.3)">
+              <i class="bi bi-box-seam" style="font-size:2.5rem;color:#fff"></i>
+            </div>
+            <h4>SCORM Package</h4>
+            <p style="color:var(--text-muted)">
+              This SCORM package is being processed. Please save the lesson again<br>
+              or contact your administrator if this persists.
+            </p>
+            <?php if ($currentLesson['file_path']): ?>
+            <p class="text-muted small">Package: <?= $e(basename($currentLesson['file_path'])) ?></p>
+            <?php endif; ?>
+          </div>
+          <?php endif; ?>
         <?php endif; ?>
 
         <!-- ── Actions bar ── -->

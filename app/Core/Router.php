@@ -32,9 +32,14 @@ class Router
 
     private function addRoute(string $method, string $path, string $handler): void
     {
-        // Convert :param segments to named regex groups
+        // Convert :param segments to named regex groups (matches single segment)
         // e.g. /admin/users/:uuid  →  /admin/users/(?P<uuid>[^/]+)
         $pattern = preg_replace('#:([a-zA-Z_]+)#', '(?P<$1>[^/]+)', $path);
+
+        // Convert *param wildcard to named regex group (matches multiple segments)
+        // e.g. /scorm/:id/*filepath  →  /scorm/(?P<id>[^/]+)/(?P<filepath>.+)
+        $pattern = preg_replace('#\*([a-zA-Z_]+)#', '(?P<$1>.+)', $pattern);
+
         $pattern = '#^' . $pattern . '$#';
 
         $this->routes[] = [

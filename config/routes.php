@@ -143,3 +143,8 @@ $router->get('/learn/courses/:uuid/forum',                      'Student\ForumCo
 $router->get('/learn/courses/:uuid/forum/threads/:id',          'Student\ForumController@thread');
 $router->post('/learn/courses/:uuid/forum/threads',             'Student\ForumController@createThread');
 $router->post('/learn/courses/:uuid/forum/threads/:id/reply',   'Student\ForumController@createReply');
+
+// SCORM file serving + API
+$router->get('/scorm/:lessonId',           'Student\ScormController@serveFile');
+$router->get('/scorm/:lessonId/*filepath',  'Student\ScormController@serveFile');
+$router->post('/scorm/api/:lessonId',     'Student\ScormController@api');

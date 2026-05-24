@@ -400,6 +400,16 @@ class CourseController extends Controller
             try {
                 if ($filePath) StorageService::delete($filePath);
                 $filePath = StorageService::upload('lesson_file', $uploadType, $subDir);
+
+                // Auto-extract SCORM packages immediately after upload
+                if ($type === 'scorm' && $filePath) {
+                    try {
+                        \App\Services\ScormService::extract($filePath, $id);
+                    } catch (\Throwable $ex) {
+                        error_log('[SCORM extract] ' . $ex->getMessage());
+                        // Don't fail the upload — extraction can be retried
+                    }
+                }
             } catch (\RuntimeException $e) {
                 $this->json(['success' => false, 'message' => $e->getMessage()]);
             }
