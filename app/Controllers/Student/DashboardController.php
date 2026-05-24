@@ -102,7 +102,158 @@ class DashboardController extends Controller
         ], 'student');
     }
 
-    // ── GET /learn/profile ────────────────────────────────────────────────────
+    // ── GET /learn/courses/:uuid/learn ────────────────────────────────────────
+    public function learn(array $params): void
+    {
+        $this->guard();
+        $user     = AuthService::user();
+        $courseModel = new \App\Models\Course();
+        $course   = $courseModel->findByUuidFull($params['uuid'] ?? '');
+
+        if (!$course) {
+            $this->flash('error', 'Course not found.');
+            $this->redirect('/learn/courses');
+        }
+
+        // Verify enrollment
+        $enrollModel  = new Enrollment();
+        $enrollment   = $enrollModel->findEnrollment((int)$course['id'], (int)$user['id']);
+        if (!$enrollment) {
+            $this->flash('error', 'You are not enrolled in this course.');
+            $this->redirect('/learn/courses');
+        }
+
+        // Load sections + lessons
+        $sections = $courseModel->sectionsWithLessons((int)$course['id']);
+
+        // Flatten all lessons for prev/next navigation
+        $allLessons = [];
+        foreach ($sections as $sec) {
+            foreach ($sec['lessons'] as $les) {
+                $allLessons[] = $les;
+            }
+        }
+
+        // Determine current lesson
+        $lessonId      = (int)$this->request->get('lesson', 0);
+        $currentLesson = null;
+        $currentIndex  = 0;
+
+        if ($lessonId) {
+            foreach ($allLessons as $i => $les) {
+                if ((int)$les['id'] === $lessonId) {
+                    $currentLesson = $les;
+                    $currentIndex  = $i;
+                    break;
+                }
+            }
+        }
+
+        // Default to first lesson
+        if (!$currentLesson && !empty($allLessons)) {
+            $currentLesson = $allLessons[0];
+            $currentIndex  = 0;
+        }
+
+        $prevLesson = $allLessons[$currentIndex - 1] ?? null;
+        $nextLesson = $allLessons[$currentIndex + 1] ?? null;
+
+        // Load lesson progress for this enrollment
+        $pdo  = \App\Core\Database::getInstance();
+        $stmt = $pdo->prepare(
+            'SELECT lesson_id, status, progress_pct FROM lesson_progress
+             WHERE enrollment_id = ?'
+        );
+        $stmt->execute([$enrollment['id']]);
+        $lessonProgress = [];
+        foreach ($stmt->fetchAll() as $row) {
+            $lessonProgress[$row['lesson_id']] = $row;
+        }
+
+        // Calculate course progress
+        $totalLessons    = count($allLessons);
+        $completedLessons = count(array_filter($lessonProgress, fn($lp) => $lp['status'] === 'completed'));
+        $courseProgress   = $totalLessons > 0 ? round($completedLessons / $totalLessons * 100) : 0;
+
+        $this->view('student.lesson.player', [
+            'title'          => ($currentLesson['title'] ?? 'Course') . ' — LMSAdvisor',
+            'page_title'     => $course['title'],
+            'auth_user'      => $user,
+            'flash'          => $this->getFlash(),
+            'course'         => $course,
+            'sections'       => $sections,
+            'currentLesson'  => $currentLesson,
+            'prevLesson'     => $prevLesson,
+            'nextLesson'     => $nextLesson,
+            'lessonProgress' => $lessonProgress,
+            'courseProgress' => $courseProgress,
+            'enrollment'     => $enrollment,
+            'csrf_token'     => \App\Middleware\CsrfMiddleware::token(),
+        ], 'student');
+    }
+
+    // ── POST /learn/courses/:uuid/complete-lesson ─────────────────────────────
+    public function completeLesson(array $params): void
+    {
+        $this->guard();
+        \App\Middleware\CsrfMiddleware::verify();
+
+        $user        = AuthService::user();
+        $courseModel = new \App\Models\Course();
+        $course      = $courseModel->findByUuidFull($params['uuid'] ?? '');
+
+        if (!$course) {
+            $this->redirect('/learn/courses');
+        }
+
+        $enrollModel = new Enrollment();
+        $enrollment  = $enrollModel->findEnrollment((int)$course['id'], (int)$user['id']);
+
+        if (!$enrollment) {
+            $this->redirect('/learn/courses');
+        }
+
+        $lessonId = (int)$this->request->post('lesson_id', 0);
+        if ($lessonId) {
+            $enrollModel->markLessonProgress((int)$enrollment['id'], $lessonId, 'completed', 100);
+        }
+
+        // Check if all lessons are complete → mark enrollment complete
+        $pdo  = \App\Core\Database::getInstance();
+        $totalStmt = $pdo->prepare('SELECT COUNT(*) FROM lessons WHERE course_id = ?');
+        $totalStmt->execute([$course['id']]);
+        $total = (int)$totalStmt->fetchColumn();
+
+        $doneStmt = $pdo->prepare(
+            'SELECT COUNT(*) FROM lesson_progress WHERE enrollment_id = ? AND status = "completed"'
+        );
+        $doneStmt->execute([$enrollment['id']]);
+        $done = (int)$doneStmt->fetchColumn();
+
+        if ($total > 0 && $done >= $total) {
+            $enrollModel->updateStatus((int)$enrollment['id'], 'completed');
+            $this->flash('success', '🎉 Congratulations! You have completed this course.');
+        }
+
+        // Find next lesson
+        $sections   = $courseModel->sectionsWithLessons((int)$course['id']);
+        $allLessons = [];
+        foreach ($sections as $sec) {
+            foreach ($sec['lessons'] as $les) {
+                $allLessons[] = $les;
+            }
+        }
+        $nextId = null;
+        foreach ($allLessons as $i => $les) {
+            if ((int)$les['id'] === $lessonId && isset($allLessons[$i + 1])) {
+                $nextId = $allLessons[$i + 1]['id'];
+                break;
+            }
+        }
+
+        $redirect = '/learn/courses/' . $course['uuid'] . '/learn?lesson=' . ($nextId ?? $lessonId);
+        $this->redirect($redirect);
+    }
     public function profile(array $params): void
     {
         $this->guard();
