@@ -50,8 +50,8 @@ $get = fn(string $k, mixed $d = '') => $c[$k] ?? $d;
 
       <div class="col-12">
         <label class="form-label fw-semibold">Full Description</label>
-        <!-- Quill editor -->
-        <div id="descriptionEditor" style="min-height:180px;border:1px solid var(--border-color);border-radius:var(--radius)"><?= $get('description') ?></div>
+        <!-- Quill editor — border/radius applied via admin.css .ql-toolbar + .ql-container -->
+        <div id="descriptionEditor"><?= $get('description') ?></div>
         <textarea name="description" id="descriptionHidden" class="d-none"><?= $e($get('description')) ?></textarea>
       </div>
 

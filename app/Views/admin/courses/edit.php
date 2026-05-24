@@ -258,8 +258,7 @@ $statusColors = ['draft'=>'secondary','published'=>'success','archived'=>'warnin
             <label class="form-label fw-semibold" id="contentLabel">Content / URL</label>
             <!-- Shown for text lessons: Quill editor -->
             <div id="lessonTextEditorWrap" style="display:none">
-              <div id="lessonTextEditor"
-                   style="min-height:160px;border:1px solid var(--border-color);border-radius:var(--radius)"></div>
+              <div id="lessonTextEditor"></div>
               <textarea id="editLesContent" class="d-none"></textarea>
             </div>
             <!-- Shown for video URL lessons -->

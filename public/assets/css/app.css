@@ -1,2 +1,23 @@
-/* Student portal uses admin.css as base — add student-specific overrides here */
+/* Student portal — extends admin.css */
 @import url("admin.css");
+
+/* ── Always show bottom nav on mobile / PWA ──────────────────────────────── */
+@media (max-width: 991px) {
+  .student-bottom-nav { display: block !important; }
+  .student-main { padding-bottom: 76px; }
+  .student-sidebar { display: none; }
+  .student-main  { margin-left: 0 !important; }
+  .student-topbar { padding-left: 16px; }
+  .student-topbar .topbar-toggle { display: none; }
+}
+@media all and (display-mode: standalone) {
+  .student-bottom-nav { display: block !important; }
+  .student-main { padding-bottom: 76px; }
+  .student-sidebar { display: none; }
+  .student-main  { margin-left: 0 !important; }
+}
+
+/* Show sidebar toggle only on large screens where sidebar exists */
+@media (min-width: 992px) {
+  .student-bottom-nav { display: none !important; }
+}
