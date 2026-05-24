@@ -209,4 +209,41 @@ class Course extends Model
             'sections'          => $sections,
         ];
     }
+
+    // ── Instructor / Manager assignment ───────────────────────────────────────
+
+    public function getAssignedUsers(int $courseId): array
+    {
+        $pdo  = \App\Core\Database::getInstance();
+        $stmt = $pdo->prepare(
+            'SELECT cm.user_id, cm.role AS cm_role,
+                    u.first_name, u.last_name, u.email, u.uuid AS user_uuid,
+                    r.display_name AS role_display
+             FROM course_managers cm
+             JOIN users u ON u.id = cm.user_id
+             JOIN roles r ON r.id = u.role_id
+             WHERE cm.course_id = ?
+             ORDER BY cm.role, u.first_name'
+        );
+        $stmt->execute([$courseId]);
+        return $stmt->fetchAll();
+    }
+
+    public function assignUser(int $courseId, int $userId, string $role = 'instructor'): void
+    {
+        $pdo = \App\Core\Database::getInstance();
+        $pdo->prepare(
+            'INSERT INTO course_managers (course_id, user_id, role)
+             VALUES (?, ?, ?)
+             ON DUPLICATE KEY UPDATE role = VALUES(role)'
+        )->execute([$courseId, $userId, $role]);
+    }
+
+    public function removeAssignedUser(int $courseId, int $userId): void
+    {
+        $pdo = \App\Core\Database::getInstance();
+        $pdo->prepare(
+            'DELETE FROM course_managers WHERE course_id = ? AND user_id = ?'
+        )->execute([$courseId, $userId]);
+    }
 }

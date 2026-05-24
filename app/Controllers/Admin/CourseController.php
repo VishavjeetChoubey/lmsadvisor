@@ -454,6 +454,47 @@ class CourseController extends Controller
         $this->json(['success' => true, 'status' => $newStatus]);
     }
 
+    // ── GET  /admin/courses/:uuid/instructors (AJAX) ──────────────────────────
+    public function getInstructors(array $params): void
+    {
+        $course = $this->getCourseOrFail($params['uuid'] ?? '');
+        $users  = $this->course->getAssignedUsers((int)$course['id']);
+        $this->json(['success' => true, 'users' => $users]);
+    }
+
+    // ── POST /admin/courses/:uuid/instructors ─────────────────────────────────
+    public function assignInstructor(array $params): void
+    {
+        CsrfMiddleware::verify();
+        $course = $this->getCourseOrFail($params['uuid'] ?? '');
+        $userId = (int)$this->request->post('user_id', 0);
+        $role   = Sanitizer::string($this->request->post('role', 'instructor'), 20);
+
+        if (!$userId) {
+            $this->json(['success' => false, 'message' => 'User ID required.']);
+        }
+        if (!in_array($role, ['instructor', 'manager'], true)) {
+            $this->json(['success' => false, 'message' => 'Invalid role.']);
+        }
+
+        $this->course->assignUser((int)$course['id'], $userId, $role);
+        AuditLog::write('course.assign_instructor', 'course', (int)$course['id'], null,
+            ['user_id' => $userId, 'role' => $role]);
+        $this->json(['success' => true]);
+    }
+
+    // ── POST /admin/courses/:uuid/instructors/remove ──────────────────────────
+    public function removeInstructor(array $params): void
+    {
+        CsrfMiddleware::verify();
+        $course = $this->getCourseOrFail($params['uuid'] ?? '');
+        $userId = (int)$this->request->post('user_id', 0);
+        $this->course->removeAssignedUser((int)$course['id'], $userId);
+        AuditLog::write('course.remove_instructor', 'course', (int)$course['id'], null,
+            ['user_id' => $userId]);
+        $this->json(['success' => true]);
+    }
+
     // ══════════════════════════════════════════════════════════════════════════
     //  HELPERS
     // ══════════════════════════════════════════════════════════════════════════

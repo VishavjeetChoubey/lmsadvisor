@@ -129,3 +129,17 @@ $router->get('/404', 'ErrorController@notFound');
 $router->post('/learn/profile/update',           'Student\DashboardController@updateProfile');
 $router->post('/learn/profile/change-password',  'Student\DashboardController@changePassword');
 $router->get('/learn/certificate/:enrollmentId', 'Student\DashboardController@certificate');
+
+// Admin — Knowledge Base
+$router->get('/admin/knowledge-base', 'Admin\KnowledgeBaseController@index');
+
+// Admin — Course instructor assignment
+$router->get('/admin/courses/:uuid/instructors',         'Admin\CourseController@getInstructors');
+$router->post('/admin/courses/:uuid/instructors',        'Admin\CourseController@assignInstructor');
+$router->post('/admin/courses/:uuid/instructors/remove', 'Admin\CourseController@removeInstructor');
+
+// Student — Forum
+$router->get('/learn/courses/:uuid/forum',                      'Student\ForumController@index');
+$router->get('/learn/courses/:uuid/forum/threads/:id',          'Student\ForumController@thread');
+$router->post('/learn/courses/:uuid/forum/threads',             'Student\ForumController@createThread');
+$router->post('/learn/courses/:uuid/forum/threads/:id/reply',   'Student\ForumController@createReply');

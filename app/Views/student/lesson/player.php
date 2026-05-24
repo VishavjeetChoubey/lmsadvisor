@@ -128,6 +128,14 @@ $typeColors  = ['text'=>'rgba(255,255,255,.5)','video'=>'#f87171','document'=>'#
       </div>
 
       <div class="lp-topbar-right">
+        <!-- Forum link (if enabled) -->
+        <?php if ($course['forum_enabled']): ?>
+        <a href="<?= $url('learn/courses/' . $course['uuid'] . '/forum') ?>"
+           class="lp-topbar-btn" title="Course Forum">
+          <i class="bi bi-chat-dots"></i>
+        </a>
+        <?php endif; ?>
+
         <!-- Prev lesson -->
         <?php if ($prevLesson): ?>
         <a href="<?= $url('learn/courses/' . $course['uuid'] . '/learn?lesson=' . $prevLesson['id']) ?>"
