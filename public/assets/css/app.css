@@ -1,23 +1,185 @@
-/* Student portal — extends admin.css */
+/* Student Portal — Premium Top-Nav Layout */
 @import url("admin.css");
 
-/* ── Always show bottom nav on mobile / PWA ──────────────────────────────── */
-@media (max-width: 991px) {
-  .student-bottom-nav { display: block !important; }
-  .student-main { padding-bottom: 76px; }
-  .student-sidebar { display: none; }
-  .student-main  { margin-left: 0 !important; }
-  .student-topbar { padding-left: 16px; }
-  .student-topbar .topbar-toggle { display: none; }
-}
-@media all and (display-mode: standalone) {
-  .student-bottom-nav { display: block !important; }
-  .student-main { padding-bottom: 76px; }
-  .student-sidebar { display: none; }
-  .student-main  { margin-left: 0 !important; }
+/* ── Reset student layout for top-nav ─────────────────────────────────────── */
+.student-body {
+  font-family: var(--font);
+  background: var(--content-bg);
+  min-height: 100vh;
+  padding-top: 60px; /* topnav height */
+  padding-bottom: 0;
 }
 
-/* Show sidebar toggle only on large screens where sidebar exists */
-@media (min-width: 992px) {
-  .student-bottom-nav { display: none !important; }
+/* ── TOP NAVIGATION ────────────────────────────────────────────────────────── */
+.student-topnav {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: 60px;
+  background: var(--card-bg);
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  align-items: center;
+  padding: 0 20px;
+  gap: 16px;
+  z-index: 1000;
+  box-shadow: 0 1px 8px rgba(0,0,0,.06);
 }
+.topnav-left { display: flex; align-items: center; gap: 12px; }
+.topnav-brand {
+  display: flex; align-items: center; gap: 10px;
+  text-decoration: none !important;
+}
+.topnav-logo {
+  width: 34px; height: 34px; border-radius: 10px;
+  background: linear-gradient(135deg,#6366f1,#1a56db);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+.topnav-logo i { font-size: 15px; color: #fff; }
+.topnav-brand-name { font-weight: 800; font-size: 16px; color: var(--text-primary); }
+.topnav-divider { width: 1px; height: 20px; background: var(--border-color); }
+.topnav-page-title { font-size: 14px; font-weight: 500; color: var(--text-muted); }
+
+/* Nav links */
+.topnav-links { display: flex; align-items: center; gap: 2px; margin: 0 8px; }
+.topnav-link {
+  display: flex; align-items: center; gap: 7px;
+  padding: 7px 14px;
+  border-radius: 8px;
+  font-size: 13.5px; font-weight: 500;
+  color: var(--text-muted);
+  text-decoration: none !important;
+  transition: background .15s, color .15s;
+}
+.topnav-link:hover { background: var(--content-bg); color: var(--text-primary); }
+.topnav-link.active { background: #ebf2ff; color: #6366f1; font-weight: 600; }
+.topnav-link i { font-size: 15px; }
+
+/* Right side */
+.topnav-right { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+.topnav-icon-btn {
+  width: 34px; height: 34px; border-radius: 8px;
+  border: none; background: transparent;
+  color: var(--text-muted); display: flex; align-items: center;
+  justify-content: center; cursor: pointer; font-size: 16px;
+  transition: background .15s, color .15s;
+}
+.topnav-icon-btn:hover { background: var(--content-bg); color: var(--text-primary); }
+
+.topnav-user-btn {
+  display: flex; align-items: center; gap: 8px;
+  padding: 5px 10px 5px 5px;
+  border-radius: 24px;
+  border: 1px solid var(--border-color);
+  background: var(--card-bg);
+  cursor: pointer; font-size: 13.5px; font-weight: 600;
+  color: var(--text-primary);
+  transition: border-color .15s;
+}
+.topnav-user-btn:hover { border-color: #6366f1; }
+.topnav-user-btn::after { display: none; } /* hide BS caret */
+.topnav-avatar {
+  width: 28px; height: 28px; border-radius: 50%;
+  background: linear-gradient(135deg,#6366f1,#1a56db);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 700; color: #fff; flex-shrink: 0;
+}
+
+/* ── MAIN CONTENT AREA ─────────────────────────────────────────────────────── */
+.student-main-content {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 28px 24px 80px;
+}
+
+/* Full-width pages (lesson player) override */
+.student-main-content.full-width {
+  max-width: 100%;
+  padding: 0;
+}
+
+/* ── BOTTOM NAV (mobile / PWA) ─────────────────────────────────────────────── */
+.student-bottom-nav {
+  display: none;
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  z-index: 1100;
+  background: var(--card-bg);
+  border-top: 1px solid var(--border-color);
+  box-shadow: 0 -4px 20px rgba(0,0,0,.08);
+  height: 64px;
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+.student-bottom-nav .nav-items { display: flex; height: 100%; }
+.nav-item-btn {
+  flex: 1;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 3px;
+  color: var(--text-muted);
+  text-decoration: none;
+  font-size: 10.5px; font-weight: 500;
+  border: none; background: none; cursor: pointer;
+  transition: color .15s;
+  position: relative;
+}
+.nav-item-btn i { font-size: 20px; line-height: 1; }
+.nav-item-btn.active { color: #6366f1; }
+.nav-item-btn.active::before {
+  content: '';
+  position: absolute; top: 0; left: 50%;
+  transform: translateX(-50%);
+  width: 32px; height: 3px;
+  background: #6366f1;
+  border-radius: 0 0 4px 4px;
+}
+
+@media (max-width: 991px) {
+  .student-bottom-nav { display: block; }
+  .student-main-content { padding-bottom: 80px; }
+  .topnav-links { display: none !important; }
+}
+@media all and (display-mode: standalone) {
+  .student-bottom-nav { display: block; }
+  .student-main-content { padding-bottom: 80px; }
+}
+
+/* ── STUDENT STAT CARDS ─────────────────────────────────────────────────────── */
+.student-stat-card {
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 16px;
+  padding: 20px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  transition: box-shadow .2s, transform .2s;
+}
+.student-stat-card:hover { box-shadow: 0 4px 20px rgba(0,0,0,.08); transform: translateY(-2px); }
+.student-stat-icon { font-size: 2rem; line-height: 1; }
+.student-stat-value { font-size: 26px; font-weight: 800; color: var(--text-primary); line-height: 1; }
+.student-stat-label { font-size: 12px; color: var(--text-muted); margin-top: 3px; font-weight: 500; }
+
+/* ── LESSON PLAYER — integrates into top-nav layout ─────────────────────────── */
+/* Player shell takes full viewport below topnav */
+.lp-shell {
+  display: flex;
+  height: calc(100vh - 60px);
+  overflow: hidden;
+  background: var(--content-bg);
+}
+/* Override main content padding for player */
+.student-body.player-page .student-main-content {
+  padding: 0;
+  max-width: 100%;
+}
+
+/* Dark theme */
+[data-theme="dark"] .student-topnav { background: #0f172a; border-color: rgba(255,255,255,.08); }
+[data-theme="dark"] .topnav-brand-name { color: #fff; }
+[data-theme="dark"] .topnav-link { color: rgba(255,255,255,.5); }
+[data-theme="dark"] .topnav-link:hover { background: rgba(255,255,255,.06); color: #fff; }
+[data-theme="dark"] .topnav-link.active { background: rgba(99,102,241,.2); color: #818cf8; }
+[data-theme="dark"] .topnav-user-btn { background: #1e293b; border-color: rgba(255,255,255,.1); color: #fff; }
+[data-theme="dark"] .student-main-content { background: #0f172a; }
+[data-theme="dark"] .student-bottom-nav { background: #0f172a; border-color: rgba(255,255,255,.08); }

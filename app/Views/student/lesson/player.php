@@ -290,9 +290,8 @@ $typeColors  = ['text'=>'rgba(255,255,255,.5)','video'=>'#f87171','document'=>'#
 ══════════════════════════════════════════════════════════ */
 .lp-shell {
   display: flex;
-  height: calc(100vh - 60px); /* 60px = student topbar */
+  height: calc(100vh - 60px); /* 60px = student topnav */
   overflow: hidden;
-  margin: -24px -20px 0; /* undo student-content padding */
   background: var(--content-bg);
 }
 
@@ -698,32 +697,38 @@ document.addEventListener('click', function (e) {
 const fsBtn  = document.getElementById('lpFullscreenBtn');
 const fsIcon = document.getElementById('lpFsIcon');
 
-fsBtn.addEventListener('click', function () {
-  const isFs = lpShell.classList.contains('fullscreen');
+function enterFullscreen() {
+  document.querySelector('.student-topnav')?.style.setProperty('display','none');
+  document.getElementById('bottomNav')?.style.setProperty('display','none');
+  document.querySelector('.student-body')?.style.setProperty('padding-top','0');
+  lpShell.style.height = '100vh';
+  lpShell.classList.add('fullscreen');
+  fsIcon.className = 'bi bi-fullscreen-exit';
+  sessionStorage.setItem('lp_fullscreen', '1');
+}
 
-  if (!isFs) {
-    // Enter fullscreen — hide student topbar + bottom nav
-    document.querySelector('.student-topbar')?.style.setProperty('display','none');
-    document.getElementById('bottomNav')?.style.setProperty('display','none');
-    lpShell.style.height = '100vh';
-    lpShell.style.marginTop = '0';
-    lpShell.classList.add('fullscreen');
-    fsIcon.className = 'bi bi-fullscreen-exit';
-  } else {
-    // Exit fullscreen
-    document.querySelector('.student-topbar')?.style.removeProperty('display');
-    document.getElementById('bottomNav')?.style.removeProperty('display');
-    lpShell.style.height = '';
-    lpShell.style.marginTop = '';
-    lpShell.classList.remove('fullscreen');
-    fsIcon.className = 'bi bi-fullscreen';
-  }
+function exitFullscreen() {
+  document.querySelector('.student-topnav')?.style.removeProperty('display');
+  document.getElementById('bottomNav')?.style.removeProperty('display');
+  document.querySelector('.student-body')?.style.removeProperty('padding-top');
+  lpShell.style.height = '';
+  lpShell.classList.remove('fullscreen');
+  fsIcon.className = 'bi bi-fullscreen';
+  sessionStorage.removeItem('lp_fullscreen');
+}
+
+// Restore fullscreen state on page load
+if (sessionStorage.getItem('lp_fullscreen') === '1') {
+  // Small delay so DOM is ready
+  setTimeout(enterFullscreen, 50);
+}
+
+fsBtn.addEventListener('click', function () {
+  lpShell.classList.contains('fullscreen') ? exitFullscreen() : enterFullscreen();
 });
 
-// Also support Escape key to exit fullscreen
+// Escape key exits
 document.addEventListener('keydown', function (e) {
-  if (e.key === 'Escape' && lpShell.classList.contains('fullscreen')) {
-    fsBtn.click();
-  }
+  if (e.key === 'Escape' && lpShell.classList.contains('fullscreen')) exitFullscreen();
 });
 </script>
