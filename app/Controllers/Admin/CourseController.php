@@ -183,6 +183,79 @@ class CourseController extends Controller
         $this->json(['success' => true]);
     }
 
+    // ── POST /admin/courses/ai-generate — AI course generation ────────────────
+    public function aiGenerate(array $params): void
+    {
+        CsrfMiddleware::verify();
+        try {
+            $result = \App\Services\AiCourseService::generate([
+                'topic'              => Sanitizer::string($this->request->post('topic', ''), 200),
+                'level'              => Sanitizer::string($this->request->post('level', 'beginner'), 20),
+                'num_sections'       => (int)$this->request->post('num_sections', 5),
+                'num_lessons'        => (int)$this->request->post('num_lessons', 3),
+                'language'           => Sanitizer::string($this->request->post('language', 'English'), 50),
+                'extra_instructions' => Sanitizer::string($this->request->post('extra_instructions', ''), 500),
+            ]);
+            $this->json(['success' => true, 'course' => $result]);
+        } catch (\Throwable $e) {
+            $this->json(['success' => false, 'message' => $e->getMessage()]);
+        }
+    }
+
+    // ── POST /admin/courses/ai-save — Save AI-generated course ────────────────
+    public function aiSave(array $params): void
+    {
+        CsrfMiddleware::verify();
+        $user   = \App\Services\AuthService::user();
+        $data   = json_decode($this->request->post('course_data', '{}'), true);
+
+        if (!$data || empty($data['title'])) {
+            $this->json(['success' => false, 'message' => 'Invalid course data.']);
+        }
+
+        // Create the course
+        $courseId = $this->course->create([
+            'title'             => Sanitizer::string($data['title'], 255),
+            'short_description' => Sanitizer::string($data['short_description'] ?? '', 500),
+            'description'       => $data['description'] ?? '',
+            'level'             => $data['level'] ?? 'beginner',
+            'language'          => $data['language'] ?? 'English',
+            'duration_hours'    => (float)($data['duration_hours'] ?? 0),
+            'grade_points'      => (int)($data['grade_points'] ?? 0),
+            'status'            => 'draft',
+            'created_by'        => (int)$user['id'],
+        ]);
+
+        $courseRow = $this->course->find($courseId);
+
+        // Create sections + lessons
+        $secOrder = 0;
+        foreach ($data['sections'] ?? [] as $secData) {
+            $sectionId = $this->section->create([
+                'course_id'   => $courseId,
+                'title'       => Sanitizer::string($secData['title'], 255),
+                'description' => Sanitizer::string($secData['description'] ?? '', 500),
+                'sort_order'  => ++$secOrder,
+            ]);
+            $lesOrder = 0;
+            foreach ($secData['lessons'] ?? [] as $lesData) {
+                $this->lesson->create([
+                    'course_id'    => $courseId,
+                    'section_id'   => $sectionId,
+                    'title'        => Sanitizer::string($lesData['title'], 255),
+                    'type'         => $lesData['type'] ?? 'text',
+                    'content'      => '<p>' . htmlspecialchars($lesData['description'] ?? '', ENT_QUOTES) . '</p>',
+                    'duration_sec' => (int)($lesData['duration_sec'] ?? 600),
+                    'sort_order'   => ++$lesOrder,
+                    'is_mandatory' => 1,
+                ]);
+            }
+        }
+
+        AuditLog::write('course.ai_generate', 'course', $courseId, null, ['title' => $courseRow['title']]);
+        $this->json(['success' => true, 'uuid' => $courseRow['uuid']]);
+    }
+
     // ── GET /admin/courses/:uuid/preview ──────────────────────────────────────
     public function preview(array $params): void
     {

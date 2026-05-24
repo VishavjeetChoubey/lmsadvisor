@@ -148,3 +148,34 @@ $router->post('/learn/courses/:uuid/forum/threads/:id/reply',   'Student\ForumCo
 $router->get('/scorm/:lessonId',           'Student\ScormController@serveFile');
 $router->get('/scorm/:lessonId/*filepath',  'Student\ScormController@serveFile');
 $router->post('/scorm/api/:lessonId',     'Student\ScormController@api');
+
+// ── Phase 12: Certificate ─────────────────────────────────────────────────────
+$router->get('/certificate/verify',      'Student\CertificateController@verify');
+$router->get('/certificate/verify/:uuid','Student\CertificateController@verify');
+$router->get('/learn/certificate/:enrollmentId', 'Student\CertificateController@view');
+
+// ── Phase 14: AI Course Generation ───────────────────────────────────────────
+$router->post('/admin/courses/ai-generate', 'Admin\CourseController@aiGenerate');
+$router->post('/admin/courses/ai-save',     'Admin\CourseController@aiSave');
+
+// ── Phase 16: Knowledge Base full CRUD ───────────────────────────────────────
+$router->get('/admin/knowledge-base/create',         'Admin\KnowledgeBaseController@create');
+$router->post('/admin/knowledge-base/create',        'Admin\KnowledgeBaseController@store');
+$router->get('/admin/knowledge-base/categories',     'Admin\KnowledgeBaseController@categories');
+$router->post('/admin/knowledge-base/categories',    'Admin\KnowledgeBaseController@categories');
+$router->get('/admin/knowledge-base/:uuid/edit',     'Admin\KnowledgeBaseController@edit');
+$router->post('/admin/knowledge-base/:uuid/edit',    'Admin\KnowledgeBaseController@update');
+$router->post('/admin/knowledge-base/:uuid/delete',  'Admin\KnowledgeBaseController@delete');
+
+// ── Phase 17: REST API ────────────────────────────────────────────────────────
+$router->get('/api/v1/health',                   'Api\ProfileApiController@health');
+$router->post('/api/v1/auth/token',              'Api\AuthController@token');
+$router->delete('/api/v1/auth/token',            'Api\AuthController@revoke');
+$router->get('/api/v1/courses',                  'Api\CourseApiController@index');
+$router->get('/api/v1/courses/:uuid',            'Api\CourseApiController@show');
+$router->get('/api/v1/courses/:uuid/progress',   'Api\CourseApiController@progress');
+$router->get('/api/v1/enrollments',              'Api\EnrollmentApiController@index');
+$router->post('/api/v1/enrollments',             'Api\EnrollmentApiController@store');
+$router->post('/api/v1/lessons/:id/complete',    'Api\LessonApiController@complete');
+$router->get('/api/v1/profile',                  'Api\ProfileApiController@show');
+$router->get('/api/v1/leaderboard',              'Api\ProfileApiController@leaderboard');
