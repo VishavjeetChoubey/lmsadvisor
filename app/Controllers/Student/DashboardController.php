@@ -139,7 +139,7 @@ class DashboardController extends Controller
 
         // Reviews
         $reviews = $pdo->prepare(
-            'SELECT cr.rating, cr.comment, cr.created_at, u.first_name, u.last_name
+            'SELECT cr.rating, cr.review AS comment, cr.created_at, u.first_name, u.last_name
              FROM course_reviews cr JOIN users u ON u.id=cr.user_id
              WHERE cr.course_id=? AND cr.is_approved=1
              ORDER BY cr.created_at DESC LIMIT 5'
@@ -411,7 +411,7 @@ class DashboardController extends Controller
         }
 
         $rating  = min(5, max(1, (int)$this->request->post('rating', 5)));
-        $comment = \App\Helpers\Sanitizer::string($this->request->post('comment', ''), 1000);
+        $comment = \App\Helpers\Sanitizer::string($this->request->post('review', ''), 1000);
 
         $pdo = \App\Core\Database::getInstance();
 
@@ -425,7 +425,7 @@ class DashboardController extends Controller
         $autoApprove = (bool)(int)\App\Models\Setting::get('reviews_auto_approve', 0);
 
         $pdo->prepare(
-            'INSERT INTO course_reviews (course_id, user_id, rating, comment, is_approved)
+            'INSERT INTO course_reviews (course_id, user_id, rating, review, is_approved)
              VALUES (?,?,?,?,?)'
         )->execute([$course['id'], $user['id'], $rating, $comment, $autoApprove ? 1 : 0]);
 
