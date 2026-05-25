@@ -188,6 +188,10 @@ class CourseController extends Controller
     {
         CsrfMiddleware::verify();
         try {
+            $contentTypes = $this->request->post('content_types', []);
+            if (!is_array($contentTypes) || empty($contentTypes)) {
+                $contentTypes = ['text', 'video', 'quiz'];
+            }
             $result = \App\Services\AiCourseService::generate([
                 'topic'              => Sanitizer::string($this->request->post('topic', ''), 200),
                 'level'              => Sanitizer::string($this->request->post('level', 'beginner'), 20),
@@ -195,6 +199,7 @@ class CourseController extends Controller
                 'num_lessons'        => (int)$this->request->post('num_lessons', 3),
                 'language'           => Sanitizer::string($this->request->post('language', 'English'), 50),
                 'extra_instructions' => Sanitizer::string($this->request->post('extra_instructions', ''), 500),
+                'content_types'      => array_map(fn($t) => Sanitizer::string($t, 20), $contentTypes),
             ]);
             $this->json(['success' => true, 'course' => $result]);
         } catch (\Throwable $e) {
@@ -242,17 +247,82 @@ class CourseController extends Controller
             ]);
             $lesOrder = 0;
             foreach ($secData['lessons'] ?? [] as $lesData) {
-                $this->lesson->create([
+                $type    = $lesData['type'] ?? 'text';
+                $content = '';
+
+                if ($type === 'text') {
+                    // Use rich HTML content if AI generated it, else build from description
+                    $content = !empty($lesData['content'])
+                        ? $lesData['content']
+                        : '<h2>' . htmlspecialchars($lesData['title'] ?? '', ENT_QUOTES) . '</h2>'
+                          . '<p>' . htmlspecialchars($lesData['description'] ?? '', ENT_QUOTES) . '</p>';
+                } elseif ($type === 'video') {
+                    $content = $lesData['video_topic'] ?? $lesData['description'] ?? '';
+                } elseif ($type === 'quiz') {
+                    $content = $lesData['description'] ?? '';
+                }
+
+                $lessonId = $this->lesson->create([
                     'uuid'         => \App\Helpers\Uuid::v4(),
                     'course_id'    => $courseId,
                     'section_id'   => $sectionId,
                     'title'        => Sanitizer::string($lesData['title'], 255),
-                    'type'         => $lesData['type'] ?? 'text',
-                    'content'      => '<p>' . htmlspecialchars($lesData['description'] ?? '', ENT_QUOTES) . '</p>',
+                    'type'         => $type,
+                    'content'      => $content,
                     'duration_sec' => (int)($lesData['duration_sec'] ?? 600),
                     'sort_order'   => ++$lesOrder,
                     'is_mandatory' => 1,
                 ]);
+
+                // ── Save quiz questions ────────────────────────────────────────
+                if ($type === 'quiz' && !empty($lesData['questions'])) {
+                    $pdo = \App\Core\Database::getInstance();
+
+                    // Create the quiz record first
+                    $pdo->prepare(
+                        'INSERT INTO quizzes (lesson_id, title, time_limit_sec, pass_percentage, max_attempts)
+                         VALUES (?,?,?,?,?)'
+                    )->execute([
+                        $lessonId,
+                        Sanitizer::string($lesData['title'], 255),
+                        (int)($lesData['duration_sec'] ?? 600),
+                        70, // default pass %
+                        3,  // default max attempts
+                    ]);
+                    $quizId = (int)$pdo->lastInsertId();
+
+                    $qOrder = 0;
+                    foreach ($lesData['questions'] as $qData) {
+                        $options  = array_values($qData['options'] ?? []);
+                        $correct  = (int)($qData['correct_index'] ?? 0);
+
+                        // Insert question
+                        $pdo->prepare(
+                            'INSERT INTO questions (quiz_id, question_text, type, explanation, sort_order)
+                             VALUES (?,?,?,?,?)'
+                        )->execute([
+                            $quizId,
+                            $qData['question'] ?? '',
+                            'mcq',
+                            $qData['explanation'] ?? '',
+                            ++$qOrder,
+                        ]);
+                        $questionId = (int)$pdo->lastInsertId();
+
+                        // Insert options
+                        foreach ($options as $i => $optText) {
+                            $pdo->prepare(
+                                'INSERT INTO question_options (question_id, option_text, is_correct, sort_order)
+                                 VALUES (?,?,?,?)'
+                            )->execute([
+                                $questionId,
+                                $optText,
+                                $i === $correct ? 1 : 0,
+                                $i + 1,
+                            ]);
+                        }
+                    }
+                }
             }
         }
 
