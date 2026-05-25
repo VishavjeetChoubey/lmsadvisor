@@ -194,3 +194,34 @@ $router->post('/api/notifications/:id/read', 'Api\NotificationApiController@read
 
 // ── Student review submission ─────────────────────────────────────────────────
 $router->post('/learn/courses/:uuid/review', 'Student\DashboardController@submitReview');
+
+// ── Admin API Management ──────────────────────────────────────────────────────
+$router->get('/admin/api',                      'Admin\ApiController@index');
+$router->get('/admin/api/docs',                 'Admin\ApiController@docs');
+$router->post('/admin/api/tokens/create',       'Admin\ApiController@createToken');
+$router->post('/admin/api/tokens/:id/revoke',   'Admin\ApiController@revokeToken');
+$router->post('/admin/api/tokens/:id/rotate',   'Admin\ApiController@rotateToken');
+
+// ── Full REST API v1 ──────────────────────────────────────────────────────────
+// Users
+$router->get('/api/v1/users',                            'Api\UserApiController@index');
+$router->get('/api/v1/users/:uuid',                      'Api\UserApiController@show');
+// Quizzes
+$router->get('/api/v1/courses/:uuid/quizzes',            'Api\QuizApiController@index');
+$router->get('/api/v1/quizzes/:id/results',              'Api\QuizApiController@results');
+// Forum
+$router->get('/api/v1/courses/:uuid/forum/threads',      'Api\ForumApiController@threads');
+$router->post('/api/v1/courses/:uuid/forum/threads',     'Api\ForumApiController@createThread');
+$router->get('/api/v1/forum/threads/:id',                'Api\ForumApiController@thread');
+// Reviews
+$router->get('/api/v1/courses/:uuid/reviews',            'Api\ReviewApiController@index');
+$router->post('/api/v1/courses/:uuid/reviews',           'Api\ReviewApiController@store');
+// Knowledge Base
+$router->get('/api/v1/kb/articles',                      'Api\KbApiController@index');
+$router->get('/api/v1/kb/articles/:uuid',                'Api\KbApiController@show');
+// Webinars
+$router->get('/api/v1/webinars',                         'Api\WebinarApiController@index');
+$router->get('/api/v1/webinars/:uuid',                   'Api\WebinarApiController@show');
+// Certificates
+$router->get('/api/v1/certificates',                     'Api\CertificateApiController@index');
+$router->get('/api/v1/certificates/:uuid/verify',        'Api\CertificateApiController@verify');

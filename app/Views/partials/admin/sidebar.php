@@ -62,6 +62,9 @@ $isActive = fn(string $seg): string => str_contains($path, $seg) ? 'active' : ''
     </a>
 
     <div class="nav-group-label">SYSTEM</div>
+    <a href="<?= $url('admin/api') ?>" class="nav-item <?= $isActive('/admin/api') ?>">
+      <i class="bi bi-braces-asterisk"></i><span>API Management</span>
+    </a>
     <a href="<?= $url('admin/settings') ?>" class="nav-item <?= $isActive('/admin/settings') ?>">
       <i class="bi bi-gear"></i><span>Settings</span>
     </a>
