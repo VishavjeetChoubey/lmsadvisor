@@ -225,3 +225,6 @@ $router->get('/api/v1/webinars/:uuid',                   'Api\WebinarApiControll
 // Certificates
 $router->get('/api/v1/certificates',                     'Api\CertificateApiController@index');
 $router->get('/api/v1/certificates/:uuid/verify',        'Api\CertificateApiController@verify');
+
+// Student — Course detail page
+$router->get('/learn/courses/:uuid', 'Student\DashboardController@courseDetail');

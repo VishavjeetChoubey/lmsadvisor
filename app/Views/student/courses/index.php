@@ -129,7 +129,12 @@ $statusColors = ['active'=>'success','completed'=>'primary','suspended'=>'warnin
           <div></div>
         <?php endif; ?>
 
-        <a href="<?= $url('learn/courses/' . $e2['course_uuid'] . '/learn') ?>"
+        <?php
+          $courseActionUrl = ($pct === 0 && !$isDone)
+            ? $url('learn/courses/' . $e2['course_uuid'])            // Start → detail page
+            : $url('learn/courses/' . $e2['course_uuid'] . '/learn'); // Resume/View → player
+        ?>
+        <a href="<?= $courseActionUrl ?>"
            class="sc-btn-start <?= $isDone ? 'done' : '' ?>">
           <i class="bi <?= $btnIcon ?>"></i>
           <?= $btnLabel ?>

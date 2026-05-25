@@ -57,7 +57,7 @@ if (!empty($inProgress)):
         <span style="font-size:13px;color:var(--text-muted)"><?= $pct ?>% complete</span>
       </div>
     </div>
-    <a href="<?= $url('learn/courses') ?>"
+    <a href="<?= $url('learn/courses/' . ($latest['course_uuid'] ?? '') . '/learn') ?>"
        class="btn-start-course">
       <i class="bi bi-play-fill"></i> Resume Course
     </a>
@@ -131,7 +131,7 @@ if (!empty($inProgress)):
                 style="font-size:11px;border-radius:20px;padding:3px 10px">
             <?= ucfirst($e($e2['status'])) ?>
           </span>
-          <a href="<?= $url('learn/courses') ?>" class="<?= $btnClass ?>">
+          <a href="<?= $url('learn/courses/' . $e2['course_uuid'] . '/learn') ?>" class="<?= $btnClass ?>">
             <i class="bi <?= $btnIcon ?>"></i>
             <?= $btnLabel ?>
           </a>

@@ -338,3 +338,43 @@
 [data-theme="dark"] .st-user-btn { background: #1e293b; border-color: rgba(255,255,255,.1); color: #fff; }
 [data-theme="dark"] .st-bottom-nav { background: #0f172a; border-color: rgba(255,255,255,.07); }
 [data-theme="dark"] .st-content { background: #0f172a; }
+
+/* ── Fix top nav flicker + content width stability ─────────────────────────
+   The topnav must NOT shift width when sidebar collapses.
+   Use will-change to prevent repaints causing flicker.
+──────────────────────────────────────────────────────────────────────────── */
+.st-topbar {
+  will-change: auto;
+  contain: layout style;
+}
+
+/* Desktop: topbar width fills the st-main (already correct),
+   but we need to prevent it from causing a layout shift */
+@media (min-width: 992px) {
+  .st-sidebar {
+    will-change: width;
+    contain: layout style paint;
+  }
+  .st-main {
+    will-change: margin-left;
+    contain: layout;
+  }
+  /* Prevent topnav from being narrower than content during transition */
+  .student-body:not(.player-mode) .st-topbar {
+    position: sticky;
+    top: 0;
+    width: 100%;
+    min-width: 0;
+  }
+}
+
+/* Course content area: fixed scrollbar gutter prevents layout shift */
+.st-content {
+  overflow-y: scroll; /* always show scrollbar gutter to prevent reflow */
+  scrollbar-gutter: stable;
+}
+
+/* Lesson player: no overflow needed */
+.player-mode .st-content {
+  overflow: hidden;
+}

@@ -102,6 +102,109 @@ class DashboardController extends Controller
         ], 'student');
     }
 
+    // ── GET /learn/courses/:uuid — Course detail page ─────────────────────────
+    public function courseDetail(array $params): void
+    {
+        $this->guard();
+        $user        = AuthService::user();
+        $courseModel = new \App\Models\Course();
+        $course      = $courseModel->findByUuidFull($params['uuid'] ?? '');
+
+        if (!$course) {
+            $this->flash('error', 'Course not found.');
+            $this->redirect('/learn/courses');
+        }
+
+        $enrollModel = new Enrollment();
+        $enrollment  = $enrollModel->findEnrollment((int)$course['id'], (int)$user['id']);
+
+        if (!$enrollment) {
+            $this->flash('error', 'You are not enrolled in this course.');
+            $this->redirect('/learn/courses');
+        }
+
+        // Load sections + lessons for outline
+        $sections = $courseModel->sectionsWithLessons((int)$course['id']);
+
+        // Count progress
+        $pdo = \App\Core\Database::getInstance();
+        $prog = $pdo->prepare(
+            'SELECT lesson_id, status FROM lesson_progress WHERE enrollment_id=?'
+        );
+        $prog->execute([$enrollment['id']]);
+        $lessonProgress = [];
+        foreach ($prog->fetchAll() as $row) {
+            $lessonProgress[$row['lesson_id']] = $row['status'];
+        }
+
+        // Reviews
+        $reviews = $pdo->prepare(
+            'SELECT cr.rating, cr.comment, cr.created_at, u.first_name, u.last_name
+             FROM course_reviews cr JOIN users u ON u.id=cr.user_id
+             WHERE cr.course_id=? AND cr.is_approved=1
+             ORDER BY cr.created_at DESC LIMIT 5'
+        );
+        $reviews->execute([$course['id']]);
+        $reviewList = $reviews->fetchAll();
+
+        $avgRating = $pdo->prepare(
+            'SELECT ROUND(AVG(rating),1), COUNT(*) FROM course_reviews WHERE course_id=? AND is_approved=1'
+        );
+        $avgRating->execute([$course['id']]);
+        [$avgRat, $reviewCount] = $avgRating->fetch(\PDO::FETCH_NUM);
+
+        // Instructors
+        $instrStmt = $pdo->prepare(
+            'SELECT u.first_name, u.last_name, u.email, cm.role AS cm_role
+             FROM course_managers cm JOIN users u ON u.id=cm.user_id
+             WHERE cm.course_id=?'
+        );
+        $instrStmt->execute([$course['id']]);
+        $instructors = $instrStmt->fetchAll();
+
+        // Find first incomplete lesson for resume URL
+        $allLessons = [];
+        foreach ($sections as $sec) {
+            foreach ($sec['lessons'] as $les) {
+                $allLessons[] = $les;
+            }
+        }
+        $resumeLessonId = null;
+        foreach ($allLessons as $les) {
+            if (($lessonProgress[$les['id']] ?? '') !== 'completed') {
+                $resumeLessonId = $les['id'];
+                break;
+            }
+        }
+        // If all complete, go to last lesson
+        if (!$resumeLessonId && !empty($allLessons)) {
+            $resumeLessonId = end($allLessons)['id'];
+        }
+
+        $totalLessons    = count($allLessons);
+        $completedCount  = count(array_filter($lessonProgress, fn($s) => $s === 'completed'));
+        $progressPct     = $totalLessons > 0 ? round($completedCount / $totalLessons * 100) : 0;
+
+        $this->view('student.courses.detail', [
+            'title'          => $course['title'] . ' — LMSAdvisor',
+            'page_title'     => $course['title'],
+            'auth_user'      => $user,
+            'flash'          => $this->getFlash(),
+            'course'         => $course,
+            'enrollment'     => $enrollment,
+            'sections'       => $sections,
+            'lessonProgress' => $lessonProgress,
+            'reviewList'     => $reviewList,
+            'avgRating'      => (float)($avgRat ?? 0),
+            'reviewCount'    => (int)($reviewCount ?? 0),
+            'instructors'    => $instructors,
+            'resumeLessonId' => $resumeLessonId,
+            'progressPct'    => $progressPct,
+            'totalLessons'   => $totalLessons,
+            'completedCount' => $completedCount,
+        ], 'student');
+    }
+
     // ── GET /learn/courses/:uuid/learn ────────────────────────────────────────
     public function learn(array $params): void
     {
@@ -149,10 +252,24 @@ class DashboardController extends Controller
             }
         }
 
-        // Default to first lesson
+        // Fix Issue 4: Default to FIRST INCOMPLETE lesson (not always lesson 0)
         if (!$currentLesson && !empty($allLessons)) {
-            $currentLesson = $allLessons[0];
-            $currentIndex  = 0;
+            // Find first lesson not yet completed
+            $firstIncomplete = null;
+            foreach ($allLessons as $i => $les) {
+                if (empty($lessonProgress[$les['id']]) || $lessonProgress[$les['id']]['status'] !== 'completed') {
+                    $firstIncomplete = ['lesson' => $les, 'index' => $i];
+                    break;
+                }
+            }
+            if ($firstIncomplete) {
+                $currentLesson = $firstIncomplete['lesson'];
+                $currentIndex  = $firstIncomplete['index'];
+            } else {
+                // All complete — show last lesson
+                $currentLesson = end($allLessons);
+                $currentIndex  = count($allLessons) - 1;
+            }
         }
 
         // ── Drip enforcement ──────────────────────────────────────────────────
