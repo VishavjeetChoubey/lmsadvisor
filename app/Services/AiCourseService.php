@@ -60,51 +60,22 @@ class AiCourseService
         if ($hasSCORM) $typeGuide .= "- Mark interactive exercises as scorm type.\n";
 
         // Quiz question format instruction
+        // Compact lesson format examples (token-efficient)
         $quizInstruction = $hasQuiz ? '
-For quiz lessons, include a "questions" array with 4-6 questions each:
-{
-  "title": "Section Quiz: Variables",
-  "type": "quiz",
-  "description": "Test your understanding of variables and data types",
-  "duration_sec": 600,
-  "questions": [
-    {
-      "question": "Which of the following is NOT a valid variable type in PHP?",
-      "type": "mcq",
-      "options": ["string", "integer", "character", "boolean"],
-      "correct_index": 2,
-      "explanation": "PHP does not have a character type. Single characters are strings."
-    },
-    {
-      "question": "What symbol is used to declare variables in PHP?",
-      "type": "mcq",
-      "options": ["@", "$", "#", "%"],
-      "correct_index": 1,
-      "explanation": "PHP variables always start with the dollar sign $."
-    }
-  ]
-}' : '';
+Quiz type MUST include questions array (3-4 per quiz):
+{"title":"Quiz Title","type":"quiz","description":"summary","duration_sec":600,"questions":[{"question":"Q?","type":"mcq","options":["A","B","C","D"],"correct_index":0,"explanation":"Why correct"}]}' : '';
 
-        // Text lesson content instruction
         $textInstruction = $hasText ? '
-For text lessons, include a "content_html" field with proper HTML content (headings, paragraphs, bullet lists, code blocks if relevant):
-{
-  "title": "Introduction to Variables",
-  "type": "text",
-  "content_html": "<h2>What are Variables?</h2><p>A variable is a container for storing data values...</p><ul><li>Variables must start with $</li><li>Variable names are case-sensitive</li></ul>",
-  "description": "Learn what variables are and how to use them",
-  "duration_sec": 600
-}' : '';
+Text type MUST include content_html with real HTML:
+{"title":"Lesson Title","type":"text","content_html":"<h2>Title</h2><p>Explanation...</p><ul><li>Point</li></ul>","description":"summary","duration_sec":600}' : '';
 
         $videoInstruction = $hasVideo ? '
-For video lessons, include video_topic and search_terms to help find the right video:
-{
-  "title": "Setting Up PHP Environment",
-  "type": "video",
-  "video_topic": "How to install XAMPP and set up PHP development environment",
-  "description": "Step-by-step video guide to installing and configuring PHP",
-  "duration_sec": 900
-}' : '';
+Video type format:
+{"title":"Lesson Title","type":"video","video_topic":"search term for video","description":"summary","duration_sec":900}' : '';
+
+        $documentInstruction = $hasDoc ? '
+Document type format:
+{"title":"Reference Sheet","type":"document","description":"Downloadable reference material","duration_sec":300}' : '';
 
         return <<<PROMPT
 You are an expert instructional designer and e-learning content creator.
@@ -145,15 +116,16 @@ LESSON OBJECT FORMATS:
 {$textInstruction}
 {$videoInstruction}
 {$quizInstruction}
+{$documentInstruction}
 
 IMPORTANT RULES:
 1. Generate EXACTLY {$sections} sections with EXACTLY {$lessonsPerSec} lessons each
 2. Every lesson must have: title, type, description, duration_sec
-3. Quiz lessons MUST include the "questions" array with 4-6 MCQ questions each
-4. Text lessons MUST include "content_html" with real educational HTML content
-5. Make content genuinely educational and specific to the topic — not generic placeholders
-6. The last lesson of the last section should always be a course summary or final assessment
-7. Return ONLY the JSON object — no markdown fences, no explanation text
+3. Quiz lessons MUST include the "questions" array with 3-4 MCQ questions each
+4. Text lessons MUST include "content_html" with 2-3 paragraphs of real HTML
+5. Keep content_html concise — 2-3 short paragraphs max per lesson
+6. Make content specific to the topic — no generic placeholders
+7. Return ONLY valid JSON — no markdown fences, no text before or after
 PROMPT;
     }
 
@@ -168,7 +140,7 @@ PROMPT;
 
         $payload = json_encode([
             'model'      => $model,
-            'max_tokens' => 8000,
+            'max_tokens' => 16000,
             'messages'   => [['role' => 'user', 'content' => $prompt]],
         ]);
 
@@ -213,7 +185,7 @@ PROMPT;
         $payload = json_encode([
             'model'      => $model,
             'messages'   => [['role' => 'user', 'content' => $prompt]],
-            'max_tokens' => 8000,
+            'max_tokens' => 16000,
         ]);
 
         $ch = curl_init('https://api.openai.com/v1/chat/completions');
@@ -257,14 +229,39 @@ PROMPT;
         }
 
         $data = json_decode($content, true);
-        if (!$data || !isset($data['title'], $data['sections'])) {
-            throw new \RuntimeException('AI returned invalid JSON. Raw response: ' . substr($content, 0, 300));
+
+        // If JSON is truncated (common with large responses), detect and report clearly
+        if ($data === null) {
+            $jsonErr = json_last_error_msg();
+            $len     = strlen($content);
+
+            // Check if it looks like truncation (ends abruptly without closing braces)
+            $trimmed = rtrim($content);
+            $isTruncated = !in_array(substr($trimmed, -1), ['}', ']']);
+
+            if ($isTruncated) {
+                throw new \RuntimeException(
+                    'AI response was cut off (response too long for current token limit). ' .
+                    'Try reducing the number of sections or lessons per section, ' .
+                    'or remove some content types to keep the response shorter.'
+                );
+            }
+
+            throw new \RuntimeException(
+                'AI returned invalid JSON (' . $jsonErr . '). Raw: ' . substr($content, 0, 200)
+            );
+        }
+
+        if (!isset($data['title'], $data['sections'])) {
+            throw new \RuntimeException(
+                'AI response missing required fields (title/sections). Got: ' .
+                implode(', ', array_keys($data))
+            );
         }
 
         // Sanitize and normalise
         $data['title']             = strip_tags($data['title'] ?? 'Untitled Course');
         $data['short_description'] = strip_tags($data['short_description'] ?? '');
-        // description is allowed to contain HTML
         $data['duration_hours']    = (float)($data['duration_hours'] ?? 10);
         $data['grade_points']      = (int)($data['grade_points'] ?? 100);
 
@@ -279,7 +276,6 @@ PROMPT;
                 $les['description']  = $les['description'] ?? '';
                 $les['duration_sec'] = (int)($les['duration_sec'] ?? 600);
 
-                // Normalise quiz questions
                 if ($les['type'] === 'quiz' && !empty($les['questions'])) {
                     foreach ($les['questions'] as &$q) {
                         $q['question']      = $q['question'] ?? '';
@@ -291,7 +287,6 @@ PROMPT;
                     unset($q);
                 }
 
-                // Use content_html for text lessons if provided
                 if ($les['type'] === 'text' && !empty($les['content_html'])) {
                     $les['content'] = $les['content_html'];
                 }
