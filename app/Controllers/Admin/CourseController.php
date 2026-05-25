@@ -278,46 +278,52 @@ class CourseController extends Controller
                 if ($type === 'quiz' && !empty($lesData['questions'])) {
                     $pdo = \App\Core\Database::getInstance();
 
-                    // Create the quiz record first
+                    // Create quiz record (quizzes table)
                     $pdo->prepare(
-                        'INSERT INTO quizzes (lesson_id, title, time_limit_sec, pass_percentage, max_attempts)
-                         VALUES (?,?,?,?,?)'
+                        'INSERT INTO quizzes
+                         (lesson_id, title, description, time_limit_sec, pass_percentage, max_attempts)
+                         VALUES (?,?,?,?,?,?)'
                     )->execute([
                         $lessonId,
                         Sanitizer::string($lesData['title'], 255),
+                        Sanitizer::string($lesData['description'] ?? '', 500),
                         (int)($lesData['duration_sec'] ?? 600),
-                        70, // default pass %
-                        3,  // default max attempts
+                        70,  // default pass %
+                        3,   // default max attempts
                     ]);
                     $quizId = (int)$pdo->lastInsertId();
 
                     $qOrder = 0;
                     foreach ($lesData['questions'] as $qData) {
-                        $options  = array_values($qData['options'] ?? []);
-                        $correct  = (int)($qData['correct_index'] ?? 0);
+                        $options      = array_values($qData['options'] ?? []);
+                        $correctIndex = (int)($qData['correct_index'] ?? 0);
 
-                        // Insert question
+                        // Insert question — column is 'question' not 'question_text'
+                        // type enum is 'single'/'multiple'/'true_false'/'fill_blank'
                         $pdo->prepare(
-                            'INSERT INTO questions (quiz_id, question_text, type, explanation, sort_order)
-                             VALUES (?,?,?,?,?)'
+                            'INSERT INTO questions
+                             (quiz_id, question, type, explanation, points, sort_order)
+                             VALUES (?,?,?,?,?,?)'
                         )->execute([
                             $quizId,
                             $qData['question'] ?? '',
-                            'mcq',
+                            'single',   // MCQ = single correct answer
                             $qData['explanation'] ?? '',
+                            1,          // 1 point per question
                             ++$qOrder,
                         ]);
                         $questionId = (int)$pdo->lastInsertId();
 
-                        // Insert options
+                        // Insert options — column is 'option_text' not 'text'
                         foreach ($options as $i => $optText) {
                             $pdo->prepare(
-                                'INSERT INTO question_options (question_id, option_text, is_correct, sort_order)
+                                'INSERT INTO question_options
+                                 (question_id, option_text, is_correct, sort_order)
                                  VALUES (?,?,?,?)'
                             )->execute([
                                 $questionId,
                                 $optText,
-                                $i === $correct ? 1 : 0,
+                                $i === $correctIndex ? 1 : 0,
                                 $i + 1,
                             ]);
                         }
