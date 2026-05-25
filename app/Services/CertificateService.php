@@ -25,7 +25,7 @@ class CertificateService
         $cert = $existing->fetch();
         if ($cert) return $cert;
 
-        $uuid = Uuid::generate();
+        $uuid = Uuid::v4();
 
         $pdo->prepare(
             'INSERT INTO certificates (uuid, enrollment_id, user_id, course_id, issued_at)

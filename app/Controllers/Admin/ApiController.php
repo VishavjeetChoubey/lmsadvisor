@@ -80,7 +80,7 @@ class ApiController extends Controller
             $this->json(['success' => false, 'message' => 'Token name is required.']);
         }
 
-        $token     = bin2hex(random_bytes(20)); // 40-char hex token
+        $token     = bin2hex(random_bytes(16)); // 32-char hex token fits CHAR(32)
         $scopeStr  = implode(',', array_map(fn($s) => Sanitizer::string($s, 30), (array)$scopes));
         $expiresAt = $expDays > 0 ? date('Y-m-d H:i:s', strtotime("+{$expDays} days")) : null;
 
@@ -112,7 +112,7 @@ class ApiController extends Controller
     {
         CsrfMiddleware::verify();
         $id       = (int)($params['id'] ?? 0);
-        $newToken = bin2hex(random_bytes(20));
+        $newToken = bin2hex(random_bytes(16));
         $this->pdo->prepare('UPDATE api_tokens SET token=?, request_count=0 WHERE id=?')->execute([$newToken, $id]);
         AuditLog::write('api.token_rotated', 'api_token', $id);
         $this->json(['success' => true, 'token' => $newToken]);

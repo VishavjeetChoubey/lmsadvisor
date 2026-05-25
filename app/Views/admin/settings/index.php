@@ -438,16 +438,17 @@ $tabIcons = [
             </div>
             <div class="col-md-6">
               <label class="form-label fw-semibold">AI Provider</label>
-              <select class="form-select" name="ai_provider">
+              <select class="form-select" name="ai_provider" id="aiProvider">
                 <option value="openai"    <?= $s('ai_provider','openai') === 'openai'    ? 'selected' : '' ?>>OpenAI (GPT)</option>
                 <option value="anthropic" <?= $s('ai_provider','openai') === 'anthropic' ? 'selected' : '' ?>>Anthropic (Claude)</option>
               </select>
             </div>
             <div class="col-md-6">
-              <label class="form-label fw-semibold">Model Name</label>
-              <input type="text" class="form-control" name="ai_model"
-                     value="<?= $e($s('ai_model', 'gpt-4o')) ?>"
-                     placeholder="gpt-4o or claude-sonnet-4-6">
+              <label class="form-label fw-semibold">Model</label>
+              <select class="form-select" name="ai_model" id="aiModelSelect">
+                <!-- Populated by JS based on provider -->
+              </select>
+              <div class="form-text" id="aiModelHint">Select a provider first</div>
             </div>
             <div class="col-md-6">
               <label class="form-label fw-semibold">OpenAI API Key</label>
@@ -620,4 +621,50 @@ document.getElementById('sendTestEmail')?.addEventListener('click', function () 
     this.innerHTML = '<i class="bi bi-send me-1"></i> Send Test';
   });
 });
+// ── AI Provider → Model dropdown ──────────────────────────────────────────────
+(function () {
+  const MODELS = {
+    anthropic: [
+      { value: 'claude-opus-4-5',           label: 'Claude Opus 4.5 (Most powerful)' },
+      { value: 'claude-sonnet-4-20250514',   label: 'Claude Sonnet 4.6 (Recommended ✓)' },
+      { value: 'claude-haiku-4-5-20251001',  label: 'Claude Haiku 4.5 (Fastest)' },
+    ],
+    openai: [
+      { value: 'gpt-4o',       label: 'GPT-4o (Recommended ✓)' },
+      { value: 'gpt-4o-mini',  label: 'GPT-4o Mini (Faster / cheaper)' },
+      { value: 'gpt-4-turbo',  label: 'GPT-4 Turbo' },
+      { value: 'gpt-3.5-turbo',label: 'GPT-3.5 Turbo (Cheapest)' },
+    ],
+  };
+
+  const HINTS = {
+    anthropic: 'Powered by Anthropic. Best for structured content generation.',
+    openai:    'Powered by OpenAI. Wide model selection.',
+  };
+
+  const savedModel    = '<?= $e($s('ai_model','gpt-4o')) ?>';
+  const providerEl    = document.getElementById('aiProvider');
+  const modelEl       = document.getElementById('aiModelSelect');
+  const hintEl        = document.getElementById('aiModelHint');
+
+  function populateModels(provider) {
+    if (!modelEl) return;
+    modelEl.innerHTML = '';
+    const models = MODELS[provider] || MODELS.openai;
+    models.forEach(m => {
+      const opt = document.createElement('option');
+      opt.value = m.value;
+      opt.textContent = m.label;
+      if (m.value === savedModel) opt.selected = true;
+      modelEl.appendChild(opt);
+    });
+    if (hintEl) hintEl.textContent = HINTS[provider] || '';
+    // If none selected (new provider), select first
+    if (!modelEl.value) modelEl.selectedIndex = 0;
+  }
+
+  providerEl?.addEventListener('change', function () { populateModels(this.value); });
+  // Init on load
+  if (providerEl) populateModels(providerEl.value);
+})();
 </script>

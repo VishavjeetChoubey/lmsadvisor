@@ -71,7 +71,7 @@ class WebinarController extends Controller
         $title    = Sanitizer::string($this->request->post('title', ''), 255);
         $schedAt  = Sanitizer::string($this->request->post('scheduled_at', ''), 20);
         $duration = (int)$this->request->post('duration_min', 60);
-        $uuid     = Uuid::generate();
+        $uuid     = Uuid::v4();
 
         try {
             $meetData = $provider === 'zoom'

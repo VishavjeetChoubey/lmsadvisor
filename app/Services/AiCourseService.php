@@ -4,6 +4,7 @@ declare(strict_types=1);
 namespace App\Services;
 
 use App\Models\Setting;
+use App\Helpers\Encryption;
 
 class AiCourseService
 {
@@ -82,7 +83,7 @@ Make the course practical, engaging, and well-structured. Return ONLY JSON, no m
     private static function callAnthropic(string $prompt): array
     {
         $apiKey = Encryption::decryptIfNeeded(Setting::get('ai_anthropic_key', ''));
-        $model  = Setting::get('ai_model', 'claude-opus-4-5');
+        $model  = Setting::get('ai_model', 'claude-sonnet-4-20250514');
 
         if (!$apiKey) {
             throw new \RuntimeException('Anthropic API key not configured in Settings.');

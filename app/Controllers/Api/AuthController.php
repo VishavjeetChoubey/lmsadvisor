@@ -33,7 +33,7 @@ class AuthController extends Controller
         }
 
         $pdo   = Database::getInstance();
-        $token = bin2hex(random_bytes(20)); // 40-char secure token
+        $token = bin2hex(random_bytes(16)); // 32-char hex token fits CHAR(32)
 
         $pdo->prepare(
             'INSERT INTO api_tokens (user_id, token, name, scopes, is_active, created_at)

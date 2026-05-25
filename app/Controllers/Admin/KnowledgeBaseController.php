@@ -105,7 +105,7 @@ class KnowledgeBaseController extends Controller
         $body   = $this->request->post('body', '');
         $catId  = (int)$this->request->post('category_id', 0) ?: null;
         $status = $this->request->post('status', 'draft');
-        $uuid   = Uuid::generate();
+        $uuid   = Uuid::v4();
 
         // Unique slug
         $existing = $this->pdo->prepare('SELECT id FROM kb_articles WHERE slug=? LIMIT 1');
