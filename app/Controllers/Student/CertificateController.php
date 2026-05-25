@@ -17,11 +17,12 @@ class CertificateController extends Controller
         $uuid = trim($params['uuid'] ?? '');
         $cert = $uuid ? CertificateService::findByUuid($uuid) : null;
 
-        $this->view('student.certificate.verify', [
-            'title'     => $cert ? 'Certificate Verified — ' . $cert['course_title'] : 'Certificate Not Found',
-            'cert'      => $cert,
-            'uuid'      => $uuid,
-        ], 'auth'); // Use auth layout (no login required)
+        // Render standalone HTML (no layout wrapper — the view is a full HTML doc)
+        $this->viewRaw('student.certificate.verify', [
+            'title' => $cert ? 'Certificate Verified — ' . ($cert['course_title'] ?? '') : 'Certificate Not Found',
+            'cert'  => $cert,
+            'uuid'  => $uuid,
+        ]);
     }
 
     // ── GET /learn/certificate/:enrollmentId — student downloads their cert ──
