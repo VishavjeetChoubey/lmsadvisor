@@ -113,6 +113,7 @@ $router->get('/admin/reports/chart-data',       'Admin\ReportController@chartDat
 $router->get('/learn',                              'Student\DashboardController@index');
 $router->get('/learn/dashboard',                    'Student\DashboardController@index');
 $router->get('/learn/courses',                      'Student\DashboardController@courses');
+$router->get('/learn/courses/:uuid',          'Student\DashboardController@courseDetail');
 $router->get('/learn/courses/:uuid/learn',                    'Student\DashboardController@learn');
 $router->post('/learn/courses/:uuid/complete-lesson',         'Student\DashboardController@completeLesson');
 $router->get('/learn/courses/:uuid/quiz/:lessonId',           'Student\QuizController@show');
@@ -226,5 +227,3 @@ $router->get('/api/v1/webinars/:uuid',                   'Api\WebinarApiControll
 $router->get('/api/v1/certificates',                     'Api\CertificateApiController@index');
 $router->get('/api/v1/certificates/:uuid/verify',        'Api\CertificateApiController@verify');
 
-// Student — Course detail page
-$router->get('/learn/courses/:uuid', 'Student\DashboardController@courseDetail');

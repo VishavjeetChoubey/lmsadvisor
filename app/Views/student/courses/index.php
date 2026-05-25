@@ -47,10 +47,11 @@ $statusColors = ['active'=>'success','completed'=>'primary','suspended'=>'warnin
     $btnIcon  = $isDone ? 'bi-award' : 'bi-play-fill';
   ?>
   <div class="col-12 col-md-6 col-xl-4 course-item" data-status="<?= $e($e2['status']) ?>">
+    <?php $detailUrl = $url('learn/courses/' . $e2['course_uuid']); ?>
     <div class="sc-card" style="<?= $isSusp ? 'opacity:.65;pointer-events:none' : '' ?>">
 
-      <!-- Thumbnail -->
-      <div class="sc-thumb">
+      <!-- Thumbnail — clicking goes to course detail -->
+      <a href="<?= $detailUrl ?>" class="sc-thumb text-decoration-none d-block">
         <?php if ($e2['thumbnail']): ?>
           <img src="<?= $e(APP_URL . '/storage/uploads/' . $e2['thumbnail']) ?>"
                alt="<?= $e($e2['title']) ?>">
@@ -70,7 +71,7 @@ $statusColors = ['active'=>'success','completed'=>'primary','suspended'=>'warnin
             Not started
           <?php endif; ?>
         </div>
-      </div>
+      </a><!-- /sc-thumb link -->
 
       <!-- Body -->
       <div class="sc-body">
@@ -89,8 +90,10 @@ $statusColors = ['active'=>'success','completed'=>'primary','suspended'=>'warnin
           <?php endif; ?>
         </div>
 
-        <!-- Title -->
-        <h5 class="sc-title"><?= $e($e2['title']) ?></h5>
+        <!-- Title — clickable to detail page -->
+        <a href="<?= $detailUrl ?>" class="text-decoration-none">
+          <h5 class="sc-title" style="color:var(--text-primary)"><?= $e($e2['title']) ?></h5>
+        </a>
 
         <!-- Meta -->
         <div class="sc-meta">

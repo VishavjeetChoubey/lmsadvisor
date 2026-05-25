@@ -252,21 +252,18 @@ class DashboardController extends Controller
             }
         }
 
-        // Fix Issue 4: Default to FIRST INCOMPLETE lesson (not always lesson 0)
+        // Resume from FIRST INCOMPLETE lesson (not always lesson 0)
         if (!$currentLesson && !empty($allLessons)) {
-            // Find first lesson not yet completed
-            $firstIncomplete = null;
             foreach ($allLessons as $i => $les) {
-                if (empty($lessonProgress[$les['id']]) || $lessonProgress[$les['id']]['status'] !== 'completed') {
-                    $firstIncomplete = ['lesson' => $les, 'index' => $i];
+                $status = ($lessonProgress[$les['id']]['status'] ?? '');
+                if ($status !== 'completed') {
+                    $currentLesson = $les;
+                    $currentIndex  = $i;
                     break;
                 }
             }
-            if ($firstIncomplete) {
-                $currentLesson = $firstIncomplete['lesson'];
-                $currentIndex  = $firstIncomplete['index'];
-            } else {
-                // All complete — show last lesson
+            // If all complete — show last lesson
+            if (!$currentLesson) {
                 $currentLesson = end($allLessons);
                 $currentIndex  = count($allLessons) - 1;
             }

@@ -378,3 +378,21 @@
 .player-mode .st-content {
   overflow: hidden;
 }
+
+/* ── Clickable thumbnail + title hover effects ─────────────────────────── */
+.course-thumb:hover img,
+.sc-thumb:hover img {
+  transform: scale(1.04);
+  transition: transform .25s;
+}
+.course-thumb img,
+.sc-thumb img {
+  transition: transform .25s;
+}
+.course-card .course-title:hover,
+.sc-card .sc-title:hover {
+  color: var(--primary) !important;
+  text-decoration: underline;
+}
+/* Cursor pointer on thumbnail links */
+.course-thumb, .sc-thumb { cursor: pointer; }
