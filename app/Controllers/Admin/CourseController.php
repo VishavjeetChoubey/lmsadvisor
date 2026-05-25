@@ -215,7 +215,9 @@ class CourseController extends Controller
 
         // Create the course
         $courseId = $this->course->create([
+            'uuid'              => \App\Helpers\Uuid::v4(),
             'title'             => Sanitizer::string($data['title'], 255),
+            'slug'              => \App\Helpers\Slug::make($data['title'] ?? 'course') . '-' . substr(uniqid(), -5),
             'short_description' => Sanitizer::string($data['short_description'] ?? '', 500),
             'description'       => $data['description'] ?? '',
             'level'             => $data['level'] ?? 'beginner',
@@ -232,6 +234,7 @@ class CourseController extends Controller
         $secOrder = 0;
         foreach ($data['sections'] ?? [] as $secData) {
             $sectionId = $this->section->create([
+                'uuid'        => \App\Helpers\Uuid::v4(),
                 'course_id'   => $courseId,
                 'title'       => Sanitizer::string($secData['title'], 255),
                 'description' => Sanitizer::string($secData['description'] ?? '', 500),
@@ -240,6 +243,7 @@ class CourseController extends Controller
             $lesOrder = 0;
             foreach ($secData['lessons'] ?? [] as $lesData) {
                 $this->lesson->create([
+                    'uuid'         => \App\Helpers\Uuid::v4(),
                     'course_id'    => $courseId,
                     'section_id'   => $sectionId,
                     'title'        => Sanitizer::string($lesData['title'], 255),
