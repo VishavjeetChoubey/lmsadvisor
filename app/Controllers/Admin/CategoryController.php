@@ -26,6 +26,9 @@ class CategoryController extends Controller
         $this->model = new Category();
     }
 
+    // Alias for sidebar /admin/categories route
+    public function listPage(array $params): void { $this->index($params); }
+
     public function index(array $params): void
     {
         $this->view('admin.categories.index', [

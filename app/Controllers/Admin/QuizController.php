@@ -33,6 +33,29 @@ class QuizController extends Controller
 
     // ── GET /admin/quizzes/lesson/:lessonId ───────────────────────────────────
     // Full quiz builder page for a lesson
+    // GET /admin/quizzes — list all quizzes
+    public function listPage(array $params): void
+    {
+        $pdo   = \App\Core\Database::getInstance();
+        $quizzes = $pdo->query(
+            'SELECT q.*, l.title AS lesson_title, c.title AS course_title, c.uuid AS course_uuid
+             FROM quizzes q
+             JOIN lessons l ON l.id = q.lesson_id
+             JOIN courses c ON c.id = l.course_id
+             ORDER BY q.id DESC LIMIT 100'
+        )->fetchAll();
+
+        $this->view('admin.quizzes.list', [
+            'title'       => 'Quizzes — LMSAdvisor',
+            'page_title'  => 'Quizzes',
+            'breadcrumbs' => [['label' => 'Quizzes']],
+            'flash'       => $this->getFlash(),
+            'auth_user'   => \App\Services\AuthService::user(),
+            'csrf_token'  => \App\Middleware\CsrfMiddleware::token(),
+            'quizzes'     => $quizzes,
+        ]);
+    }
+
     public function builder(array $params): void
     {
         $lessonId = (int)($params['lessonId'] ?? 0);

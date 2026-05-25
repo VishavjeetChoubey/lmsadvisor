@@ -227,3 +227,10 @@ $router->get('/api/v1/webinars/:uuid',                   'Api\WebinarApiControll
 $router->get('/api/v1/certificates',                     'Api\CertificateApiController@index');
 $router->get('/api/v1/certificates/:uuid/verify',        'Api\CertificateApiController@verify');
 
+
+// Admin categories + quizzes list pages (sidebar links)
+$router->get('/admin/categories', 'Admin\CategoryController@listPage');
+$router->get('/admin/quizzes',    'Admin\QuizController@listPage');
+
+// Profile avatar upload
+$router->post('/learn/profile/avatar', 'Student\DashboardController@uploadAvatar');

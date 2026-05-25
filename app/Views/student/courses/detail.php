@@ -16,12 +16,12 @@ $typeIcons = ['text'=>'bi-file-text','video'=>'bi-play-circle-fill','document'=>
 $typeColors= ['text'=>'secondary','video'=>'danger','document'=>'warning','scorm'=>'info','quiz'=>'success'];
 ?>
 
-<div class="row g-0 course-detail-wrap">
+<div class="course-detail-wrap">
 
   <!-- ═══════════════════════════════════════════════════
        LEFT — Course outline sidebar
   ════════════════════════════════════════════════════ -->
-  <div class="col-12 col-lg-3 cd-sidebar">
+  <aside class="cd-sidebar">
     <div class="cd-sidebar-inner">
 
       <!-- Sticky top: CTA -->
@@ -109,9 +109,10 @@ $typeColors= ['text'=>'secondary','video'=>'danger','document'=>'warning','scorm
       <div class="cd-outline">
         <div class="cd-outline-title">
           <i class="bi bi-list-nested me-2"></i>Course Outline
-          <span class="ms-auto text-muted" style="font-size:12px"><?= $totalLessons ?> lessons</span>
+          <span class="ms-auto"><?= $totalLessons ?> lessons</span>
         </div>
-        <?php foreach ($sections as $si => $sec):
+        <div class="cd-outline-scroll">
+          <?php foreach ($sections as $si => $sec):
           $secLessons   = $sec['lessons'];
           $secTotal     = count($secLessons);
           $secCompleted = count(array_filter($secLessons, fn($l) => ($lessonProgress[$l['id']] ?? '') === 'completed'));
@@ -150,14 +151,13 @@ $typeColors= ['text'=>'secondary','video'=>'danger','document'=>'warning','scorm
           </div>
         </div>
         <?php endforeach; ?>
-      </div>
-    </div>
-  </div>
+        </div><!-- /cd-outline-scroll -->
+      </div><!-- /cd-outline -->
 
   <!-- ═══════════════════════════════════════════════════
        RIGHT — Course details
   ════════════════════════════════════════════════════ -->
-  <div class="col-12 col-lg-9 cd-main">
+  <div class="cd-main">
 
     <!-- Hero header -->
     <div class="cd-hero">
@@ -307,8 +307,176 @@ $typeColors= ['text'=>'secondary','video'=>'danger','document'=>'warning','scorm
 <style>
 /* ── Course Detail Page ───────────────────────────────────────────────────── */
 .course-detail-wrap {
-  margin: -28px -24px 0;
+  margin: -28px -28px 0;
   min-height: calc(100vh - 60px);
+  display: flex;
+}
+
+/* Sidebar — white background, fixed height, scrollable */
+.cd-sidebar {
+  width: 320px;
+  min-width: 320px;
+  background: #fff;
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 60px);
+  position: sticky;
+  top: 60px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.cd-sidebar-inner {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+}
+.cd-cta-box {
+  padding: 20px;
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.cd-progress-wrap { margin-bottom: 14px; }
+.cd-btn-start {
+  display: flex; align-items: center; justify-content: center;
+  width: 100%; padding: 12px;
+  background: linear-gradient(135deg,#5b5ef6,#3b82f6);
+  color: #fff !important; text-decoration: none !important;
+  border-radius: 10px; font-size: 14.5px; font-weight: 700;
+  box-shadow: 0 4px 14px rgba(91,94,246,.3);
+  transition: opacity .15s, transform .1s;
+  margin-bottom: 16px; gap: 8px;
+}
+.cd-btn-start:hover { opacity: .92; transform: translateY(-1px); }
+.cd-btn-start.done { background: linear-gradient(135deg,#12b76a,#059669); box-shadow: 0 4px 14px rgba(18,183,106,.3); }
+.cd-meta-list { display: flex; flex-direction: column; gap: 9px; }
+.cd-meta-item { display: flex; align-items: center; gap: 9px; font-size: 13px; color: var(--text-2); }
+.cd-meta-item i { width: 16px; text-align: center; flex-shrink: 0; }
+.cd-meta-item a { color: var(--primary); text-decoration: none; }
+
+/* Outline — scrollable area */
+.cd-outline {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.cd-outline-title {
+  display: flex; align-items: center;
+  padding: 12px 20px;
+  font-size: 12px; font-weight: 700;
+  color: var(--text-2);
+  text-transform: uppercase; letter-spacing: .06em;
+  border-bottom: 1px solid var(--border);
+  background: #f8f9fb;
+  flex-shrink: 0;
+}
+.cd-outline-scroll {
+  flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+.cd-outline-scroll::-webkit-scrollbar { width: 4px; }
+.cd-outline-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+/* Section */
+.cd-section { border-bottom: 1px solid var(--border); }
+.cd-section-head {
+  display: flex; align-items: center; gap: 8px;
+  padding: 11px 20px; cursor: pointer;
+  font-size: 13px; font-weight: 600; color: var(--text-1);
+  background: #fff; transition: background .1s;
+  user-select: none;
+}
+.cd-section-head:hover { background: #f5f5ff; }
+.cd-sec-chevron { font-size: 11px; color: var(--text-3); transition: transform .2s; flex-shrink: 0; }
+.cd-section.open .cd-sec-chevron { transform: rotate(90deg); }
+.cd-sec-title { flex: 1; }
+.cd-sec-count { font-size: 11px; color: var(--text-3); }
+.cd-section-lessons { display: none; background: #fafbff; }
+.cd-section.open .cd-section-lessons { display: block; }
+.cd-lesson {
+  display: flex; align-items: center; gap: 8px;
+  padding: 9px 20px 9px 28px;
+  font-size: 12.5px; color: var(--text-2);
+  text-decoration: none !important;
+  border-left: 2px solid transparent;
+  transition: background .1s, color .1s, border-color .1s;
+}
+.cd-lesson:hover { background: #ededff; color: var(--primary); border-left-color: var(--primary); }
+.cd-lesson.done { color: var(--text-3); }
+.cd-lesson-check { flex-shrink: 0; font-size: 14px; line-height: 1; }
+.cd-lesson-title { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* Main content area */
+.cd-main {
+  flex: 1;
+  padding: 32px 36px 60px;
+  overflow-y: auto;
+  min-width: 0;
+}
+.cd-hero { margin-bottom: 28px; }
+.cd-hero-title { font-size: clamp(20px,2.5vw,28px); font-weight: 800; color: var(--text-1); margin-bottom: 10px; line-height: 1.3; }
+.cd-hero-desc { font-size: 15px; color: var(--text-2); line-height: 1.7; }
+
+/* Tabs */
+.cd-tabs-wrap { border-bottom: 2px solid var(--border); margin-bottom: 28px; }
+.cd-tabs { display: flex; list-style: none; margin: 0; padding: 0; gap: 0; }
+.cd-tabs li { display: flex; }
+.cd-tab {
+  padding: 12px 22px; font-size: 14px; font-weight: 600;
+  color: var(--text-2); text-decoration: none !important;
+  border-bottom: 2px solid transparent; margin-bottom: -2px;
+  transition: color .15s, border-color .15s;
+}
+.cd-tab:hover { color: var(--primary); }
+.cd-tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+.cd-tab-panel { }
+.cd-tab-panel.d-none { display: none !important; }
+.cd-section-block { margin-bottom: 32px; }
+.cd-section-label { font-size: 18px; font-weight: 700; color: var(--text-1); margin-bottom: 16px; }
+.cd-rich-content { font-size: 15px; line-height: 1.8; color: var(--text-1); }
+.cd-rich-content h2, .cd-rich-content h3 { font-weight: 700; margin: 24px 0 10px; }
+.cd-rich-content ul, .cd-rich-content ol { padding-left: 20px; margin-bottom: 14px; }
+.cd-rich-content p { margin-bottom: 12px; }
+
+/* Detail cards */
+.cd-detail-card { background: #f8f9fb; border: 1px solid var(--border); border-radius: 10px; padding: 16px; text-align: center; }
+.cd-detail-icon { font-size: 1.4rem; color: var(--primary); display: block; margin-bottom: 6px; }
+.cd-detail-label { font-size: 11px; text-transform: uppercase; letter-spacing: .5px; color: var(--text-3); margin-bottom: 3px; font-weight: 600; }
+.cd-detail-value { font-size: 13.5px; font-weight: 700; color: var(--text-1); }
+
+/* Certificate banner */
+.cd-cert-banner { display: flex; align-items: center; gap: 16px; padding: 20px; border-radius: 14px; background: linear-gradient(135deg,#fffbeb,#fef9c3); border: 1px solid #fde68a; }
+.cd-btn-cert { padding: 9px 22px; border-radius: 9px; font-size: 13.5px; font-weight: 700; background: #f79009; color: #fff !important; text-decoration: none !important; white-space: nowrap; }
+.cd-btn-cert:hover { opacity: .9; }
+
+/* Instructor */
+.cd-instructor-card { display: flex; align-items: center; gap: 14px; padding: 16px; border: 1px solid var(--border); border-radius: 12px; margin-bottom: 12px; background: #f8f9fb; }
+.cd-instr-avatar { width: 52px; height: 52px; border-radius: 50%; flex-shrink: 0; background: linear-gradient(135deg,#5b5ef6,#3b82f6); display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 700; color: #fff; }
+
+/* Reviews */
+.cd-review-item { padding: 18px 0; border-bottom: 1px solid var(--border); }
+.cd-review-item:last-child { border-bottom: none; }
+.cd-review-head { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+.cd-review-avatar { width: 38px; height: 38px; border-radius: 50%; flex-shrink: 0; background: var(--primary); color: #fff; display: flex; align-items: center; justify-content: center; font-size: 15px; font-weight: 700; }
+.cd-review-body { font-size: 14px; color: var(--text-2); line-height: 1.6; margin: 0; }
+
+[data-theme="dark"] .cd-sidebar { background: #18181c; border-color: #26262e; }
+[data-theme="dark"] .cd-section-head { background: #18181c; color: #f1f1f5; }
+[data-theme="dark"] .cd-section-head:hover { background: #26262e; }
+[data-theme="dark"] .cd-section-lessons { background: #131316; }
+[data-theme="dark"] .cd-outline-title { background: #0f0f12; }
+[data-theme="dark"] .cd-main { background: #0f0f12; }
+[data-theme="dark"] .cd-detail-card { background: #1a1a1f; }
+[data-theme="dark"] .cd-tabs-wrap { border-color: #26262e; }
+
+@media (max-width: 991px) {
+  .course-detail-wrap { flex-direction: column; }
+  .cd-sidebar { width: 100%; min-width: 0; height: auto; position: static; }
+  .cd-outline { height: 340px; }
+  .cd-main { padding: 20px; }
 }
 
 /* Sidebar */

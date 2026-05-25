@@ -53,6 +53,8 @@ $url   = fn(string $p = ''): string => View::url($p);
   <?php require VIEW_PATH . '/partials/admin/footer.php'; ?>
 </div>
 
+<!-- Set global APP_URL for JS -->
+<script>window.LMS = window.LMS || {}; window.LMS.BASE = '<?= rtrim(APP_URL, '/') ?>';</script>
 <!-- jQuery -->
 <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
 <!-- Bootstrap Bundle -->

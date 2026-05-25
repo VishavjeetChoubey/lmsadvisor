@@ -433,6 +433,47 @@ class DashboardController extends Controller
         $this->json(['success'=>true,'message'=>$autoApprove ? 'Review published!' : 'Review submitted and awaiting approval. Thank you!']);
     }
 
+
+    // ── POST /learn/profile/avatar ────────────────────────────────────────────
+    public function uploadAvatar(array $params): void
+    {
+        $this->guard();
+        \App\Middleware\CsrfMiddleware::verify();
+        $user = AuthService::user();
+
+        if (empty($_FILES['avatar']['name'])) {
+            $this->json(['success' => false, 'message' => 'No file selected.']);
+        }
+
+        $allowed  = ['image/jpeg','image/png','image/webp','image/gif'];
+        $mime     = mime_content_type($_FILES['avatar']['tmp_name']);
+        if (!in_array($mime, $allowed)) {
+            $this->json(['success' => false, 'message' => 'Only JPG, PNG, WebP or GIF allowed.']);
+        }
+
+        $maxSize = 2 * 1024 * 1024; // 2MB
+        if ($_FILES['avatar']['size'] > $maxSize) {
+            $this->json(['success' => false, 'message' => 'File too large (max 2MB).']);
+        }
+
+        $dir = STORE_PATH . '/uploads/avatars/';
+        if (!is_dir($dir)) mkdir($dir, 0755, true);
+
+        $ext      = ['image/jpeg'=>'jpg','image/png'=>'png','image/webp'=>'webp','image/gif'=>'gif'][$mime] ?? 'jpg';
+        $filename = 'avatar_' . $user['id'] . '_' . time() . '.' . $ext;
+        $dest     = $dir . $filename;
+
+        if (!move_uploaded_file($_FILES['avatar']['tmp_name'], $dest)) {
+            $this->json(['success' => false, 'message' => 'Upload failed. Check folder permissions.']);
+        }
+
+        // Update users table
+        $pdo = \App\Core\Database::getInstance();
+        $pdo->prepare('UPDATE users SET avatar=? WHERE id=?')->execute([$filename, $user['id']]);
+
+        $this->json(['success' => true, 'url' => APP_URL . '/storage/uploads/avatars/' . $filename]);
+    }
+
     // ── GET /learn/profile ────────────────────────────────────────────────────
     public function profile(array $params): void
     {

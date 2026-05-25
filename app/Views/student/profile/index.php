@@ -28,11 +28,34 @@ $statusColors = ['active'=>'primary','completed'=>'success','suspended'=>'warnin
 
     <!-- Avatar + stats -->
     <div class="card lms-card text-center p-4 mb-4">
-      <div class="mx-auto mb-3" style="width:88px;height:88px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#1a56db);display:flex;align-items:center;justify-content:center;box-shadow:0 8px 24px rgba(99,102,241,.3)">
-        <span style="color:#fff;font-size:32px;font-weight:700;line-height:1">
-          <?= strtoupper(substr($fu['first_name'] ?? 'S', 0, 1)) ?><?= strtoupper(substr($fu['last_name'] ?? '', 0, 1)) ?>
-        </span>
+      <!-- Avatar with upload -->
+      <div class="position-relative d-inline-block mx-auto mb-3">
+        <?php $avatarUrl = !empty($full_user['avatar']) ? (APP_URL . '/storage/uploads/avatars/' . $full_user['avatar']) : null; ?>
+        <div style="width:88px;height:88px;border-radius:50%;overflow:hidden;margin:0 auto;box-shadow:0 8px 24px rgba(91,94,246,.25);border:3px solid #5b5ef6">
+          <?php if ($avatarUrl): ?>
+            <img src="<?= $e($avatarUrl) ?>" style="width:100%;height:100%;object-fit:cover" id="avatarPreview" alt="">
+          <?php else: ?>
+            <div id="avatarPreview" style="width:100%;height:100%;background:linear-gradient(135deg,#5b5ef6,#3b82f6);display:flex;align-items:center;justify-content:center">
+              <span style="color:#fff;font-size:32px;font-weight:700">
+                <?= strtoupper(substr($fu['first_name'] ?? 'S', 0, 1)) ?><?= strtoupper(substr($fu['last_name'] ?? '', 0, 1)) ?>
+              </span>
+            </div>
+          <?php endif; ?>
+        </div>
+        <!-- Camera overlay -->
+        <label for="avatarInput" title="Change profile photo"
+               style="position:absolute;bottom:2px;right:-2px;width:26px;height:26px;border-radius:50%;background:#5b5ef6;display:flex;align-items:center;justify-content:center;cursor:pointer;border:2px solid #fff;box-shadow:0 2px 8px rgba(91,94,246,.4)">
+          <i class="bi bi-camera-fill" style="font-size:12px;color:#fff"></i>
+        </label>
+        <input type="file" id="avatarInput" accept="image/jpeg,image/png,image/webp,image/gif" class="d-none">
       </div>
+
+      <!-- Avatar upload form (submits on file select) -->
+      <form action="<?= $url('learn/profile/avatar') ?>" method="POST" enctype="multipart/form-data" id="avatarForm">
+        <input type="hidden" name="csrf_token" value="<?= $e($csrf) ?>">
+        <input type="file" name="avatar" id="avatarFileReal" class="d-none" accept="image/*">
+      </form>
+
       <h5 class="fw-bold mb-0"><?= $e(($fu['first_name'] ?? '') . ' ' . ($fu['last_name'] ?? '')) ?></h5>
       <div class="text-muted mb-2" style="font-size:13.5px"><?= $e($fu['email'] ?? '') ?></div>
       <span class="badge bg-primary px-3 py-2 mb-3" style="font-size:12px">
@@ -41,15 +64,15 @@ $statusColors = ['active'=>'primary','completed'=>'success','suspended'=>'warnin
 
       <div class="row g-2 text-center">
         <div class="col-4">
-          <div class="fw-bold" style="font-size:22px;color:#6366f1"><?= count($enrolled) ?></div>
+          <div class="fw-bold" style="font-size:22px;color:#5b5ef6"><?= count($enrolled) ?></div>
           <div class="text-muted" style="font-size:11px">Enrolled</div>
         </div>
         <div class="col-4">
-          <div class="fw-bold" style="font-size:22px;color:#0e9f6e"><?= $completed ?></div>
+          <div class="fw-bold" style="font-size:22px;color:#12b76a"><?= $completed ?></div>
           <div class="text-muted" style="font-size:11px">Completed</div>
         </div>
         <div class="col-4">
-          <div class="fw-bold" style="font-size:22px;color:#e3a008"><?= number_format((int)$points) ?></div>
+          <div class="fw-bold" style="font-size:22px;color:#f79009"><?= number_format((int)$points) ?></div>
           <div class="text-muted" style="font-size:11px">Points</div>
         </div>
       </div>
@@ -59,6 +82,42 @@ $statusColors = ['active'=>'primary','completed'=>'success','suspended'=>'warnin
         Last login: <?= date('d M Y, H:i', strtotime($fu['last_login_at'])) ?>
       </div>
       <?php endif; ?>
+
+      <script>
+      // Avatar upload on file select
+      document.getElementById('avatarInput').addEventListener('change', function() {
+        if (!this.files[0]) return;
+        var file = this.files[0];
+        // Preview
+        var reader = new FileReader();
+        reader.onload = function(e) {
+          var prev = document.getElementById('avatarPreview');
+          if (prev.tagName === 'IMG') {
+            prev.src = e.target.result;
+          } else {
+            var img = document.createElement('img');
+            img.id = 'avatarPreview';
+            img.style = 'width:100%;height:100%;object-fit:cover';
+            img.src = e.target.result;
+            prev.replaceWith(img);
+          }
+        };
+        reader.readAsDataURL(file);
+        // Upload via fetch
+        var form = new FormData();
+        form.append('csrf_token', document.querySelector('#avatarForm [name=csrf_token]').value);
+        form.append('avatar', file);
+        fetch('<?= $url('learn/profile/avatar') ?>', { method:'POST', body:form })
+          .then(r=>r.json())
+          .then(d=>{
+            if(d.success) {
+              if(window.LMS && window.LMS.toast) LMS.toast('success','Profile photo updated!');
+            } else {
+              if(window.LMS && window.LMS.toast) LMS.toast('error', d.message||'Upload failed');
+            }
+          }).catch(()=>{});
+      });
+      </script>
     </div>
 
     <!-- Certificates earned -->
