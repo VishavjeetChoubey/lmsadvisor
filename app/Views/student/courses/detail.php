@@ -154,6 +154,9 @@ $typeColors= ['text'=>'secondary','video'=>'danger','document'=>'warning','scorm
         </div><!-- /cd-outline-scroll -->
       </div><!-- /cd-outline -->
 
+    </div><!-- /cd-sidebar-inner -->
+  </aside><!-- /cd-sidebar -->
+
   <!-- ═══════════════════════════════════════════════════
        RIGHT — Course details
   ════════════════════════════════════════════════════ -->
