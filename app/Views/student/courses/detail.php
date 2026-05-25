@@ -117,8 +117,8 @@ $typeColors= ['text'=>'secondary','video'=>'danger','document'=>'warning','scorm
           $secCompleted = count(array_filter($secLessons, fn($l) => ($lessonProgress[$l['id']] ?? '') === 'completed'));
           $secPct       = $secTotal > 0 ? round($secCompleted / $secTotal * 100) : 0;
         ?>
-        <div class="cd-section">
-          <div class="cd-section-head" onclick="this.parentElement.classList.toggle('open')">
+        <div class="cd-section open">
+          <div class="cd-section-head">
             <i class="bi bi-chevron-right cd-sec-chevron"></i>
             <span class="cd-sec-title"><?= $e($sec['title']) ?></span>
             <span class="cd-sec-count"><?= $secCompleted ?>/<?= $secTotal ?></span>
@@ -502,11 +502,11 @@ document.querySelectorAll('.cd-tab').forEach(tab => {
   });
 });
 
-// ── Section accordion ──────────────────────────────────────────────────────
+// ── Section accordion — click on header toggles open/close ─────────────────
 document.querySelectorAll('.cd-section-head').forEach(head => {
-  head.parentElement.classList.add('open'); // Open all by default
   head.addEventListener('click', function() {
-    this.parentElement.classList.toggle('open');
+    this.closest('.cd-section').classList.toggle('open');
   });
 });
+// All start open — already set in PHP (class="cd-section open")
 </script>

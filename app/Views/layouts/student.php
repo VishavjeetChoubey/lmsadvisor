@@ -54,12 +54,13 @@ $avatarUrl = !empty($authUser['avatar']) ? (APP_URL . '/storage/uploads/' . $aut
 
   <!-- Profile photo / avatar at top -->
   <div class="stu-profile-top">
-    <a href="<?= $url('learn/profile') ?>" class="stu-avatar-wrap" title="<?= $e($fullName) ?>">
+    <a href="<?= $url('learn/profile') ?>" class="stu-avatar-wrap" title="<?= $e($fullName) ?> — click to update profile">
       <?php if ($avatarUrl): ?>
         <img src="<?= $e($avatarUrl) ?>" class="stu-avatar-img" alt="">
       <?php else: ?>
         <div class="stu-avatar-initials"><?= $initials ?></div>
       <?php endif; ?>
+      <div class="stu-avatar-upload-hint" title="Update photo"><i class="bi bi-camera-fill"></i></div>
     </a>
   </div>
 

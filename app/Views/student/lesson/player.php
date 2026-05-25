@@ -537,7 +537,8 @@ $typeColors  = ['text'=>'rgba(255,255,255,.5)','video'=>'#f87171','document'=>'#
 ══════════════════════════════════════════════════════════ */
 .lp-shell {
   display: flex;
-  height: 100%; /* fills st-content in player-mode */
+  height: 100%;
+  max-height: 100%;
   overflow: hidden;
   background: var(--content-bg);
 }
@@ -550,6 +551,7 @@ $typeColors  = ['text'=>'rgba(255,255,255,.5)','video'=>'#f87171','document'=>'#
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  min-height: 0;
   transition: width .25s ease, min-width .25s ease;
   flex-shrink: 0;
 }
@@ -599,7 +601,9 @@ $typeColors  = ['text'=>'rgba(255,255,255,.5)','video'=>'#f87171','document'=>'#
 .lp-sections {
   flex: 1;
   overflow-y: auto;
+  overflow-x: hidden;
   padding-bottom: 24px;
+  min-height: 0; /* critical: allows flex child to shrink and scroll */
 }
 .lp-sections::-webkit-scrollbar { width: 4px; }
 .lp-sections::-webkit-scrollbar-thumb { background: rgba(255,255,255,.12); border-radius: 2px; }

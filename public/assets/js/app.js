@@ -39,7 +39,7 @@ $(function () {
 
   function applyTheme(isDark) {
     document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
-    $('#stuDarkIcon')
+    document.getElementById('stuDarkIcon')
       .toggleClass('bi-moon-stars', !isDark)
       .toggleClass('bi-sun',        isDark);
   }
@@ -91,7 +91,7 @@ $(function () {
 
   function applyTheme(isDark) {
     document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
-    $('#stuDarkIcon')
+    document.getElementById('stuDarkIcon')
       .toggleClass('bi-moon-stars', !isDark)
       .toggleClass('bi-sun', isDark);
   }
