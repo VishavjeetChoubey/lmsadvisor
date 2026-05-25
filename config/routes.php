@@ -128,7 +128,7 @@ $router->get('/404', 'ErrorController@notFound');
 // Student — Profile update & certificate
 $router->post('/learn/profile/update',           'Student\DashboardController@updateProfile');
 $router->post('/learn/profile/change-password',  'Student\DashboardController@changePassword');
-$router->get('/learn/certificate/:enrollmentId', 'Student\DashboardController@certificate');
+// Removed duplicate — handled by CertificateController
 
 // Admin — Knowledge Base
 $router->get('/admin/knowledge-base', 'Admin\KnowledgeBaseController@index');
@@ -152,7 +152,7 @@ $router->post('/scorm/api/:lessonId',     'Student\ScormController@api');
 // ── Phase 12: Certificate ─────────────────────────────────────────────────────
 $router->get('/certificate/verify',      'Student\CertificateController@verify');
 $router->get('/certificate/verify/:uuid','Student\CertificateController@verify');
-$router->get('/learn/certificate/:enrollmentId', 'Student\CertificateController@view');
+$router->get('/learn/certificate/:enrollmentId', 'Student\CertificateController@show');
 
 // ── Phase 14: AI Course Generation ───────────────────────────────────────────
 $router->post('/admin/courses/ai-generate', 'Admin\CourseController@aiGenerate');

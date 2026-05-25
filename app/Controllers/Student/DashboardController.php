@@ -437,34 +437,10 @@ class DashboardController extends Controller
     // ── GET /learn/certificate/:enrollmentId ──────────────────────────────────
     public function certificate(array $params): void
     {
-        $this->guard();
-        $user        = AuthService::user();
-        $enrollmentId = (int)($params['enrollmentId'] ?? 0);
-
-        // Load enrollment
-        $enrollModel = new Enrollment();
-        $enrollment  = $enrollModel->findById($enrollmentId);
-
-        if (!$enrollment || (int)$enrollment['user_id'] !== (int)$user['id']) {
-            $this->flash('error', 'Certificate not found.');
-            $this->redirect('/learn/courses');
-        }
-
-        if ($enrollment['status'] !== 'completed') {
-            $this->flash('error', 'You must complete the course before receiving a certificate.');
-            $this->redirect('/learn/courses');
-        }
-
-        // Load course
-        $courseModel = new \App\Models\Course();
-        $course      = $courseModel->findByUuidFull($enrollment['course_uuid']);
-
-        $this->view('student.certificate.view', [
-            'title'      => 'Certificate — ' . $enrollment['course_title'],
-            'page_title' => 'Certificate of Completion',
-            'auth_user'  => $user,
-            'enrollment' => $enrollment,
-            'course'     => $course,
-        ], 'student');
+        // Delegate to CertificateController::view
+        $certController = new \App\Controllers\Student\CertificateController(
+            $this->request, $this->response
+        );
+        $certController->show($params);
     }
 }

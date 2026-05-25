@@ -11,22 +11,25 @@ use App\Models\Enrollment;
 
 class CertificateController extends Controller
 {
-    // ── GET /certificate/verify/:uuid — PUBLIC, no login required ────────────
+    // ── GET /certificate/verify        — PUBLIC (no login) ───────────────────
+    // ── GET /certificate/verify/:uuid  — PUBLIC (no login) ───────────────────
     public function verify(array $params): void
     {
         $uuid = trim($params['uuid'] ?? '');
         $cert = $uuid ? CertificateService::findByUuid($uuid) : null;
 
-        // Render standalone HTML (no layout wrapper — the view is a full HTML doc)
+        // Render as a standalone HTML page (no layout — view has its own <html>)
         $this->viewRaw('student.certificate.verify', [
-            'title' => $cert ? 'Certificate Verified — ' . ($cert['course_title'] ?? '') : 'Certificate Not Found',
+            'title' => $cert
+                ? 'Certificate Verified — ' . ($cert['course_title'] ?? '')
+                : 'Certificate Not Found',
             'cert'  => $cert,
             'uuid'  => $uuid,
         ]);
     }
 
-    // ── GET /learn/certificate/:enrollmentId — student downloads their cert ──
-    public function view(array $params): void
+    // ── GET /learn/certificate/:enrollmentId — Student downloads their cert ──
+    public function show(array $params): void
     {
         AuthMiddleware::handle('/login');
         $user         = AuthService::user();
@@ -45,10 +48,10 @@ class CertificateController extends Controller
             $this->redirect('/learn/courses');
         }
 
-        // Issue if not already done
+        // Auto-issue if not yet issued
         $cert = CertificateService::findByEnrollment($enrollmentId);
         if (!$cert) {
-            $certRow = CertificateService::issue(
+            CertificateService::issue(
                 $enrollmentId,
                 (int)$user['id'],
                 (int)$enrollment['course_id']
@@ -56,14 +59,13 @@ class CertificateController extends Controller
             $cert = CertificateService::findByEnrollment($enrollmentId);
         }
 
-        // Render full standalone HTML cert page
+        if (!$cert) {
+            $this->flash('error', 'Could not generate certificate. Please try again.');
+            $this->redirect('/learn/courses');
+        }
+
+        // Render full standalone HTML cert page (bypasses layout)
         echo CertificateService::renderHtml($cert);
         exit;
-    }
-
-    // ── GET /learn/certificate/:enrollmentId/print — same but no nav ─────────
-    public function print(array $params): void
-    {
-        $this->view($params); // Same as view, the HTML has print CSS
     }
 }
