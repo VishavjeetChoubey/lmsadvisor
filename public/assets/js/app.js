@@ -31,7 +31,7 @@ $(function () {
   var darkMode = localStorage.getItem('lms_dark_mode') === '1';
   applyTheme(darkMode);
 
-  $('#darkModeToggle').on('click', function () {
+  $('#stuDarkToggle').on('click', function () {
     darkMode = !darkMode;
     localStorage.setItem('lms_dark_mode', darkMode ? '1' : '0');
     applyTheme(darkMode);
@@ -39,7 +39,7 @@ $(function () {
 
   function applyTheme(isDark) {
     document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
-    $('#darkModeToggle i')
+    $('#stuDarkIcon')
       .toggleClass('bi-moon-stars', !isDark)
       .toggleClass('bi-sun',        isDark);
   }
@@ -83,7 +83,7 @@ $(function () {
   var dark = localStorage.getItem('lms_dark_mode') === '1';
   applyTheme(dark);
 
-  $('#darkModeToggle').on('click', function () {
+  $('#stuDarkToggle').on('click', function () {
     dark = !dark;
     localStorage.setItem('lms_dark_mode', dark ? '1' : '0');
     applyTheme(dark);
@@ -91,19 +91,19 @@ $(function () {
 
   function applyTheme(isDark) {
     document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
-    $('#darkModeToggle i')
+    $('#stuDarkIcon')
       .toggleClass('bi-moon-stars', !isDark)
       .toggleClass('bi-sun', isDark);
   }
 
   /* ── Mobile sidebar toggle ─────────────────────────────────────────────── */
-  $('#stHamburger').on('click', function () {
-    $('#stSidebar').toggleClass('mobile-open');
-    $('#stOverlay').toggleClass('visible');
+  $('#stuHamburger').on('click', function () {
+    $('#stuSidebar').toggleClass('mobile-open');
+    $('#stuOverlay').toggleClass('visible');
   });
-  $('#stOverlay').on('click', function () {
-    $('#stSidebar').removeClass('mobile-open');
-    $('#stOverlay').removeClass('visible');
+  $('#stuOverlay').on('click', function () {
+    $('#stuSidebar').removeClass('mobile-open');
+    $('#stuOverlay').removeClass('visible');
   });
 });
 
