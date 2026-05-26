@@ -8,14 +8,15 @@ $s    = fn(string $k, mixed $d = '') => $settings[$k] ?? $d;
 $bool = fn(string $k): bool => (bool)(int)($settings[$k] ?? '0');
 
 $tabIcons = [
-    'general'      => 'bi-sliders',
-    'security'     => 'bi-shield-lock',
-    'email'        => 'bi-envelope',
-    'certificates' => 'bi-award',
-    'social_login' => 'bi-people',
-    'webinar'      => 'bi-camera-video',
-    'ai'           => 'bi-robot',
-    'reviews'      => 'bi-star',
+    'general'     => 'bi-sliders',
+    'security'    => 'bi-shield-lock',
+    'email'       => 'bi-envelope',
+    'certificates'=> 'bi-award',
+    'social_login'=> 'bi-person-badge',
+    'webinar'     => 'bi-camera-video',
+    'ai'          => 'bi-stars',
+    'reviews'     => 'bi-star',
+    'custom_code' => 'bi-code-slash',
 ];
 ?>
 
@@ -515,9 +516,134 @@ $tabIcons = [
             </div>
           </div>
 
-          <?php endif; ?>
+          <?php elseif ($activeTab === 'custom_code'): ?>
 
-        </div><!-- /.card-body -->
+          <!-- CodeMirror CDN -->
+          <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
+          <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/dracula.min.css">
+          <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
+          <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/css/css.min.js"></script>
+          <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/javascript/javascript.min.js"></script>
+          <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/closebrackets.min.js"></script>
+          <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/edit/matchbrackets.min.js"></script>
+          <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/addon/selection/active-line.min.js"></script>
+
+          <div class="row g-4">
+            <div class="col-12">
+              <div class="alert border-0 mb-0" style="background:#f0f4ff;border-radius:12px">
+                <div class="d-flex gap-3 align-items-start">
+                  <i class="bi bi-info-circle-fill text-primary mt-1" style="font-size:1.1rem;flex-shrink:0"></i>
+                  <div>
+                    <div class="fw-semibold mb-1">Injection Order &amp; Priority</div>
+                    <div style="font-size:13.5px;color:var(--text-muted)">
+                      Injected into <strong>every page</strong> (admin + student) after all platform files — your code always wins.
+                    </div>
+                    <div class="mt-2 d-flex flex-wrap gap-2">
+                      <span class="badge bg-primary-subtle text-primary">CSS → last in &lt;head&gt;</span>
+                      <span class="badge bg-success-subtle text-success">Head JS → last in &lt;head&gt;</span>
+                      <span class="badge bg-warning-subtle text-warning">Body JS → first after &lt;body&gt;</span>
+                      <span class="badge bg-danger-subtle text-danger">Footer JS → last before &lt;/body&gt;</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Custom CSS -->
+            <div class="col-12">
+              <div class="settings-section-label"><i class="bi bi-brush me-1"></i> Custom CSS <small class="fw-normal text-muted">(injected last in &lt;head&gt;, overrides everything)</small></div>
+              <div class="code-editor-wrap" style="border:1.5px solid var(--border-color);border-radius:10px;overflow:hidden;margin-top:6px">
+                <div style="background:#282a36;padding:8px 14px;display:flex;align-items:center;justify-content:space-between">
+                  <span style="font-size:11.5px;font-weight:700;color:#6272a4;font-family:monospace;letter-spacing:.05em">CSS</span>
+                  <div style="display:flex;gap:5px"><span style="width:11px;height:11px;border-radius:50%;background:#ff5f56;display:inline-block"></span><span style="width:11px;height:11px;border-radius:50%;background:#ffbd2e;display:inline-block"></span><span style="width:11px;height:11px;border-radius:50%;background:#27c93f;display:inline-block"></span></div>
+                </div>
+                <textarea name="custom_css" id="editorCustomCss" style="display:none"><?= $e($s('custom_css', '')) ?></textarea>
+                <div id="cmCustomCss"></div>
+              </div>
+            </div>
+
+            <!-- Head JS -->
+            <div class="col-12">
+              <div class="settings-section-label"><i class="bi bi-braces me-1"></i> Head JavaScript <span class="badge bg-success ms-2" style="font-size:10.5px;vertical-align:middle">injected last in &lt;head&gt;</span></div>
+              <div class="form-text mb-2">Analytics, GTM, font loaders, tracking pixels. Runs before DOM is ready.</div>
+              <div class="code-editor-wrap" style="border:1.5px solid var(--border-color);border-radius:10px;overflow:hidden">
+                <div style="background:#282a36;padding:8px 14px;display:flex;align-items:center;justify-content:space-between">
+                  <span style="font-size:11.5px;font-weight:700;color:#6272a4;font-family:monospace;letter-spacing:.05em">&lt;head&gt; JS</span>
+                  <div style="display:flex;gap:5px"><span style="width:11px;height:11px;border-radius:50%;background:#ff5f56;display:inline-block"></span><span style="width:11px;height:11px;border-radius:50%;background:#ffbd2e;display:inline-block"></span><span style="width:11px;height:11px;border-radius:50%;background:#27c93f;display:inline-block"></span></div>
+                </div>
+                <textarea name="custom_js_head" id="editorJsHead" style="display:none"><?= $e($s('custom_js_head', '')) ?></textarea>
+                <div id="cmJsHead"></div>
+              </div>
+            </div>
+
+            <!-- Body JS -->
+            <div class="col-12">
+              <div class="settings-section-label"><i class="bi bi-braces me-1"></i> Body JavaScript <span class="badge bg-warning text-dark ms-2" style="font-size:10.5px;vertical-align:middle">first after &lt;body&gt; opens</span></div>
+              <div class="form-text mb-2">Chat widgets, A/B testing, lead capture tools. Runs as page begins rendering.</div>
+              <div class="code-editor-wrap" style="border:1.5px solid var(--border-color);border-radius:10px;overflow:hidden">
+                <div style="background:#282a36;padding:8px 14px;display:flex;align-items:center;justify-content:space-between">
+                  <span style="font-size:11.5px;font-weight:700;color:#6272a4;font-family:monospace;letter-spacing:.05em">&lt;body&gt; JS</span>
+                  <div style="display:flex;gap:5px"><span style="width:11px;height:11px;border-radius:50%;background:#ff5f56;display:inline-block"></span><span style="width:11px;height:11px;border-radius:50%;background:#ffbd2e;display:inline-block"></span><span style="width:11px;height:11px;border-radius:50%;background:#27c93f;display:inline-block"></span></div>
+                </div>
+                <textarea name="custom_js_body" id="editorJsBody" style="display:none"><?= $e($s('custom_js_body', '')) ?></textarea>
+                <div id="cmJsBody"></div>
+              </div>
+            </div>
+
+            <!-- Footer JS -->
+            <div class="col-12">
+              <div class="settings-section-label"><i class="bi bi-braces me-1"></i> Footer JavaScript <span class="badge bg-danger ms-2" style="font-size:10.5px;vertical-align:middle">last before &lt;/body&gt;</span></div>
+              <div class="form-text mb-2">DOM manipulation, custom behaviour, third-party integrations. Runs after everything loads.</div>
+              <div class="code-editor-wrap" style="border:1.5px solid var(--border-color);border-radius:10px;overflow:hidden">
+                <div style="background:#282a36;padding:8px 14px;display:flex;align-items:center;justify-content:space-between">
+                  <span style="font-size:11.5px;font-weight:700;color:#6272a4;font-family:monospace;letter-spacing:.05em">&lt;/body&gt; JS</span>
+                  <div style="display:flex;gap:5px"><span style="width:11px;height:11px;border-radius:50%;background:#ff5f56;display:inline-block"></span><span style="width:11px;height:11px;border-radius:50%;background:#ffbd2e;display:inline-block"></span><span style="width:11px;height:11px;border-radius:50%;background:#27c93f;display:inline-block"></span></div>
+                </div>
+                <textarea name="custom_js_footer" id="editorJsFooter" style="display:none"><?= $e($s('custom_js_footer', '')) ?></textarea>
+                <div id="cmJsFooter"></div>
+              </div>
+            </div>
+
+            <div class="col-12">
+              <div class="d-flex gap-2 flex-wrap">
+                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="clearEditor('cmCustomCss','editorCustomCss')"><i class="bi bi-trash3 me-1"></i>Clear CSS</button>
+                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="clearEditor('cmJsHead','editorJsHead')"><i class="bi bi-trash3 me-1"></i>Clear Head JS</button>
+                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="clearEditor('cmJsBody','editorJsBody')"><i class="bi bi-trash3 me-1"></i>Clear Body JS</button>
+                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="clearEditor('cmJsFooter','editorJsFooter')"><i class="bi bi-trash3 me-1"></i>Clear Footer JS</button>
+              </div>
+            </div>
+          </div>
+
+          <script>
+          var _editors = {};
+          function _makeEditor(wrapId, textareaId, mode) {
+            var ta = document.getElementById(textareaId);
+            if (!ta || typeof CodeMirror === 'undefined') return;
+            var cm = CodeMirror(document.getElementById(wrapId), {
+              value: ta.value, mode: mode, theme: 'dracula',
+              lineNumbers: true, autoCloseBrackets: true, matchBrackets: true,
+              styleActiveLine: true, tabSize: 2, indentWithTabs: false,
+              lineWrapping: true, viewportMargin: Infinity,
+            });
+            cm.on('change', function(){ ta.value = cm.getValue(); });
+            _editors[textareaId] = cm;
+          }
+          function clearEditor(wrapId, ta_id) {
+            if (_editors[ta_id]) { _editors[ta_id].setValue(''); }
+            var ta = document.getElementById(ta_id); if (ta) ta.value = '';
+          }
+          document.querySelector('form').addEventListener('submit', function(){
+            Object.values(_editors).forEach(function(cm){ cm.save && cm.save(); });
+          });
+          setTimeout(function(){
+            _makeEditor('cmCustomCss', 'editorCustomCss', 'css');
+            _makeEditor('cmJsHead',    'editorJsHead',    'javascript');
+            _makeEditor('cmJsBody',    'editorJsBody',    'javascript');
+            _makeEditor('cmJsFooter',  'editorJsFooter',  'javascript');
+          }, 100);
+          </script>
+
+          <?php endif; ?>
 
         <!-- Sticky save footer -->
         <div class="card-footer d-flex justify-content-end gap-2 py-3 px-4">

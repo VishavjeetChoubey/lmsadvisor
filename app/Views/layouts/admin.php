@@ -23,8 +23,18 @@ $url   = fn(string $p = ''): string => View::url($p);
 
   <!-- Admin CSS -->
   <link rel="stylesheet" href="<?= $asset('css/admin.css') ?>">
+<?php
+  // ── Custom Code injection (highest priority — after all platform files) ──
+  use App\Models\Setting;
+  $customCss    = Setting::get('custom_css', '');
+  $customJsHead = Setting::get('custom_js_head', '');
+?>
+<?php if ($customCss):    ?><style id="custom-css"><?= $customCss ?></style><?php endif; ?>
+<?php if ($customJsHead): ?><script id="custom-js-head"><?= $customJsHead ?></script><?php endif; ?>
 </head>
 <body class="admin-body">
+<?php $customJsBody = Setting::get('custom_js_body', ''); ?>
+<?php if ($customJsBody): ?><script id="custom-js-body"><?= $customJsBody ?></script><?php endif; ?>
 
 <!-- Sidebar -->
 <?php require VIEW_PATH . '/partials/admin/sidebar.php'; ?>
@@ -61,5 +71,7 @@ $url   = fn(string $p = ''): string => View::url($p);
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <!-- Admin JS -->
 <script src="<?= $asset('js/admin.js') ?>"></script>
+<?php $customJsFooter = Setting::get('custom_js_footer', ''); ?>
+<?php if ($customJsFooter): ?><script id="custom-js-footer"><?= $customJsFooter ?></script><?php endif; ?>
 </body>
 </html>

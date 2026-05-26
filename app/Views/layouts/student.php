@@ -44,8 +44,17 @@ $avatarUrl = !empty($authUser['avatar']) ? (APP_URL . '/storage/uploads/' . $aut
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
   <link rel="stylesheet" href="<?= $asset('css/app.css') ?>">
+<?php
+  use App\Models\Setting;
+  $customCss    = Setting::get('custom_css', '');
+  $customJsHead = Setting::get('custom_js_head', '');
+?>
+<?php if ($customCss):    ?><style id="custom-css"><?= $customCss ?></style><?php endif; ?>
+<?php if ($customJsHead): ?><script id="custom-js-head"><?= $customJsHead ?></script><?php endif; ?>
 </head>
 <body class="stu-body <?= $isPlayer ? 'player-mode' : '' ?>">
+<?php $customJsBody = Setting::get('custom_js_body', ''); ?>
+<?php if ($customJsBody): ?><script id="custom-js-body"><?= $customJsBody ?></script><?php endif; ?>
 
 <!-- ══════════════════════════════════════════════
      ICON SIDEBAR  (reference-style)
@@ -186,6 +195,8 @@ $avatarUrl = !empty($authUser['avatar']) ? (APP_URL . '/storage/uploads/' . $aut
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script>window.LMS = window.LMS || {}; window.LMS.BASE = '<?= rtrim(APP_URL, '/') ?>';</script>
 <script src="<?= $asset('js/app.js') ?>"></script>
+<?php $customJsFooter = Setting::get('custom_js_footer', ''); ?>
+<?php if ($customJsFooter): ?><script id="custom-js-footer"><?= $customJsFooter ?></script><?php endif; ?>
 <script>
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('<?= APP_URL ?>/sw.js');
 </script>
