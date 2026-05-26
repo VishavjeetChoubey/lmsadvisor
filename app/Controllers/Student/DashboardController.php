@@ -37,6 +37,7 @@ class DashboardController extends Controller
             'points'     => $points,
             'completed'  => $completed,
             'active'     => $active,
+            'firstName'  => explode(' ', $user['name'] ?? 'Learner')[0],
         ], 'student');
     }
 

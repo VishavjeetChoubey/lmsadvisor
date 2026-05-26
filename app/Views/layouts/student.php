@@ -29,7 +29,19 @@ if ($path === '/learn' || $path === '/learn/') {
 }
 unset($nav);
 
-$avatarUrl = !empty($authUser['avatar']) ? (APP_URL . '/storage/uploads/' . $authUser['avatar']) : null;
+$avatarUrl = null;
+if (!empty($authUser['id'])) {
+    static $__avatarCache = null;
+    if ($__avatarCache === null) {
+        $__pdo = \App\Core\Database::getInstance();
+        $__row = $__pdo->prepare('SELECT avatar FROM users WHERE id=? LIMIT 1');
+        $__row->execute([$authUser['id']]);
+        $__avatarCache = $__row->fetchColumn() ?: '';
+    }
+    if ($__avatarCache) {
+        $avatarUrl = APP_URL . '/storage/uploads/avatars/' . $__avatarCache;
+    }
+}
 ?>
 <!DOCTYPE html>
 <html lang="en" data-theme="light">

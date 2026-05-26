@@ -91,7 +91,8 @@ class SettingsService
             'SELECT `key`, type FROM settings WHERE group_name = ?'
         );
         $stmt->execute([$group]);
-        $rows = $stmt->fetchAll();
+        $rows       = $stmt->fetchAll();
+        $knownKeys  = array_column($rows, 'key');
 
         foreach ($rows as $row) {
             $key  = $row['key'];
@@ -117,6 +118,21 @@ class SettingsService
             // Normal field
             if (array_key_exists($key, $posted)) {
                 Setting::set($key, trim((string)$posted[$key]));
+            }
+        }
+
+        // ── Upsert any POSTed keys not yet in DB for this group ───────────────
+        // Handles custom_code and future dynamic tabs gracefully
+        $textareaGroups = ['custom_code'];
+        if (in_array($group, $textareaGroups, true)) {
+            foreach ($posted as $key => $val) {
+                if (!in_array($key, $knownKeys, true) && preg_match('/^[a-z_]+$/', $key)) {
+                    $pdo->prepare(
+                        "INSERT INTO settings (`key`, value, type, label, group_name)
+                         VALUES (?, ?, 'textarea', ?, ?)
+                         ON DUPLICATE KEY UPDATE value = VALUES(value)"
+                    )->execute([$key, trim((string)$val), $key, $group]);
+                }
             }
         }
     }
