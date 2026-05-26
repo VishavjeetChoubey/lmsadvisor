@@ -243,3 +243,7 @@ $router->get('/admin/users/export', 'Admin\UserController@export');
 
 // Student GDPR data export
 $router->get('/learn/profile/export', 'Student\DashboardController@exportData');
+
+// Analytics
+$router->get('/admin/analytics',       'Admin\AnalyticsController@index');
+$router->post('/admin/analytics/purge','Admin\AnalyticsController@purge');

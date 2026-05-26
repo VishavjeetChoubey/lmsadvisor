@@ -39,6 +39,12 @@ class App
         // Apply rate limiting (login + API routes)
         \App\Middleware\RateLimitMiddleware::api();
 
+        // Track page view (SOC2-compliant: hashed IPs, no PII)
+        \App\Services\AnalyticsService::track(
+            $request->path,
+            $_SERVER['HTTP_X_PAGE_TITLE'] ?? ''
+        );
+
         // Dispatch — wrap in exception handler so errors show properly
         try {
             $this->router->dispatch($this->request, $this->response);
