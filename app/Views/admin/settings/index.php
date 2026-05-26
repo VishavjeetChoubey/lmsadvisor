@@ -272,7 +272,7 @@ $tabIcons = [
             <div class="col-12">
               <div class="alert alert-info d-flex gap-2">
                 <i class="bi bi-info-circle-fill mt-1"></i>
-                <div>Certificate PDF generation uses mPDF (Phase 12). These settings control the signatory block and branding on all generated certificates.</div>
+                <div>Configure the signatory block and branding that appears on all generated certificates.</div>
               </div>
             </div>
             <div class="col-md-6">
@@ -427,7 +427,7 @@ $tabIcons = [
             <div class="col-12">
               <div class="alert alert-info d-flex gap-2">
                 <i class="bi bi-robot mt-1"></i>
-                <div>AI features are used for course generation (Phase 5). Configure your preferred provider and API key below.</div>
+                <div>Configure your preferred AI provider and API key to enable AI-powered course generation.</div>
               </div>
             </div>
             <div class="col-12">
