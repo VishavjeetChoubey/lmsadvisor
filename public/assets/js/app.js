@@ -196,3 +196,80 @@ $(function () {
     initLessonNav();
   }
 })();
+
+/* ── Student notification bell ──────────────────────────────────────────────── */
+(function initStudentNotifications() {
+  var bell    = document.getElementById('stuNotifBell');
+  var badge   = document.getElementById('stuNotifBadge');
+  var list    = document.getElementById('stuNotifList');
+  var empty   = document.getElementById('stuNotifEmpty');
+  var markAll = document.getElementById('stuMarkAllRead');
+  if (!bell) return;
+
+  var BASE = (window.LMS && window.LMS.BASE) || '';
+
+  function timeAgo(dateStr) {
+    var diff = Math.floor((Date.now() - new Date(dateStr)) / 1000);
+    if (diff < 60)    return 'just now';
+    if (diff < 3600)  return Math.floor(diff / 60) + 'm ago';
+    if (diff < 86400) return Math.floor(diff / 3600) + 'h ago';
+    return Math.floor(diff / 86400) + 'd ago';
+  }
+
+  function updateBadge(count) {
+    if (!badge) return;
+    if (count > 0) { badge.textContent = count > 99 ? '99+' : count; badge.classList.remove('d-none'); }
+    else badge.classList.add('d-none');
+  }
+
+  function loadNotifs() {
+    fetch(BASE + '/api/notifications?page=1')
+      .then(function(r) { return r.json(); })
+      .then(function(data) {
+        var rows   = data.rows || [];
+        var unread = rows.filter(function(r) { return !r.is_read; }).length;
+        updateBadge(unread);
+        if (!list) return;
+        if (!rows.length) { if (empty) empty.style.display = ''; list.innerHTML = ''; list.appendChild(empty); return; }
+        if (empty) empty.style.display = 'none';
+        list.innerHTML = rows.map(function(n) {
+          var isUnread = !n.is_read;
+          return '<div class="notif-item' + (isUnread ? ' unread' : '') + '" data-id="' + n.id + '" style="display:flex;align-items:flex-start;gap:10px;padding:10px 14px;border-bottom:1px solid var(--border);cursor:pointer;background:' + (isUnread ? 'var(--primary-light)' : 'var(--card)') + '">'
+            + '<div style="width:8px;height:8px;border-radius:50%;background:' + (isUnread ? 'var(--primary)' : 'transparent') + ';margin-top:5px;flex-shrink:0"></div>'
+            + '<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:' + (isUnread ? '600' : '400') + ';color:var(--text-1)">' + (n.title || '') + '</div>'
+            + (n.body ? '<div style="font-size:12px;color:var(--text-2);margin-top:2px">' + n.body + '</div>' : '')
+            + '</div><div style="font-size:11px;color:var(--text-3);white-space:nowrap;margin-top:2px">' + timeAgo(n.created_at) + '</div></div>';
+        }).join('');
+        list.querySelectorAll('.notif-item').forEach(function(el) {
+          el.addEventListener('click', function() {
+            var id = this.dataset.id;
+            fetch(BASE + '/api/notifications/' + id + '/read', { method: 'POST' }).catch(function(){});
+            this.style.background = 'var(--card)';
+            this.querySelector('div[style*="border-radius:50%"]').style.background = 'transparent';
+            var remaining = list.querySelectorAll('[style*="var(--primary-light)"]').length;
+            updateBadge(remaining);
+          });
+        });
+      }).catch(function() {});
+  }
+
+  bell.addEventListener('shown.bs.dropdown', loadNotifs);
+
+  markAll && markAll.addEventListener('click', function() {
+    fetch(BASE + '/api/notifications/read-all', { method: 'POST' }).then(function() { loadNotifs(); }).catch(function(){});
+  });
+
+  // Load count on page load
+  fetch(BASE + '/api/notifications/count')
+    .then(function(r) { return r.json(); })
+    .then(function(d) { updateBadge(d.count || 0); })
+    .catch(function() {});
+
+  // Poll every 60s
+  setInterval(function() {
+    fetch(BASE + '/api/notifications/count')
+      .then(function(r) { return r.json(); })
+      .then(function(d) { updateBadge(d.count || 0); })
+      .catch(function() {});
+  }, 60000);
+})();

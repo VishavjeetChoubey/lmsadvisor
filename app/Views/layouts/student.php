@@ -106,10 +106,25 @@ $avatarUrl = !empty($authUser['avatar']) ? (APP_URL . '/storage/uploads/' . $aut
     <div class="stu-topbar-title"><?= $e($page_title ?? '') ?></div>
 
     <div class="stu-topbar-right">
-      <!-- Notification bell -->
-      <button class="stu-topbar-btn" title="Notifications">
-        <i class="bi bi-bell"></i>
-      </button>
+      <!-- Notification bell with live count -->
+      <div class="dropdown">
+        <button class="stu-topbar-btn position-relative" id="stuNotifBell" title="Notifications" data-bs-toggle="dropdown">
+          <i class="bi bi-bell"></i>
+          <span class="notif-badge d-none" id="stuNotifBadge">0</span>
+        </button>
+        <div class="dropdown-menu dropdown-menu-end shadow" id="stuNotifDropdown"
+             style="width:340px;max-height:420px;overflow:hidden;border-radius:14px;margin-top:8px;border:1px solid var(--border)">
+          <div class="d-flex align-items-center justify-content-between px-3 py-2" style="border-bottom:1px solid var(--border)">
+            <span class="fw-semibold" style="font-size:14px">Notifications</span>
+            <button class="btn btn-xs btn-outline-secondary" id="stuMarkAllRead" style="font-size:11px;border-radius:6px;padding:2px 8px">Mark all read</button>
+          </div>
+          <div id="stuNotifList" style="max-height:340px;overflow-y:auto">
+            <div class="text-center py-4 text-muted" style="font-size:13px" id="stuNotifEmpty">
+              <i class="bi bi-bell-slash" style="font-size:1.5rem;opacity:.3"></i><br>No notifications
+            </div>
+          </div>
+        </div>
+      </div>
 
       <!-- User pill -->
       <div class="dropdown">

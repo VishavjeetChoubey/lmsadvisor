@@ -545,6 +545,66 @@ class DashboardController extends Controller
         $this->redirect('/learn/profile');
     }
 
+
+    // ── GET /learn/profile/export — GDPR student data self-export ─────────────
+    public function exportData(array $params): void
+    {
+        $this->guard();
+        $user = AuthService::user();
+        $pdo  = \App\Core\Database::getInstance();
+
+        // Collect all user data
+        $userData = [
+            'profile'     => $pdo->prepare('SELECT first_name,last_name,email,created_at,last_login_at FROM users WHERE id=? LIMIT 1')->execute([$user['id']]) ? null : null,
+            'enrollments' => [],
+            'progress'    => [],
+            'quiz_results'=> [],
+            'forum_posts' => [],
+            'reviews'     => [],
+            'certificates'=> [],
+            'points'      => [],
+        ];
+
+        $stmt = $pdo->prepare('SELECT u.first_name,u.last_name,u.email,u.created_at,u.last_login_at FROM users u WHERE u.id=? LIMIT 1');
+        $stmt->execute([$user['id']]);
+        $userData['profile'] = $stmt->fetch(\PDO::FETCH_ASSOC);
+
+        $stmt = $pdo->prepare('SELECT c.title,e.status,e.progress_pct,e.enrolled_at,e.completed_at FROM enrollments e JOIN courses c ON c.id=e.course_id WHERE e.user_id=?');
+        $stmt->execute([$user['id']]);
+        $userData['enrollments'] = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+        $stmt = $pdo->prepare('SELECT l.title AS lesson,lp.status,lp.progress_pct,lp.started_at,lp.completed_at FROM lesson_progress lp JOIN lessons l ON l.id=lp.lesson_id WHERE lp.user_id=? ORDER BY lp.started_at DESC LIMIT 500');
+        $stmt->execute([$user['id']]);
+        $userData['progress'] = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+        $stmt = $pdo->prepare('SELECT q.title AS quiz,qa.score,qa.passed,qa.started_at FROM quiz_attempts qa JOIN quizzes q ON q.id=qa.quiz_id WHERE qa.user_id=? ORDER BY qa.started_at DESC LIMIT 200');
+        $stmt->execute([$user['id']]);
+        $userData['quiz_results'] = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+        $stmt = $pdo->prepare('SELECT ft.title,ft.body,ft.created_at FROM forum_threads ft WHERE ft.user_id=? ORDER BY ft.created_at DESC LIMIT 200');
+        $stmt->execute([$user['id']]);
+        $userData['forum_posts'] = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+        $stmt = $pdo->prepare('SELECT c.title AS course,cr.rating,cr.review,cr.created_at FROM course_reviews cr JOIN courses c ON c.id=cr.course_id WHERE cr.user_id=?');
+        $stmt->execute([$user['id']]);
+        $userData['reviews'] = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+        $stmt = $pdo->prepare('SELECT c.title AS course,cert.issued_at,cert.uuid AS certificate_id FROM certificates cert JOIN courses c ON c.id=cert.course_id WHERE cert.user_id=?');
+        $stmt->execute([$user['id']]);
+        $userData['certificates'] = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+        $stmt = $pdo->prepare('SELECT gp.points,gp.reason,gp.created_at FROM grade_points gp WHERE gp.user_id=? ORDER BY gp.created_at DESC LIMIT 500');
+        $stmt->execute([$user['id']]);
+        $userData['points'] = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+        // Output as JSON download
+        header('Content-Type: application/json; charset=utf-8');
+        header('Content-Disposition: attachment; filename=my-lms-data- . date(Y-m-d) . .json');
+        header('Cache-Control: no-cache');
+        echo json_encode($userData, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE);
+        exit;
+    }
+
     // ── POST /learn/profile/change-password ───────────────────────────────────
     public function changePassword(array $params): void
     {

@@ -290,6 +290,17 @@ class CertificateService
     </div>
   </div>
 </div>
+<div style="position:fixed;bottom:24px;right:24px;display:flex;gap:10px;z-index:999" class="no-print">
+  <button onclick="window.print()"
+    style="background:#5b5ef6;color:#fff;border:none;border-radius:10px;padding:12px 24px;font-size:15px;font-weight:700;cursor:pointer;box-shadow:0 4px 14px rgba(91,94,246,.4);font-family:inherit">
+    🖨 Download / Print PDF
+  </button>
+  <button onclick="window.close()"
+    style="background:#fff;color:#374151;border:1px solid #e5e7eb;border-radius:10px;padding:12px 20px;font-size:15px;cursor:pointer;font-family:inherit">
+    Close
+  </button>
+</div>
+<style>@media print{.no-print{display:none!important}}</style>
 </body>
 </html>
 HTML;

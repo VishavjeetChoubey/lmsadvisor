@@ -234,3 +234,12 @@ $router->get('/admin/quizzes',    'Admin\QuizController@listPage');
 
 // Profile avatar upload
 $router->post('/learn/profile/avatar', 'Student\DashboardController@uploadAvatar');
+
+// User session history
+$router->get('/admin/users/:uuid/sessions', 'Admin\UserController@sessions');
+
+// User CSV export
+$router->get('/admin/users/export', 'Admin\UserController@export');
+
+// Student GDPR data export
+$router->get('/learn/profile/export', 'Student\DashboardController@exportData');

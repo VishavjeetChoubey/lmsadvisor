@@ -320,4 +320,58 @@ class UserController extends Controller
         $stmt  = $pdo->query('SELECT * FROM roles ORDER BY id');
         return $stmt->fetchAll();
     }
+
+    // ── GET /admin/users/:uuid/sessions ───────────────────────────────────────
+    public function sessions(array $params): void
+    {
+        $pdo    = \App\Core\Database::getInstance();
+        $user   = $this->model->findByUuid($params['uuid'] ?? '');
+        if (!$user) { $this->flash('error','User not found.'); $this->redirect('/admin/users'); }
+
+        $sessions = $pdo->prepare(
+            'SELECT * FROM sessions WHERE user_id=? ORDER BY created_at DESC LIMIT 100'
+        );
+        $sessions->execute([$user['id']]);
+        $sessionRows = $sessions->fetchAll();
+
+        $this->view('admin.users.sessions', [
+            'title'       => 'Sessions — ' . $user['first_name'] . ' ' . $user['last_name'],
+            'page_title'  => 'Session History',
+            'breadcrumbs' => [['label'=>'Users','url'=>'admin/users'],['label'=>$user['first_name'],'url'=>'admin/users/'.$user['uuid'].'/edit'],['label'=>'Sessions']],
+            'flash'       => $this->getFlash(),
+            'auth_user'   => \App\Services\AuthService::user(),
+            'csrf_token'  => \App\Middleware\CsrfMiddleware::token(),
+            'profile_user'=> $user,
+            'sessions'    => $sessionRows,
+        ]);
+    }
+
+    // ── GET /admin/users/export ────────────────────────────────────────────────
+    public function export(array $params): void
+    {
+        $pdo   = \App\Core\Database::getInstance();
+        $users = $pdo->query(
+            'SELECT u.first_name,u.last_name,u.email,r.name AS role,u.is_active,
+                    u.created_at,u.last_login_at,
+                    (SELECT COUNT(*) FROM enrollments e WHERE e.user_id=u.id) AS enrollments,
+                    (SELECT COUNT(*) FROM enrollments e WHERE e.user_id=u.id AND e.status="completed") AS completed
+             FROM users u JOIN roles r ON r.id=u.role_id ORDER BY u.created_at DESC'
+        )->fetchAll();
+
+        header('Content-Type: text/csv; charset=utf-8');
+        header('Content-Disposition: attachment; filename="users-' . date('Y-m-d') . '.csv"');
+        $out = fopen('php://output', 'w');
+        fputcsv($out, ['First Name','Last Name','Email','Role','Active','Enrolled','Completed','Created At','Last Login']);
+        foreach ($users as $u) {
+            fputcsv($out, [
+                $u['first_name'], $u['last_name'], $u['email'],
+                $u['role'], $u['is_active'] ? 'Yes' : 'No',
+                $u['enrollments'], $u['completed'],
+                $u['created_at'], $u['last_login_at'] ?? ''
+            ]);
+        }
+        fclose($out);
+        exit;
+    }
+
 }
