@@ -41,7 +41,7 @@ class App
 
         // Track page view (SOC2-compliant: hashed IPs, no PII)
         \App\Services\AnalyticsService::track(
-            $request->path,
+            $this->request->path,
             $_SERVER['HTTP_X_PAGE_TITLE'] ?? ''
         );
 
