@@ -311,3 +311,146 @@
 
 *LMSAdvisor v1.0 — All 18 original phases complete.*  
 *Proudly developed by LMS Advisor.*
+
+---
+
+### 🛒 Phase 26 — E-Commerce (REVISED — WooCommerce Plugin Integration)
+**Priority:** Lowest (build after Phases 19–25)  
+**Why last:** Requires WordPress + WooCommerce setup on the merchant's side, plus ongoing API compatibility maintenance across WC versions.
+
+**Concept:**  
+Instead of building a native payment system, LMSAdvisor integrates with the world's largest e-commerce platform — WooCommerce. A standalone WordPress plugin syncs courses, handles purchases, and manages learners seamlessly between both systems.
+
+---
+
+#### How it works (end-to-end flow)
+
+```
+WordPress/WooCommerce                    LMSAdvisor
+─────────────────────                    ──────────
+1. Admin installs plugin        ──────→  Plugin calls LMS REST API
+2. Plugin fetches all courses   ←──────  Returns course list (uuid, title, price, thumbnail)
+3. Creates WC Product per course         Product linked to LMS course UUID
+4. Customer buys course         
+5. WooCommerce fires order hook ──────→  Plugin calls POST /api/v1/enrollments
+6. LMS enrolls customer                  Creates account if needed
+7. WC "My Account" shows:
+   "PHP For Freshers — View Course →"
+8. Click → redirected to LMS            JWT auto-login → lands on course detail page
+9. Student completes course     ←──────  LMS fires webhook to WC
+10. WC marks order "Completed"
+```
+
+---
+
+#### Plugin features (WordPress plugin — `lmsadvisor-woocommerce/`)
+
+**A. Course Sync**
+- Admin dashboard widget: "Sync Courses from LMSAdvisor"
+- Fetches all published courses via `GET /api/v1/courses`
+- Creates one WooCommerce Simple Product per course:
+  - Product name = Course title
+  - Description = Course short description
+  - Featured image = Course thumbnail
+  - Meta: `_lms_course_uuid`, `_lms_course_url`
+- Incremental sync (only new/updated courses)
+- Manual sync button + optional cron (daily auto-sync)
+- Sync log showing last run, courses synced, errors
+
+**B. User Creation & Sync**
+- On WooCommerce `woocommerce_created_customer` hook:
+  - Plugin calls `POST /api/v1/users` (new LMS endpoint) to create account
+  - Maps WC fields → LMS: `first_name`, `last_name`, `email`, `password` (hashed)
+  - Stores `_lms_user_uuid` in WC user meta
+- On `woocommerce_customer_save_address` / profile update:
+  - Calls `PUT /api/v1/users/:uuid` to keep names in sync
+- SSO token: LMS generates a short-lived JWT (15 min) for auto-login redirect
+
+**C. Enrollment via Purchase**
+- On `woocommerce_order_status_completed` hook:
+  - For each order item that has `_lms_course_uuid` meta:
+  - Plugin calls `POST /api/v1/enrollments` with `{course_uuid, user_email}`
+  - LMS enrolls the user (creates account if not yet exists)
+  - Returns enrollment confirmation
+- Supports: one-time purchase, variable products (course bundles)
+
+**D. "My Courses" in WooCommerce My Account**
+- New "My LMS Courses" tab in WC My Account page
+- Lists all courses the customer is enrolled in (fetched from `GET /api/v1/enrollments`)
+- Shows: course thumbnail, title, progress %, status
+- "View Course" / "Start Course" / "Resume" button
+- Click → redirect to LMS with auto-login JWT token
+- "Download Certificate" button (for completed courses)
+
+**E. LMS → WooCommerce webhooks (new in LMS)**
+- `POST /api/v1/webhooks/register` — WC plugin registers its webhook URL
+- LMS fires events to registered URLs:
+  - `course.completed` → WC marks order Complete, triggers review request email
+  - `enrollment.created` → WC can send welcome email
+  - `certificate.issued` → WC can display download link
+
+---
+
+#### New LMS REST API endpoints required
+
+| Method | Endpoint | Description |
+|---|---|---|
+| `POST` | `/api/v1/users` | Create a new student account |
+| `PUT` | `/api/v1/users/:uuid` | Update user profile |
+| `GET` | `/api/v1/auth/sso-token` | Generate 15-min JWT for auto-login redirect |
+| `GET` | `/api/v1/courses?status=published` | Already exists |
+| `POST` | `/api/v1/enrollments` | Already exists (needs email lookup) |
+| `POST` | `/api/v1/webhooks/register` | Register webhook URL |
+| `GET` | `/api/v1/webhooks` | List registered webhooks |
+| `DELETE` | `/api/v1/webhooks/:id` | Unregister webhook |
+
+---
+
+#### Plugin settings page (WP Admin → LMSAdvisor)
+
+```
+LMSAdvisor Connection
+├── LMS Base URL:      https://yoursite.com/lmsadvisor-dev
+├── API Token:         ●●●●●●●●●●●●●●●●●●●●
+├── [Test Connection]  ✓ Connected — LMSAdvisor v1.0
+│
+Course Sync
+├── Auto-sync: [Daily ▾]
+├── Last sync: 26 May 2026, 14:32 (47 courses synced)
+├── [Sync Now]
+│
+Enrollment
+├── Enroll on: [Order Completed ▾]
+├── Create LMS account if not exists: [✓]
+├── Send LMS welcome email: [✓]
+│
+My Account Tab
+├── Tab label: My Courses
+├── Show progress bar: [✓]
+├── Show certificate download: [✓]
+│
+Webhooks
+└── Receive events from LMS: [✓]
+    Webhook secret: ●●●●●●●●
+```
+
+---
+
+#### Deliverables
+
+| File/Folder | Contents |
+|---|---|
+| `lmsadvisor-woocommerce/` | WordPress plugin root |
+| `lmsadvisor-woocommerce.php` | Plugin bootstrap, hooks |
+| `includes/class-lms-api.php` | REST API client (curl wrapper) |
+| `includes/class-lms-sync.php` | Course sync logic |
+| `includes/class-lms-enrollment.php` | Purchase → enrollment handler |
+| `includes/class-lms-sso.php` | JWT SSO redirect |
+| `includes/class-lms-my-account.php` | My Account tab + course list |
+| `includes/class-lms-webhooks.php` | Incoming LMS event handler |
+| `admin/settings-page.php` | Plugin settings UI |
+| `templates/my-courses.php` | WC My Account course list template |
+
+---
+
+*This phase is intentionally last because it requires: a working WooCommerce store, SSL on both sites, and ongoing maintenance as WooCommerce updates its hooks API. All LMS infrastructure (REST API, JWT auth, enrollment) is already in place.*

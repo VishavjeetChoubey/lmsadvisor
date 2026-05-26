@@ -39,9 +39,10 @@ $(function () {
 
   function applyTheme(isDark) {
     document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
-    document.getElementById('stuDarkIcon')
-      .toggleClass('bi-moon-stars', !isDark)
-      .toggleClass('bi-sun',        isDark);
+    var icon = document.getElementById('stuDarkIcon');
+    if (icon) {
+      icon.className = isDark ? 'bi bi-sun-fill' : 'bi bi-moon-stars-fill';
+    }
   }
 
 });
@@ -78,23 +79,21 @@ window.LMS.confirm = function (message, onConfirm) {
   if (window.confirm(message)) onConfirm();
 };
 
-/* ── Dark mode ───────────────────────────────────────────────────────────── */
+/* ── Dark mode (initialise on page load) ─────────────────────────────────── */
 $(function () {
   var dark = localStorage.getItem('lms_dark_mode') === '1';
-  applyTheme(dark);
+  // Apply theme on load
+  document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+  var icon = document.getElementById('stuDarkIcon');
+  if (icon) icon.className = dark ? 'bi bi-sun-fill' : 'bi bi-moon-stars-fill';
 
   $('#stuDarkToggle').on('click', function () {
     dark = !dark;
     localStorage.setItem('lms_dark_mode', dark ? '1' : '0');
-    applyTheme(dark);
+    document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
+    var ic = document.getElementById('stuDarkIcon');
+    if (ic) ic.className = dark ? 'bi bi-sun-fill' : 'bi bi-moon-stars-fill';
   });
-
-  function applyTheme(isDark) {
-    document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
-    document.getElementById('stuDarkIcon')
-      .toggleClass('bi-moon-stars', !isDark)
-      .toggleClass('bi-sun', isDark);
-  }
 
   /* ── Mobile sidebar toggle ─────────────────────────────────────────────── */
   $('#stuHamburger').on('click', function () {
