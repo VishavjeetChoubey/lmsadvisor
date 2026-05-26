@@ -53,17 +53,31 @@ class SettingsService
 
     // ── Load ──────────────────────────────────────────────────────────────────
 
+    /** Map of tab → extra groups to also load */
+    private static array $extraGroups = [
+        'reviews' => ['leaderboard'],
+    ];
+
     /** Return all settings for a group, with encrypted values decrypted. */
     public static function loadGroup(string $group): array
     {
-        $rows = Setting::group($group);
-        $out  = [];
-        foreach ($rows as $key => $row) {
-            $val = $row['value'] ?? '';
-            if (in_array($key, self::$encrypted, true) && $val !== '') {
-                try { $val = Encryption::decrypt($val); } catch (\Throwable) { $val = ''; }
+        // Load primary group
+        $groups = [$group];
+        // Load any extra groups that belong to this tab
+        if (isset(self::$extraGroups[$group])) {
+            $groups = array_merge($groups, self::$extraGroups[$group]);
+        }
+
+        $out = [];
+        foreach ($groups as $g) {
+            $rows = Setting::group($g);
+            foreach ($rows as $key => $row) {
+                $val = $row['value'] ?? '';
+                if (in_array($key, self::$encrypted, true) && $val !== '') {
+                    try { $val = Encryption::decrypt($val); } catch (\Throwable) { $val = ''; }
+                }
+                $out[$key] = $val;
             }
-            $out[$key] = $val;
         }
         return $out;
     }
@@ -86,52 +100,53 @@ class SettingsService
      */
     public static function saveGroup(string $group, array $posted): void
     {
-        $pdo  = \App\Core\Database::getInstance();
-        $stmt = $pdo->prepare(
-            'SELECT `key`, type FROM settings WHERE group_name = ?'
-        );
-        $stmt->execute([$group]);
-        $rows       = $stmt->fetchAll();
-        $knownKeys  = array_column($rows, 'key');
-
-        foreach ($rows as $row) {
-            $key  = $row['key'];
-            $type = $row['type'];
-
-            // Boolean: if not in POST it was unchecked
-            if (in_array($key, self::$booleans, true)) {
-                $val = isset($posted[$key]) ? '1' : '0';
-                Setting::set($key, $val);
-                continue;
-            }
-
-            // Password/secret: skip if blank (keep existing)
-            if (in_array($key, self::$encrypted, true)) {
-                if (!isset($posted[$key]) || trim($posted[$key]) === '') {
-                    continue; // keep old value
-                }
-                $val = Encryption::encrypt(trim($posted[$key]));
-                Setting::set($key, $val);
-                continue;
-            }
-
-            // Normal field
-            if (array_key_exists($key, $posted)) {
-                Setting::set($key, trim((string)$posted[$key]));
-            }
+        // Collect all groups to save for this tab
+        $groups = [$group];
+        if (isset(self::$extraGroups[$group])) {
+            $groups = array_merge($groups, self::$extraGroups[$group]);
         }
 
-        // ── Upsert any POSTed keys not yet in DB for this group ───────────────
-        // Handles custom_code and future dynamic tabs gracefully
-        $textareaGroups = ['custom_code'];
-        if (in_array($group, $textareaGroups, true)) {
-            foreach ($posted as $key => $val) {
-                if (!in_array($key, $knownKeys, true) && preg_match('/^[a-z_]+$/', $key)) {
-                    $pdo->prepare(
-                        "INSERT INTO settings (`key`, value, type, label, group_name)
-                         VALUES (?, ?, 'textarea', ?, ?)
-                         ON DUPLICATE KEY UPDATE value = VALUES(value)"
-                    )->execute([$key, trim((string)$val), $key, $group]);
+        $pdo = \App\Core\Database::getInstance();
+
+        foreach ($groups as $g) {
+            $stmt = $pdo->prepare('SELECT `key`, type FROM settings WHERE group_name = ?');
+            $stmt->execute([$g]);
+            $rows      = $stmt->fetchAll();
+            $knownKeys = array_column($rows, 'key');
+
+            foreach ($rows as $row) {
+                $key  = $row['key'];
+
+                // Boolean: if not in POST it was unchecked → 0
+                if (in_array($key, self::$booleans, true)) {
+                    Setting::set($key, isset($posted[$key]) ? '1' : '0');
+                    continue;
+                }
+
+                // Encrypted: skip if blank (keep existing value)
+                if (in_array($key, self::$encrypted, true)) {
+                    if (!isset($posted[$key]) || trim($posted[$key]) === '') continue;
+                    Setting::set($key, Encryption::encrypt(trim($posted[$key])));
+                    continue;
+                }
+
+                // Normal text field
+                if (array_key_exists($key, $posted)) {
+                    Setting::set($key, trim((string)$posted[$key]));
+                }
+            }
+
+            // Upsert unknown keys for dynamic groups (e.g. custom_code)
+            $textareaGroups = ['custom_code'];
+            if (in_array($g, $textareaGroups, true)) {
+                foreach ($posted as $key => $val) {
+                    if (!in_array($key, $knownKeys, true) && preg_match('/^[a-z_]+$/', $key)) {
+                        $pdo->prepare(
+                            "INSERT INTO settings (`key`, value, type, label, group_name)
+                             VALUES (?, ?, 'textarea', ?, ?)
+                             ON DUPLICATE KEY UPDATE value = VALUES(value)"
+                        )->execute([$key, trim((string)$val), $key, $g]);
+                    }
                 }
             }
         }

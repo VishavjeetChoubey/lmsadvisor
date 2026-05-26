@@ -1,20 +1,46 @@
-/* LMSAdvisor — Admin JS (Phase 1 skeleton) */
+/* LMSAdvisor — Admin JS */
 'use strict';
 
 $(function () {
 
-  // ── Sidebar toggle (mobile) ──────────────────────────────────
+  // ── Sidebar toggle (mobile) ──────────────────────────────────────────────
+  // Create overlay if not present
+  if (!document.getElementById('adminOverlay')) {
+    var ov = document.createElement('div');
+    ov.id = 'adminOverlay';
+    ov.style.cssText = 'display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:950;backdrop-filter:blur(2px)';
+    document.body.appendChild(ov);
+  }
+
+  function openSidebar() {
+    $('#adminSidebar').addClass('mobile-open');
+    $('#adminOverlay').fadeIn(200);
+    document.body.style.overflow = 'hidden';
+  }
+  function closeSidebar() {
+    $('#adminSidebar').removeClass('mobile-open');
+    $('#adminOverlay').fadeOut(150);
+    document.body.style.overflow = '';
+  }
+
   $('#sidebarToggle').on('click', function () {
-    $('#adminSidebar').toggleClass('open');
+    if ($('#adminSidebar').hasClass('mobile-open')) {
+      closeSidebar();
+    } else {
+      openSidebar();
+    }
   });
 
-  // Close sidebar when clicking outside on mobile
-  $(document).on('click', function (e) {
-    if (window.innerWidth <= 768) {
-      if (!$(e.target).closest('#adminSidebar, #sidebarToggle').length) {
-        $('#adminSidebar').removeClass('open');
-      }
-    }
+  $('#adminOverlay').on('click', closeSidebar);
+
+  // Close on nav link click (mobile)
+  $('#adminSidebar .adm-nav-btn').on('click', function () {
+    if (window.innerWidth <= 991) closeSidebar();
+  });
+
+  // Keyboard: Escape closes sidebar
+  $(document).on('keydown', function (e) {
+    if (e.key === 'Escape') closeSidebar();
   });
 
   // ── Auto-dismiss Bootstrap toasts ───────────────────────────

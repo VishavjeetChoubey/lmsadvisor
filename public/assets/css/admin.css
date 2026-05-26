@@ -485,19 +485,18 @@ body {
    RESPONSIVE — collapse sidebar on mobile
    ═══════════════════════════════════════════════════════════ */
 @media (max-width: 768px) {
-  .admin-sidebar,
-  .student-sidebar {
+  /* Admin sidebar mobile */
+  .adm-sidebar {
     transform: translateX(-100%);
+    z-index: 1050;
   }
-  .admin-sidebar.open,
-  .student-sidebar.open {
+  .adm-sidebar.mobile-open {
     transform: translateX(0);
   }
-  .admin-main,
-  .student-main {
-    margin-left: 0;
+  .admin-main {
+    margin-left: 0 !important;
   }
-  .topbar-toggle { display: flex; }
+  .topbar-toggle { display: flex !important; }
 
   .auth-card { padding: 28px 20px; }
 }
