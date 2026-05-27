@@ -74,7 +74,7 @@ class GroupService
     {
         $pdo  = Database::getInstance();
         $stmt = $pdo->prepare(
-            'SELECT u.id, u.uuid, u.first_name, u.last_name, u.email, gm.joined_at
+            'SELECT u.id AS user_id, u.id, u.uuid, u.first_name, u.last_name, u.email, gm.joined_at
              FROM user_group_members gm JOIN users u ON u.id=gm.user_id
              WHERE gm.group_id=? ORDER BY u.first_name'
         );
@@ -158,16 +158,42 @@ class GroupService
         foreach ($members as $m) {
             $row = ['user' => $m, 'courses' => []];
             foreach ($courses as $c) {
+                // Get enrollment status
                 $e = $pdo->prepare(
-                    'SELECT status, progress_pct FROM enrollments
+                    'SELECT id, status FROM enrollments
                      WHERE user_id=? AND course_id=? LIMIT 1'
                 );
-                $e->execute([$m['id'], $c['id']]);
-                $enroll = $e->fetch() ?: ['status'=>'not_enrolled','progress_pct'=>0];
-                $row['courses'][$c['id']] = $enroll;
+                $e->execute([$m['user_id'], $c['id']]);
+                $enroll = $e->fetch();
+
+                if (!$enroll) {
+                    $row['courses'][$c['id']] = ['status' => 'not_enrolled', 'progress_pct' => 0];
+                    continue;
+                }
+
+                // Calculate progress_pct from lesson_progress
+                $totalStmt = $pdo->prepare(
+                    'SELECT COUNT(*) FROM lessons WHERE course_id=?'
+                );
+                $totalStmt->execute([$c['id']]);
+                $total = (int)$totalStmt->fetchColumn();
+
+                $doneStmt = $pdo->prepare(
+                    'SELECT COUNT(*) FROM lesson_progress
+                     WHERE enrollment_id=? AND status=\'completed\''
+                );
+                $doneStmt->execute([$enroll['id']]);
+                $done = (int)$doneStmt->fetchColumn();
+
+                $pct = $total > 0 ? round($done / $total * 100) : 0;
+
+                $row['courses'][$c['id']] = [
+                    'status'       => $enroll['status'],
+                    'progress_pct' => $pct,
+                ];
             }
             $report[] = $row;
         }
-        return ['members'=>$members, 'courses'=>$courses, 'progress'=>$report];
+        return ['members' => $members, 'courses' => $courses, 'progress' => $report];
     }
 }
