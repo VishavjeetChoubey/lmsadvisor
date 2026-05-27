@@ -45,8 +45,12 @@ class LearningPathService
 
         $courses = $pdo->prepare(
             'SELECT c.*, lpc.sort_order, lpc.is_required,
-                    e.status AS enrollment_status, e.progress_pct,
-                    cat.name AS category_name
+                    e.id AS enrollment_id,
+                    e.status AS enrollment_status,
+                    cat.name AS category_name,
+                    (SELECT COUNT(*) FROM lessons l2 WHERE l2.course_id=c.id) AS total_lessons,
+                    (SELECT COUNT(*) FROM lesson_progress lp2
+                     WHERE lp2.enrollment_id=e.id AND lp2.status=\'completed\') AS done_lessons
              FROM learning_path_courses lpc
              JOIN courses c ON c.id=lpc.course_id
              LEFT JOIN categories cat ON cat.id=c.category_id
@@ -55,7 +59,16 @@ class LearningPathService
              ORDER BY lpc.sort_order'
         );
         $courses->execute([$userId ?? 0, $pathId]);
-        $path['courses'] = $courses->fetchAll();
+        $rows = $courses->fetchAll();
+
+        // Calculate progress_pct from lesson counts
+        foreach ($rows as &$row) {
+            $total = (int)($row['total_lessons'] ?? 0);
+            $done  = (int)($row['done_lessons']  ?? 0);
+            $row['progress_pct'] = $total > 0 ? round($done / $total * 100) : 0;
+        }
+        unset($row);
+        $path['courses'] = $rows;
 
         return $path;
     }

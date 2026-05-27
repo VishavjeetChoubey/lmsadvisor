@@ -52,7 +52,7 @@ $done     = $path['enrollment_status']==='completed';
       </div>
       <?php if($enrolled && !$locked):?>
       <a href="<?=$url('learn/courses/'.$c['uuid'].($cActive?'/learn':''))?>" class="btn btn-sm <?=$cDone?'btn-outline-success':'btn-primary'?>">
-        <?=$cDone?'Review':'<?=($cActive?\'Resume\':\'Start\')?>'?>
+        <?=$cDone?'Review':($cActive?'Resume':'Start')?>
       </a>
       <?php endif;?>
     </div>
