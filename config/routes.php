@@ -247,3 +247,48 @@ $router->get('/learn/profile/export', 'Student\DashboardController@exportData');
 // Analytics
 $router->get('/admin/analytics',       'Admin\AnalyticsController@index');
 $router->post('/admin/analytics/purge','Admin\AnalyticsController@purge');
+
+// ── Phase 19: Email Notifications ────────────────────────────────────────────
+$router->get('/admin/email',                                    'Admin\EmailController@index');
+$router->get('/admin/email/templates/:slug/edit',               'Admin\EmailController@editTemplate');
+$router->post('/admin/email/templates/:slug/save',              'Admin\EmailController@saveTemplate');
+$router->post('/admin/email/test',                              'Admin\EmailController@sendTest');
+$router->post('/admin/email/process-queue',                     'Admin\EmailController@processQueue');
+$router->get('/unsubscribe/:token',                             'Auth\UnsubscribeController@handle');
+
+// ── Phase 21: Learning Paths ──────────────────────────────────────────────────
+$router->get('/admin/learning-paths',                           'Admin\LearningPathController@index');
+$router->get('/admin/learning-paths/create',                    'Admin\LearningPathController@create');
+$router->post('/admin/learning-paths',                          'Admin\LearningPathController@store');
+$router->get('/admin/learning-paths/:uuid/edit',                'Admin\LearningPathController@edit');
+$router->post('/admin/learning-paths/:uuid/update',             'Admin\LearningPathController@update');
+$router->post('/admin/learning-paths/:uuid/delete',             'Admin\LearningPathController@delete');
+$router->get('/learn/paths',                                    'Student\PathController@index');
+$router->get('/learn/paths/:uuid',                              'Student\PathController@detail');
+$router->post('/learn/paths/:uuid/enroll',                      'Student\PathController@enroll');
+
+// ── Phase 22: Groups ──────────────────────────────────────────────────────────
+$router->get('/admin/groups',                                   'Admin\GroupController@index');
+$router->get('/admin/groups/create',                            'Admin\GroupController@create');
+$router->post('/admin/groups',                                  'Admin\GroupController@store');
+$router->get('/admin/groups/:id/edit',                          'Admin\GroupController@edit');
+$router->post('/admin/groups/:id/update',                       'Admin\GroupController@update');
+$router->post('/admin/groups/:id/members',                      'Admin\GroupController@addMember');
+$router->post('/admin/groups/:id/members/remove',               'Admin\GroupController@removeMember');
+$router->post('/admin/groups/:id/courses',                      'Admin\GroupController@assignCourse');
+$router->post('/admin/groups/:id/courses/remove',               'Admin\GroupController@removeCourse');
+$router->get('/admin/groups/:id/report',                        'Admin\GroupController@report');
+$router->post('/admin/groups/:id/delete',                       'Admin\GroupController@delete');
+
+// ── Phase 24: Badges ─────────────────────────────────────────────────────────
+$router->get('/admin/badges',                                   'Admin\BadgeController@index');
+$router->post('/admin/badges',                                  'Admin\BadgeController@store');
+$router->post('/admin/badges/:id/update',                       'Admin\BadgeController@update');
+$router->post('/admin/badges/:id/delete',                       'Admin\BadgeController@delete');
+$router->post('/admin/badges/:id/award',                        'Admin\BadgeController@awardManual');
+
+// ── Phase 25: Assignments ────────────────────────────────────────────────────
+$router->get('/admin/courses/:uuid/assignments',                'Admin\AssignmentController@index');
+$router->post('/admin/courses/:uuid/assignments/:sub_id/grade', 'Admin\AssignmentController@grade');
+$router->get('/learn/courses/:uuid/assignments/:lesson_id',     'Student\AssignmentController@show');
+$router->post('/learn/courses/:uuid/assignments/:lesson_id/submit', 'Student\AssignmentController@submit');

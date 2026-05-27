@@ -368,9 +368,34 @@ class DashboardController extends Controller
             $enrollModel->updateStatus((int)$enrollment['id'], 'completed');
             $this->flash('success', '🎉 Congratulations! You have completed this course.');
 
-            // Fire completion notification + auto-issue certificate
+            // In-app notification
             \App\Services\NotificationService::onCompletion((int)$user['id'], $course['title']);
-            try { \App\Services\CertificateService::issue((int)$enrollment['id'], (int)$user['id'], (int)$course['id']); } catch (\Throwable) {}
+
+            // Auto-issue certificate
+            $cert = null;
+            try { $cert = \App\Services\CertificateService::issue((int)$enrollment['id'], (int)$user['id'], (int)$course['id']); } catch (\Throwable) {}
+
+            // Award grade points
+            if (!empty($course['grade_points'])) {
+                try {
+                    $pdo->prepare('INSERT IGNORE INTO grade_points (user_id, course_id, points, reason) VALUES (?,?,?,?)')
+                        ->execute([(int)$user['id'], (int)$course['id'], (int)$course['grade_points'], 'course_completion']);
+                } catch (\Throwable) {}
+            }
+
+            // Email: completion + certificate
+            try {
+                \App\Services\EmailService::sendCourseCompletion($user, $course, $cert ?: null);
+                if ($cert) \App\Services\EmailService::sendCertificateReady($user, $course, $cert);
+            } catch (\Throwable) {}
+
+            // Gamification: check badges + update streak
+            try {
+                \App\Services\GamificationService::checkAndAward((int)$user['id']);
+            } catch (\Throwable) {}
+
+            // Analytics event
+            try { \App\Services\AnalyticsService::event('complete','course',(int)$course['id']); } catch (\Throwable) {}
         }
 
         // Find next lesson

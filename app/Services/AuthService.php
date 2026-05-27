@@ -124,6 +124,12 @@ class AuthService
             $ua,
             $parsed
         );
+
+        // Gamification: update daily login streak
+        try { \App\Services\GamificationService::updateStreak((int)$user['id']); } catch (\Throwable) {}
+
+        // Analytics: login event
+        try { \App\Services\AnalyticsService::event('login'); } catch (\Throwable) {}
     }
 
     // ── Lockout ───────────────────────────────────────────────────────────────

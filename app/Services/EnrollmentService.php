@@ -40,6 +40,20 @@ class EnrollmentService
         AuditLog::write('enrollment.create', 'enrollment', $id, null,
             ['course_id' => $courseId, 'user_id' => $userId]);
 
+        // Email notification
+        try {
+            $pdo    = \App\Core\Database::getInstance();
+            $uStmt  = $pdo->prepare('SELECT * FROM users WHERE id=? LIMIT 1');
+            $uStmt->execute([$userId]);
+            $user   = $uStmt->fetch();
+            $cStmt  = $pdo->prepare('SELECT * FROM courses WHERE id=? LIMIT 1');
+            $cStmt->execute([$courseId]);
+            $course = $cStmt->fetch();
+            if ($user && $course) {
+                \App\Services\EmailService::sendEnrollmentConfirmation($user, $course, []);
+            }
+        } catch (\Throwable) {}
+
         return ['success' => true, 'message' => 'Enrolled successfully.', 'enrollment_id' => $id];
     }
 

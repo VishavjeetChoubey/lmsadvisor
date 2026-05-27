@@ -13,11 +13,12 @@ $path     = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
 $isPlayer = (bool)preg_match('#/learn/courses/[^/]+/learn#', $path);
 
 $navItems = [
-  ['href' => '/learn/dashboard',   'icon' => 'bi-house-fill',      'label' => 'Home',      'segs' => ['/learn/dashboard', '/learn/', '/learn']],
-  ['href' => '/learn/courses',     'icon' => 'bi-journal-bookmark-fill', 'label' => 'Courses',   'segs' => ['/learn/courses']],
-  ['href' => '/learn/calendar',    'icon' => 'bi-calendar-check-fill',   'label' => 'Calendar',  'segs' => ['/learn/calendar']],
-  ['href' => '/learn/leaderboard', 'icon' => 'bi-trophy-fill',     'label' => 'Rankings',  'segs' => ['/learn/leaderboard']],
-  ['href' => '/learn/profile',     'icon' => 'bi-person-fill',     'label' => 'Profile',   'segs' => ['/learn/profile']],
+  ['href' => '/learn/dashboard',   'icon' => 'bi-house-fill',           'label' => 'Home',      'segs' => ['/learn/dashboard', '/learn/', '/learn']],
+  ['href' => '/learn/courses',     'icon' => 'bi-journal-bookmark-fill','label' => 'Courses',   'segs' => ['/learn/courses']],
+  ['href' => '/learn/paths',       'icon' => 'bi-signpost-2-fill',      'label' => 'Paths',     'segs' => ['/learn/paths']],
+  ['href' => '/learn/calendar',    'icon' => 'bi-calendar-check-fill',  'label' => 'Calendar',  'segs' => ['/learn/calendar']],
+  ['href' => '/learn/leaderboard', 'icon' => 'bi-trophy-fill',          'label' => 'Rankings',  'segs' => ['/learn/leaderboard']],
+  ['href' => '/learn/profile',     'icon' => 'bi-person-fill',          'label' => 'Profile',   'segs' => ['/learn/profile']],
 ];
 
 foreach ($navItems as &$nav) {
