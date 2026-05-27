@@ -76,7 +76,13 @@ class LearningPathService
         );
         $courses->execute([$pathId]);
         foreach ($courses->fetchAll() as $row) {
-            EnrollmentService::enroll($row['course_id'], $userId);
+            $pdo2 = \App\Core\Database::getInstance();
+            $ex = $pdo2->prepare('SELECT id FROM enrollments WHERE course_id=? AND user_id=? LIMIT 1');
+            $ex->execute([$row['course_id'], $userId]);
+            if (!$ex->fetch()) {
+                $pdo2->prepare('INSERT INTO enrollments (course_id, user_id, enrolled_by, status) VALUES (?,?,?,\'active\')')
+                    ->execute([$row['course_id'], $userId, $userId]);
+            }
         }
     }
 

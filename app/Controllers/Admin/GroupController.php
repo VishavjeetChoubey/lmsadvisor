@@ -104,13 +104,20 @@ class GroupController extends Controller
     public function addMember(array $p): void
     {
         CsrfMiddleware::verify();
-        GroupService::addMember((int)$p['id'], (int)$this->request->post('user_id',0));
+        $uid = (int)$this->request->post('user_id', 0);
+        GroupService::addMember((int)$p['id'], $uid);
         // Enroll user in all group courses
+        $pdo = \App\Core\Database::getInstance();
         $courses = GroupService::courses((int)$p['id']);
         foreach ($courses as $c) {
-            \App\Services\EnrollmentService::enroll((int)$c['id'], (int)$this->request->post('user_id',0));
+            $ex = $pdo->prepare('SELECT id FROM enrollments WHERE course_id=? AND user_id=? LIMIT 1');
+            $ex->execute([(int)$c['id'], $uid]);
+            if (!$ex->fetch()) {
+                $pdo->prepare('INSERT INTO enrollments (course_id, user_id, enrolled_by, status) VALUES (?,?,?,\'active\')')
+                    ->execute([(int)$c['id'], $uid, $uid]);
+            }
         }
-        $this->json(['success'=>true]);
+        $this->json(['success' => true]);
     }
 
     public function removeMember(array $p): void

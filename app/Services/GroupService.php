@@ -118,7 +118,14 @@ class GroupService
         // Bulk-enroll all current members
         $members = self::members($groupId);
         foreach ($members as $m) {
-            EnrollmentService::enroll($courseId, (int)$m['id']);
+            // Direct enroll without requiring EnrollmentService instance
+            $pdo2 = \App\Core\Database::getInstance();
+            $exists = $pdo2->prepare('SELECT id FROM enrollments WHERE course_id=? AND user_id=? LIMIT 1');
+            $exists->execute([$courseId, (int)$m['id']]);
+            if (!$exists->fetch()) {
+                $pdo2->prepare('INSERT INTO enrollments (course_id, user_id, enrolled_by, status) VALUES (?,?,?,\'active\')')
+                    ->execute([$courseId, (int)$m['id'], (int)$m['id']]);
+            }
         }
     }
 

@@ -63,6 +63,8 @@ if (!empty($authUser['id'])) {
   $customJsHead = Setting::get('custom_js_head', '');
 ?>
 <?php if ($customCss):    ?><style id="custom-css"><?= $customCss ?></style><?php endif; ?>
+<!-- Global BASE in <head> so all inline scripts have it -->
+<script>window.LMS = window.LMS || {}; window.LMS.BASE = '<?= rtrim(APP_URL, '/') ?>';</script>
 <?php if ($customJsHead): ?><script id="custom-js-head"><?= $customJsHead ?></script><?php endif; ?>
 </head>
 <body class="stu-body <?= $isPlayer ? 'player-mode' : '' ?>">
@@ -206,7 +208,6 @@ if (!empty($authUser['id'])) {
 
 <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-<script>window.LMS = window.LMS || {}; window.LMS.BASE = '<?= rtrim(APP_URL, '/') ?>';</script>
 <script src="<?= $asset('js/app.js') ?>"></script>
 <?php $customJsFooter = Setting::get('custom_js_footer', ''); ?>
 <?php if ($customJsFooter): ?><script id="custom-js-footer"><?= $customJsFooter ?></script><?php endif; ?>

@@ -30,6 +30,8 @@ $url   = fn(string $p = ''): string => View::url($p);
   $customJsHead = Setting::get('custom_js_head', '');
 ?>
 <?php if ($customCss):    ?><style id="custom-css"><?= $customCss ?></style><?php endif; ?>
+<!-- Global BASE — must be in <head> so every inline page script has it -->
+<script>window.LMS = window.LMS || {}; window.LMS.BASE = '<?= rtrim(APP_URL, '/') ?>';</script>
 <?php if ($customJsHead): ?><script id="custom-js-head"><?= $customJsHead ?></script><?php endif; ?>
 </head>
 <body class="admin-body">
@@ -63,8 +65,6 @@ $url   = fn(string $p = ''): string => View::url($p);
   <?php require VIEW_PATH . '/partials/admin/footer.php'; ?>
 </div>
 
-<!-- Set global APP_URL for JS -->
-<script>window.LMS = window.LMS || {}; window.LMS.BASE = '<?= rtrim(APP_URL, '/') ?>';</script>
 <!-- jQuery -->
 <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
 <!-- Bootstrap Bundle -->
