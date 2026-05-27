@@ -40,6 +40,20 @@ class EnrollmentService
         AuditLog::write('enrollment.create', 'enrollment', $id, null,
             ['course_id' => $courseId, 'user_id' => $userId]);
 
+        // Webhook + Slack notification
+        try {
+            \App\Services\WebhookService::fire('enroll', [
+                'user_id'      => $userId,
+                'course_id'    => $courseId,
+                'student_name' => ($user['first_name'] ?? '') . ' ' . ($user['last_name'] ?? ''),
+                'course_title' => $course['title'] ?? '',
+            ]);
+            \App\Services\WebhookService::slackNotify('enroll', [
+                'student_name' => ($user['first_name'] ?? '') . ' ' . ($user['last_name'] ?? ''),
+                'course_title' => $course['title'] ?? '',
+            ]);
+        } catch (\Throwable) {}
+
         // Email notification
         try {
             $pdo    = \App\Core\Database::getInstance();

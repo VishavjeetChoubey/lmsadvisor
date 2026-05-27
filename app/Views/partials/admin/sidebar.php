@@ -32,6 +32,7 @@ $navItems = [
   ['Webinars',      'bi-camera-video-fill', 'admin/webinars',      '/admin/webinars'],
   ['Reports',       'bi-bar-chart-line-fill','admin/reports',      '/admin/reports'],
   ['API',           'bi-braces-asterisk',   'admin/api',           '/admin/api'],
+  ['Webhooks',      'bi-plug-fill',          'admin/webhooks',      '/admin/webhooks'],
   ['Settings',      'bi-gear-fill',         'admin/settings',      '/admin/settings'],
 ];
 ?>

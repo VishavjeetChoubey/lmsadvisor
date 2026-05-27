@@ -394,6 +394,20 @@ class DashboardController extends Controller
                 \App\Services\GamificationService::checkAndAward((int)$user['id']);
             } catch (\Throwable) {}
 
+            // Webhook + Slack on completion
+            try {
+                \App\Services\WebhookService::fire('complete', [
+                    'user_id'      => $user['id'],
+                    'course_id'    => $course['id'],
+                    'student_name' => $user['name'] ?? '',
+                    'course_title' => $course['title'],
+                ]);
+                \App\Services\WebhookService::slackNotify('complete', [
+                    'student_name' => $user['name'] ?? '',
+                    'course_title' => $course['title'],
+                ]);
+            } catch (\Throwable) {}
+
             // Analytics event
             try { \App\Services\AnalyticsService::event('complete','course',(int)$course['id']); } catch (\Throwable) {}
         }

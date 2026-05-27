@@ -310,3 +310,26 @@ $router->post('/api/lessons/:lesson_id/ask',                     'Api\Collaborat
 
 // ── Phase 24: Public learner profile ─────────────────────────────────────────
 $router->get('/profile/:uuid',                                   'Student\PublicProfileController@show');
+
+// ── Phase 29: AI Tutor & Personalization ─────────────────────────────────────
+$router->post('/api/ai/chat',               'Api\AiTutorController@chat');
+$router->post('/api/ai/summarise',          'Api\AiTutorController@summarise');
+$router->post('/api/ai/generate-questions', 'Api\AiTutorController@generateQuestions');
+$router->post('/api/ai/translate',          'Api\AiTutorController@translate');
+$router->post('/api/ai/improve-writing',    'Api\AiTutorController@improveWriting');
+$router->get('/api/ai/recommend-paths',     'Api\AiTutorController@recommendPaths');
+
+// ── Phase 30: Webhooks & Integrations ────────────────────────────────────────
+$router->get('/admin/webhooks',                    'Admin\WebhookController@index');
+$router->post('/admin/webhooks',                   'Admin\WebhookController@store');
+$router->post('/admin/webhooks/:id/update',        'Admin\WebhookController@update');
+$router->post('/admin/webhooks/:id/delete',        'Admin\WebhookController@delete');
+$router->post('/admin/webhooks/:id/test',          'Admin\WebhookController@test');
+$router->post('/admin/webhooks/:id/rotate-secret', 'Admin\WebhookController@rotateSecret');
+$router->get('/admin/webhooks/:id/logs',           'Admin\WebhookController@logs');
+
+// ── Social Login (Google + GitHub OAuth) ─────────────────────────────────────
+$router->get('/auth/google',          'Auth\SocialController@googleRedirect');
+$router->get('/auth/google/callback', 'Auth\SocialController@googleCallback');
+$router->get('/auth/github',          'Auth\SocialController@githubRedirect');
+$router->get('/auth/github/callback', 'Auth\SocialController@githubCallback');

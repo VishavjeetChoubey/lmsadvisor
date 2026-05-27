@@ -530,6 +530,50 @@ $typeColors  = ['text'=>'rgba(255,255,255,.5)','video'=>'#f87171','document'=>'#
     </div><!-- /.lp-body -->
   </div><!-- /.lp-content -->
 
+
+          <!-- ── AI Tutor panel ──────────────────── -->
+          <div class="lp-ai-panel" id="lpAiPanel">
+            <div class="lp-ai-header">
+              <i class="bi bi-stars" style="color:#a78bfa"></i>
+              <span>AI Tutor</span>
+              <button class="lp-ai-close" onclick="document.getElementById('lpAiPanel').classList.toggle('open')" title="Close"><i class="bi bi-x"></i></button>
+            </div>
+            <div class="lp-ai-body">
+              <!-- Lesson summary -->
+              <button class="lp-ai-quick" id="aiSummaryBtn"><i class="bi bi-list-stars me-1"></i>Summarise This Lesson</button>
+              <div id="aiSummaryResult" class="lp-ai-result d-none"></div>
+
+              <!-- Chat -->
+              <div class="lp-ai-chat" id="aiChatLog"></div>
+              <div class="lp-ai-input-row">
+                <input type="text" id="aiChatInput" placeholder="Ask the AI tutor anything…" autocomplete="off">
+                <button id="aiChatSend"><i class="bi bi-send-fill"></i></button>
+              </div>
+
+              <!-- Quick actions -->
+              <div class="d-flex gap-2 mt-2 flex-wrap">
+                <button class="lp-ai-quick" id="aiTranslateBtn"><i class="bi bi-translate me-1"></i>Translate</button>
+              </div>
+              <select id="aiLangSelect" class="form-select form-select-sm mt-2 d-none" style="background:rgba(255,255,255,.07);border-color:rgba(255,255,255,.15);color:#f1f5f9">
+                <option value="Hindi">Hindi</option>
+                <option value="Spanish">Spanish</option>
+                <option value="French">French</option>
+                <option value="Arabic">Arabic</option>
+                <option value="German">German</option>
+                <option value="Portuguese">Portuguese</option>
+                <option value="Chinese (Simplified)">Chinese</option>
+                <option value="Japanese">Japanese</option>
+              </select>
+              <button id="aiDoTranslateBtn" class="btn btn-sm btn-outline-light w-100 mt-2 d-none"><i class="bi bi-check me-1"></i>Translate Now</button>
+              <div id="aiTranslateResult" class="lp-ai-result d-none"></div>
+            </div>
+          </div>
+
+          <!-- Floating AI button -->
+          <button class="lp-ai-fab" id="aiTutorFab" title="AI Tutor">
+            <i class="bi bi-stars"></i>
+          </button>
+
           <!-- ── Notes & Comments panel ─────────────── -->
           <div class="lp-collab-panel">
             <div class="lp-collab-tabs">
@@ -1122,6 +1166,105 @@ document.addEventListener('keydown', function (e) {
   });
 
   loadNotes();
+})();
+
+
+// ── AI Tutor Panel ────────────────────────────────────────────────────────
+(function() {
+  var BASE  = (window.LMS && window.LMS.BASE) || '';
+  var shell = document.getElementById('lpShell');
+  var LID   = shell ? shell.dataset.lessonId : null;
+  var CID   = shell ? shell.dataset.courseId : null;
+  var csrf  = document.getElementById('csrfToken')?.value || '';
+
+  // FAB toggle
+  document.getElementById('aiTutorFab')?.addEventListener('click', function() {
+    document.getElementById('lpAiPanel').classList.toggle('open');
+  });
+
+  // Lesson summary
+  document.getElementById('aiSummaryBtn')?.addEventListener('click', function() {
+    var result = document.getElementById('aiSummaryResult');
+    result.innerHTML = '<div class="lp-ai-thinking">Summarising…</div>';
+    result.classList.remove('d-none');
+    this.disabled = true;
+    fetch(BASE + '/api/ai/summarise', {
+      method: 'POST', headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+      body: 'csrf_token=' + encodeURIComponent(csrf) + '&lesson_id=' + LID
+    }).then(r => r.json()).then(d => {
+      this.disabled = false;
+      if (d.success && d.bullets) {
+        result.innerHTML = d.bullets.map(b =>
+          '<div class="lp-ai-bullet">' + b.replace(/</g,'&lt;') + '</div>'
+        ).join('');
+      } else {
+        result.innerHTML = '<div style="color:#f87171">' + (d.message||'Error') + '</div>';
+      }
+    }).catch(() => { this.disabled = false; });
+  });
+
+  // Chat
+  var chatLog = document.getElementById('aiChatLog');
+  function addMsg(role, text) {
+    var div = document.createElement('div');
+    div.className = 'lp-ai-msg ' + role;
+    div.textContent = text;
+    if (chatLog) chatLog.appendChild(div);
+    if (chatLog) chatLog.scrollTop = chatLog.scrollHeight;
+    return div;
+  }
+
+  function sendChat() {
+    var input = document.getElementById('aiChatInput');
+    var q = input ? input.value.trim() : '';
+    if (!q) return;
+    addMsg('user', q);
+    if (input) input.value = '';
+    var thinking = addMsg('ai', '…');
+    thinking.className += ' lp-ai-thinking';
+
+    fetch(BASE + '/api/ai/chat', {
+      method: 'POST', headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+      body: 'csrf_token=' + encodeURIComponent(csrf) +
+            '&course_id=' + CID + '&lesson_id=' + LID +
+            '&question=' + encodeURIComponent(q)
+    }).then(r => r.json()).then(d => {
+      if (chatLog) chatLog.removeChild(thinking);
+      addMsg('ai', d.success ? d.answer : (d.message || 'Error'));
+    }).catch(() => { if (chatLog && chatLog.contains(thinking)) chatLog.removeChild(thinking); addMsg('ai','Request failed.'); });
+  }
+
+  document.getElementById('aiChatSend')?.addEventListener('click', sendChat);
+  document.getElementById('aiChatInput')?.addEventListener('keydown', function(e) {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChat(); }
+  });
+
+  // Translate
+  var showingLang = false;
+  document.getElementById('aiTranslateBtn')?.addEventListener('click', function() {
+    showingLang = !showingLang;
+    document.getElementById('aiLangSelect').classList.toggle('d-none', !showingLang);
+    document.getElementById('aiDoTranslateBtn').classList.toggle('d-none', !showingLang);
+  });
+
+  document.getElementById('aiDoTranslateBtn')?.addEventListener('click', function() {
+    var lang = document.getElementById('aiLangSelect').value;
+    var result = document.getElementById('aiTranslateResult');
+    result.innerHTML = '<div class="lp-ai-thinking">Translating to ' + lang + '…</div>';
+    result.classList.remove('d-none');
+    this.disabled = true;
+    fetch(BASE + '/api/ai/translate', {
+      method: 'POST', headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+      body: 'csrf_token=' + encodeURIComponent(csrf) + '&lesson_id=' + LID + '&language=' + encodeURIComponent(lang)
+    }).then(r => r.json()).then(d => {
+      this.disabled = false;
+      if (d.success) {
+        result.innerHTML = '<div style="max-height:180px;overflow-y:auto;font-size:13px;color:#e2d9f3">' + d.content + '</div>';
+      } else {
+        result.innerHTML = '<div style="color:#f87171">' + (d.message||'Error') + '</div>';
+      }
+    }).catch(() => { this.disabled = false; });
+  });
 })();
 
 </script>
