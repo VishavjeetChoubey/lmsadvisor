@@ -1,0 +1,6 @@
+# Block installer if LMSAdvisor is already installed
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteCond %{DOCUMENT_ROOT}/../storage/installed.lock -f
+  RewriteRule ^ - [F,L]
+</IfModule>
