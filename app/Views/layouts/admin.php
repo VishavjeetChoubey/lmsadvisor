@@ -1,16 +1,25 @@
 <?php
 use App\Core\View;
+use App\Models\Setting;
 $e     = fn(mixed $v): string => View::e($v);
 $asset = fn(string $p): string => View::asset($p);
 $url   = fn(string $p = ''): string => View::url($p);
+
+// Dynamic branding from settings
+$siteName    = Setting::get('site_name', 'LMSAdvisor');
+$siteFavicon = Setting::get('site_favicon', '');
+$siteLogoVal = Setting::get('site_logo', '');
+$faviconUrl  = $siteFavicon ? $asset($siteFavicon) : $asset('icons/favicon.png');
+$logoUrl     = $siteLogoVal ? $asset($siteLogoVal) : null;
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title><?= $e($title ?? 'LMSAdvisor') ?></title>
-  <link rel="icon" type="image/png" href="<?= $asset('icons/favicon.png') ?>">
+  <title><?= $e($title ?? $siteName) ?></title>
+  <link rel="icon" type="image/x-icon" href="<?= $faviconUrl ?>">
+  <link rel="shortcut icon" href="<?= $faviconUrl ?>"><?php /* dual tag for max browser compat */ ?>
 
   <!-- Bootstrap 5.3 -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
@@ -25,7 +34,6 @@ $url   = fn(string $p = ''): string => View::url($p);
   <link rel="stylesheet" href="<?= $asset('css/admin.css') ?>">
 <?php
   // ── Custom Code injection (highest priority — after all platform files) ──
-  use App\Models\Setting;
   $customCss    = Setting::get('custom_css', '');
   $customJsHead = Setting::get('custom_js_head', '');
 ?>

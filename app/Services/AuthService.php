@@ -155,14 +155,30 @@ class AuthService
     public function verifyRecaptcha(string $token): bool
     {
         $secret = Setting::get('recaptcha_secret', '');
-        if (!$secret) return true; // not configured — skip
+        if (!$secret || !$token) return false;
 
-        $response = @file_get_contents(
-            'https://www.google.com/recaptcha/api/siteverify?secret='
-            . urlencode($secret) . '&response=' . urlencode($token)
-        );
+        // Use cURL — works even when allow_url_fopen is Off
+        $ch = curl_init('https://www.google.com/recaptcha/api/siteverify');
+        curl_setopt_array($ch, [
+            CURLOPT_POST           => true,
+            CURLOPT_POSTFIELDS     => http_build_query([
+                'secret'   => $secret,
+                'response' => $token,
+                'remoteip' => $_SERVER['REMOTE_ADDR'] ?? '',
+            ]),
+            CURLOPT_RETURNTRANSFER => true,
+            CURLOPT_TIMEOUT        => 8,
+            CURLOPT_SSL_VERIFYPEER => true,
+        ]);
+        $response = curl_exec($ch);
+        $curlErr  = curl_error($ch);
+        curl_close($ch);
 
-        if (!$response) return false;
+        if (!$response || $curlErr) {
+            error_log('[reCAPTCHA] cURL error: ' . $curlErr);
+            return false;
+        }
+
         $data = json_decode($response, true);
         return (bool)($data['success'] ?? false);
     }

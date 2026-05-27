@@ -40,8 +40,12 @@ $navItems = [
 
   <!-- Brand logo at very top -->
   <div class="adm-brand">
-    <div class="adm-brand-icon"><i class="fas fa-graduation-cap"></i></div>
-    <span class="adm-brand-name">LMSAdvisor</span>
+    <?php if (!empty($logoUrl)): ?>
+      <img src="<?= $e($logoUrl) ?>" alt="<?= $e($siteName) ?>" style="height:32px;max-width:120px;object-fit:contain">
+    <?php else: ?>
+      <div class="adm-brand-icon"><i class="fas fa-graduation-cap"></i></div>
+      <span class="adm-brand-name"><?= $e($siteName) ?></span>
+    <?php endif; ?>
   </div>
 
   <!-- Nav items — icon + label centered -->

@@ -63,8 +63,12 @@ class LoginController extends Controller
         $recaptchaEnabled = (bool)(int)Setting::get('recaptcha_enabled', 0);
         if ($recaptchaEnabled) {
             $token = (string)$this->request->post('g-recaptcha-response', '');
+            if ($token === '') {
+                $this->flash('error', 'Please complete the reCAPTCHA checkbox before logging in.');
+                $this->redirect('/login');
+            }
             if (!$this->auth->verifyRecaptcha($token)) {
-                $this->flash('error', 'reCAPTCHA verification failed. Please try again.');
+                $this->flash('error', 'reCAPTCHA verification failed. Please tick the checkbox and try again.');
                 $this->redirect('/login');
             }
         }

@@ -1,6 +1,7 @@
 <?php
 use App\Core\View;
 use App\Services\AuthService;
+use App\Models\Setting;
 $e         = fn(mixed $v): string => View::e($v);
 $asset     = fn(string $p): string => View::asset($p);
 $url       = fn(string $p = ''): string => View::url($p);
@@ -8,6 +9,13 @@ $authUser  = AuthService::user() ?? [];
 $fullName  = $authUser['name'] ?? 'Student';
 $firstName = explode(' ', $fullName)[0];
 $initials  = strtoupper(substr($fullName, 0, 1));
+
+// Dynamic branding
+$siteName    = Setting::get('site_name', 'LMSAdvisor');
+$siteFavicon = Setting::get('site_favicon', '');
+$siteLogoVal = Setting::get('site_logo', '');
+$faviconUrl  = $siteFavicon ? $asset($siteFavicon) : $asset('icons/favicon.png');
+$logoUrl     = $siteLogoVal ? $asset($siteLogoVal) : null;
 
 $path     = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
 $isPlayer = (bool)preg_match('#/learn/courses/[^/]+/learn#', $path);
@@ -51,14 +59,15 @@ if (!empty($authUser['id'])) {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#6366f1">
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <title><?= $e($title ?? 'LMSAdvisor') ?></title>
+  <title><?= $e($title ?? $siteName) ?></title>
+  <link rel="icon" type="image/x-icon" href="<?= $faviconUrl ?>">
+  <link rel="shortcut icon" href="<?= $faviconUrl ?>">
   <link rel="manifest" href="<?= APP_URL ?>/manifest.json">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap">
   <link rel="stylesheet" href="<?= $asset('css/app.css') ?>">
 <?php
-  use App\Models\Setting;
   $customCss    = Setting::get('custom_css', '');
   $customJsHead = Setting::get('custom_js_head', '');
 ?>
@@ -75,6 +84,17 @@ if (!empty($authUser['id'])) {
      ICON SIDEBAR  (reference-style)
 ══════════════════════════════════════════════ -->
 <aside class="stu-sidebar <?= $isPlayer ? 'stu-sidebar--player' : '' ?>" id="stuSidebar">
+
+  <!-- Site logo / brand -->
+  <div class="stu-brand-top">
+    <a href="<?= $url('learn/dashboard') ?>" class="stu-brand-link" title="<?= $e($siteName) ?>">
+      <?php if ($logoUrl): ?>
+        <img src="<?= $e($logoUrl) ?>" alt="<?= $e($siteName) ?>" class="stu-brand-logo">
+      <?php else: ?>
+        <div class="stu-brand-icon"><i class="bi bi-mortarboard-fill"></i></div>
+      <?php endif; ?>
+    </a>
+  </div>
 
   <!-- Profile photo / avatar at top -->
   <div class="stu-profile-top">
