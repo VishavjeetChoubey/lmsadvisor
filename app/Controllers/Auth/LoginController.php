@@ -30,12 +30,15 @@ class LoginController extends Controller
         $csrfToken         = CsrfMiddleware::token();
         $recaptchaEnabled  = (bool)(int)Setting::get('recaptcha_enabled', 0);
         $recaptchaSiteKey  = Setting::get('recaptcha_site_key', '');
+        $recaptchaSecret   = Setting::get('recaptcha_secret', '');
+        // Only truly enabled when toggle is on AND both keys are filled in
+        $recaptchaActive   = $recaptchaEnabled && $recaptchaSiteKey && $recaptchaSecret;
 
         echo View::renderWithLayout('auth', 'auth.login', [
             'title'             => 'Sign In — LMSAdvisor',
             'flash'             => $this->getFlash(),
             'csrf_token'        => $csrfToken,
-            'recaptcha_enabled' => $recaptchaEnabled,
+            'recaptcha_enabled' => $recaptchaActive,
             'recaptcha_site_key'=> $recaptchaSiteKey,
         ]);
     }
@@ -59,9 +62,11 @@ class LoginController extends Controller
             $this->redirect('/login');
         }
 
-        // reCAPTCHA
+        // reCAPTCHA — only enforce if enabled AND both keys are configured
         $recaptchaEnabled = (bool)(int)Setting::get('recaptcha_enabled', 0);
-        if ($recaptchaEnabled) {
+        $recaptchaSiteKey = Setting::get('recaptcha_site_key', '');
+        $recaptchaSecret  = Setting::get('recaptcha_secret', '');
+        if ($recaptchaEnabled && $recaptchaSiteKey && $recaptchaSecret) {
             $token = (string)$this->request->post('g-recaptcha-response', '');
             if ($token === '') {
                 $this->flash('error', 'Please complete the reCAPTCHA checkbox before logging in.');
