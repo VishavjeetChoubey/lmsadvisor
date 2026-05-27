@@ -504,7 +504,7 @@ $typeColors  = ['text'=>'rgba(255,255,255,.5)','video'=>'#f87171','document'=>'#
           <?php if (!$isCompleted): ?>
           <form method="POST"
                 action="<?= $url('learn/courses/' . $course['uuid'] . '/complete-lesson') ?>">
-            <input type="hidden" name="csrf_token" value="<?= $e($csrf_token) ?>">
+            <input type="hidden" name="csrf_token" id="csrfToken" value="<?= $e($csrf_token) ?>">
             <input type="hidden" name="lesson_id"  value="<?= (int)$currentLesson['id'] ?>">
             <button type="submit" class="lp-cta-btn">
               <i class="bi bi-check-circle me-2"></i> Mark as Complete
@@ -531,48 +531,6 @@ $typeColors  = ['text'=>'rgba(255,255,255,.5)','video'=>'#f87171','document'=>'#
   </div><!-- /.lp-content -->
 
 
-          <!-- ── AI Tutor panel ──────────────────── -->
-          <div class="lp-ai-panel" id="lpAiPanel">
-            <div class="lp-ai-header">
-              <i class="bi bi-stars" style="color:#a78bfa"></i>
-              <span>AI Tutor</span>
-              <button class="lp-ai-close" onclick="document.getElementById('lpAiPanel').classList.toggle('open')" title="Close"><i class="bi bi-x"></i></button>
-            </div>
-            <div class="lp-ai-body">
-              <!-- Lesson summary -->
-              <button class="lp-ai-quick" id="aiSummaryBtn"><i class="bi bi-list-stars me-1"></i>Summarise This Lesson</button>
-              <div id="aiSummaryResult" class="lp-ai-result d-none"></div>
-
-              <!-- Chat -->
-              <div class="lp-ai-chat" id="aiChatLog"></div>
-              <div class="lp-ai-input-row">
-                <input type="text" id="aiChatInput" placeholder="Ask the AI tutor anything…" autocomplete="off">
-                <button id="aiChatSend"><i class="bi bi-send-fill"></i></button>
-              </div>
-
-              <!-- Quick actions -->
-              <div class="d-flex gap-2 mt-2 flex-wrap">
-                <button class="lp-ai-quick" id="aiTranslateBtn"><i class="bi bi-translate me-1"></i>Translate</button>
-              </div>
-              <select id="aiLangSelect" class="form-select form-select-sm mt-2 d-none" style="background:rgba(255,255,255,.07);border-color:rgba(255,255,255,.15);color:#f1f5f9">
-                <option value="Hindi">Hindi</option>
-                <option value="Spanish">Spanish</option>
-                <option value="French">French</option>
-                <option value="Arabic">Arabic</option>
-                <option value="German">German</option>
-                <option value="Portuguese">Portuguese</option>
-                <option value="Chinese (Simplified)">Chinese</option>
-                <option value="Japanese">Japanese</option>
-              </select>
-              <button id="aiDoTranslateBtn" class="btn btn-sm btn-outline-light w-100 mt-2 d-none"><i class="bi bi-check me-1"></i>Translate Now</button>
-              <div id="aiTranslateResult" class="lp-ai-result d-none"></div>
-            </div>
-          </div>
-
-          <!-- Floating AI button -->
-          <button class="lp-ai-fab" id="aiTutorFab" title="AI Tutor">
-            <i class="bi bi-stars"></i>
-          </button>
 
           <!-- ── Notes & Comments panel ─────────────── -->
           <div class="lp-collab-panel">
@@ -606,6 +564,42 @@ $typeColors  = ['text'=>'rgba(255,255,255,.5)','video'=>'#f87171','document'=>'#
             </div>
           </div>
 </div><!-- /.lp-shell -->
+
+<!-- ── AI Tutor — fixed overlay outside shell ──────────── -->
+<div class="lp-ai-panel" id="lpAiPanel">
+  <div class="lp-ai-header">
+    <i class="bi bi-stars" style="color:#a78bfa"></i>
+    <span>AI Tutor</span>
+    <button class="lp-ai-close" onclick="document.getElementById('lpAiPanel').classList.toggle('open')" title="Close"><i class="bi bi-x"></i></button>
+  </div>
+  <div class="lp-ai-body">
+    <button class="lp-ai-quick" id="aiSummaryBtn"><i class="bi bi-list-stars me-1"></i>Summarise This Lesson</button>
+    <div id="aiSummaryResult" class="lp-ai-result d-none"></div>
+    <div class="lp-ai-chat" id="aiChatLog"></div>
+    <div class="lp-ai-input-row">
+      <input type="text" id="aiChatInput" placeholder="Ask the AI tutor anything…" autocomplete="off">
+      <button id="aiChatSend"><i class="bi bi-send-fill"></i></button>
+    </div>
+    <div class="d-flex gap-2 mt-2 flex-wrap">
+      <button class="lp-ai-quick" id="aiTranslateBtn"><i class="bi bi-translate me-1"></i>Translate</button>
+    </div>
+    <select id="aiLangSelect" class="form-select form-select-sm mt-2 d-none" style="background:rgba(255,255,255,.07);border-color:rgba(255,255,255,.15);color:#f1f5f9">
+      <option value="Hindi">Hindi</option>
+      <option value="Spanish">Spanish</option>
+      <option value="French">French</option>
+      <option value="Arabic">Arabic</option>
+      <option value="German">German</option>
+      <option value="Portuguese">Portuguese</option>
+      <option value="Chinese (Simplified)">Chinese</option>
+      <option value="Japanese">Japanese</option>
+    </select>
+    <button id="aiDoTranslateBtn" class="btn btn-sm btn-outline-light w-100 mt-2 d-none"><i class="bi bi-check me-1"></i>Translate Now</button>
+    <div id="aiTranslateResult" class="lp-ai-result d-none"></div>
+  </div>
+</div>
+<button class="lp-ai-fab" id="aiTutorFab" title="AI Tutor">
+  <i class="bi bi-stars"></i>
+</button>
 
 <style>
 /* ══════════════════════════════════════════════════════════
@@ -1067,10 +1061,7 @@ document.addEventListener('keydown', function (e) {
   var shell = document.getElementById('lpShell');
   var LID   = shell ? shell.dataset.lessonId : null;
   var CID   = shell ? shell.dataset.courseId : null;
-  var csrf  = document.getElementById('csrfToken')?.value || '';
-
-  // Tab switch
-  document.querySelectorAll('.lp-collab-tab').forEach(function(btn) {
+  var csrf  = document.getElementById('csrfToken')?.value || '<?= $e($csrf_token) ?>';
     btn.addEventListener('click', function() {
       document.querySelectorAll('.lp-collab-tab').forEach(function(b) { b.classList.remove('active'); });
       document.querySelectorAll('.lp-collab-content').forEach(function(p) { p.classList.add('d-none'); });
@@ -1175,7 +1166,7 @@ document.addEventListener('keydown', function (e) {
   var shell = document.getElementById('lpShell');
   var LID   = shell ? shell.dataset.lessonId : null;
   var CID   = shell ? shell.dataset.courseId : null;
-  var csrf  = document.getElementById('csrfToken')?.value || '';
+  var csrf  = document.getElementById('csrfToken')?.value || '<?= $e($csrf_token) ?>';
 
   // FAB toggle
   document.getElementById('aiTutorFab')?.addEventListener('click', function() {

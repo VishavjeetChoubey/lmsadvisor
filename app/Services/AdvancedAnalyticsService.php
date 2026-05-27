@@ -86,7 +86,7 @@ class AdvancedAnalyticsService
              JOIN roles r ON r.id=u.role_id AND r.name=\'student\'
              LEFT JOIN (
                  SELECT user_id, COUNT(*) AS logins
-                 FROM sessions WHERE created_at>=? GROUP BY user_id
+                 FROM session_history WHERE login_at>=? GROUP BY user_id
              ) s ON s.user_id=u.id
              LEFT JOIN (
                  SELECT user_id, COUNT(*) AS lessons
