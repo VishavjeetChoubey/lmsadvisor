@@ -292,3 +292,21 @@ $router->get('/admin/courses/:uuid/assignments',                'Admin\Assignmen
 $router->post('/admin/courses/:uuid/assignments/:sub_id/grade', 'Admin\AssignmentController@grade');
 $router->get('/learn/courses/:uuid/assignments/:lesson_id',     'Student\AssignmentController@show');
 $router->post('/learn/courses/:uuid/assignments/:lesson_id/submit', 'Student\AssignmentController@submit');
+
+// ── Phase 20: Advanced Learner Analytics ─────────────────────────────────────
+$router->get('/admin/learner-analytics',              'Admin\LearnerAnalyticsController@index');
+$router->get('/admin/learner-analytics/course/:uuid', 'Admin\LearnerAnalyticsController@course');
+
+// ── Phase 23: Collaboration — Notes & Comments (API) ─────────────────────────
+$router->get('/api/lessons/:lesson_id/notes',                    'Api\CollaborationApiController@getNotes');
+$router->post('/api/lessons/:lesson_id/notes',                   'Api\CollaborationApiController@saveNote');
+$router->post('/api/notes/:note_id/delete',                      'Api\CollaborationApiController@deleteNote');
+$router->get('/api/lessons/:lesson_id/notes/export/:course_id',  'Api\CollaborationApiController@exportNotes');
+$router->get('/api/lessons/:lesson_id/comments',                 'Api\CollaborationApiController@getComments');
+$router->post('/api/lessons/:lesson_id/comments',                'Api\CollaborationApiController@addComment');
+$router->post('/api/comments/:comment_id/delete',                'Api\CollaborationApiController@deleteComment');
+$router->post('/api/comments/:comment_id/pin',                   'Api\CollaborationApiController@pinComment');
+$router->post('/api/lessons/:lesson_id/ask',                     'Api\CollaborationApiController@askQuestion');
+
+// ── Phase 24: Public learner profile ─────────────────────────────────────────
+$router->get('/profile/:uuid',                                   'Student\PublicProfileController@show');

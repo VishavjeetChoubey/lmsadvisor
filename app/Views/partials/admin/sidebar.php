@@ -13,7 +13,8 @@ $isActive = fn(string $seg): string => str_contains($path, $seg) ? 'active' : ''
 $navItems = [
   // [label, icon, url, match-segment]
   ['Dashboard',     'bi-speedometer2',      'admin/dashboard',     '/admin/dashboard'],
-  ['Analytics',    'bi-bar-chart-fill',    'admin/analytics',    '/admin/analytics'],
+  ['Analytics',    'bi-bar-chart-fill',    'admin/analytics',        '/admin/analytics'],
+  ['Learner Data', 'bi-person-lines-fill', 'admin/learner-analytics','/admin/learner-analytics'],
   ['Courses',       'bi-book-fill',         'admin/courses',       '/admin/courses'],
   ['Learning Paths','bi-signpost-2-fill',   'admin/learning-paths','/admin/learning-paths'],
   ['Groups',        'bi-people-fill',       'admin/groups',        '/admin/groups'],

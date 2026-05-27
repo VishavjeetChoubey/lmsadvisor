@@ -8,7 +8,7 @@ $typeColors  = ['text'=>'rgba(255,255,255,.5)','video'=>'#f87171','document'=>'#
 ?>
 
 <!-- Full player shell — overrides student layout padding -->
-<div class="lp-shell" id="lpShell">
+<div class="lp-shell" id="lpShell" data-lesson-id="<?= $currentLesson['id'] ?>" data-course-id="<?= $course['id'] ?>">
 
   <!-- ═══════════════════════════════════════════════════
        LEFT: Curriculum Sidebar (collapsible)
@@ -529,6 +529,38 @@ $typeColors  = ['text'=>'rgba(255,255,255,.5)','video'=>'#f87171','document'=>'#
       <?php endif; ?>
     </div><!-- /.lp-body -->
   </div><!-- /.lp-content -->
+
+          <!-- ── Notes & Comments panel ─────────────── -->
+          <div class="lp-collab-panel">
+            <div class="lp-collab-tabs">
+              <button class="lp-collab-tab active" data-panel="notes"><i class="bi bi-journal-text"></i><span>Notes</span></button>
+              <button class="lp-collab-tab" data-panel="comments"><i class="bi bi-chat-dots"></i><span>Comments</span></button>
+              <button class="lp-collab-tab" data-panel="qa"><i class="bi bi-question-circle"></i><span>Ask</span></button>
+            </div>
+            <div class="lp-collab-content" id="notesPanel">
+              <div class="lp-note-form">
+                <textarea id="noteInput" placeholder="Add a note about this lesson…" rows="3"></textarea>
+                <div class="d-flex gap-2 mt-2">
+                  <button class="btn btn-sm btn-primary flex-grow-1" id="saveNoteBtn"><i class="bi bi-save me-1"></i>Save</button>
+                  <a href="<?= APP_URL ?>/api/lessons/<?= $currentLesson['id'] ?>/notes/export/<?= $course['id'] ?>" class="btn btn-sm btn-outline-secondary" download title="Export notes"><i class="bi bi-download"></i></a>
+                </div>
+              </div>
+              <div id="notesList" class="lp-notes-list mt-2"></div>
+            </div>
+            <div class="lp-collab-content d-none" id="commentsPanel">
+              <div id="commentsList" class="lp-comments-list"></div>
+              <div class="lp-comment-form mt-2">
+                <textarea id="commentInput" placeholder="Comment on this lesson…" rows="2"></textarea>
+                <button class="btn btn-sm btn-primary w-100 mt-2" id="postCommentBtn"><i class="bi bi-send me-1"></i>Post</button>
+              </div>
+            </div>
+            <div class="lp-collab-content d-none" id="qaPanel">
+              <p style="font-size:12.5px;color:rgba(255,255,255,.5)">Your question posts to the course forum for instructors and peers.</p>
+              <input type="text" id="qaTitle" class="form-control mb-2" placeholder="Question title…" style="background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.1);color:#f1f5f9">
+              <textarea id="qaBody" class="form-control mb-2" rows="3" placeholder="Details…" style="background:rgba(255,255,255,.05);border-color:rgba(255,255,255,.1);color:#f1f5f9"></textarea>
+              <button class="btn btn-sm btn-primary w-100" id="askQuestionBtn"><i class="bi bi-question-circle me-1"></i>Post Question</button>
+            </div>
+          </div>
 </div><!-- /.lp-shell -->
 
 <style>
@@ -984,4 +1016,112 @@ fsBtn.addEventListener('click', function () {
 document.addEventListener('keydown', function (e) {
   if (e.key === 'Escape' && lpShell.classList.contains('fullscreen')) exitFullscreen();
 });
+
+// ── Collaboration Panel ───────────────────────────────────────────────────
+(function() {
+  var BASE  = (window.LMS && window.LMS.BASE) || '';
+  var shell = document.getElementById('lpShell');
+  var LID   = shell ? shell.dataset.lessonId : null;
+  var CID   = shell ? shell.dataset.courseId : null;
+  var csrf  = document.getElementById('csrfToken')?.value || '';
+
+  // Tab switch
+  document.querySelectorAll('.lp-collab-tab').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      document.querySelectorAll('.lp-collab-tab').forEach(function(b) { b.classList.remove('active'); });
+      document.querySelectorAll('.lp-collab-content').forEach(function(p) { p.classList.add('d-none'); });
+      btn.classList.add('active');
+      var id = btn.dataset.panel + 'Panel';
+      document.getElementById(id)?.classList.remove('d-none');
+      if (btn.dataset.panel === 'comments') loadComments();
+    });
+  });
+
+  // Notes
+  function loadNotes() {
+    if (!LID) return;
+    fetch(BASE + '/api/lessons/' + LID + '/notes')
+      .then(function(r) { return r.json(); })
+      .then(function(d) {
+        var el = document.getElementById('notesList');
+        if (!el) return;
+        if (!d.notes || !d.notes.length) { el.innerHTML = '<p style="font-size:12px;color:rgba(255,255,255,.3);text-align:center;padding:16px 0">No notes yet.</p>'; return; }
+        el.innerHTML = d.notes.map(function(n) {
+          return '<div class="lp-note-item">' +
+            '<button class="lp-note-del" onclick="delNote(' + n.id + ')"><i class="bi bi-x"></i></button>' +
+            n.note.replace(/&/g,'&amp;').replace(/</g,'&lt;') +
+            '</div>';
+        }).join('');
+      }).catch(function(){});
+  }
+
+  document.getElementById('saveNoteBtn')?.addEventListener('click', function() {
+    var note = (document.getElementById('noteInput')?.value || '').trim();
+    if (!note || !LID) return;
+    fetch(BASE + '/api/lessons/' + LID + '/notes', {
+      method: 'POST', headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+      body: 'csrf_token=' + encodeURIComponent(csrf) + '&note=' + encodeURIComponent(note) + '&course_id=' + CID
+    }).then(function(r) { return r.json(); }).then(function(d) {
+      if (d.success) { document.getElementById('noteInput').value = ''; loadNotes(); LMS.toast('success','Note saved!'); }
+    });
+  });
+
+  window.delNote = function(id) {
+    fetch(BASE + '/api/notes/' + id + '/delete', {
+      method: 'POST', headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+      body: 'csrf_token=' + encodeURIComponent(csrf)
+    }).then(function(r) { return r.json(); }).then(function(d) { if (d.success) loadNotes(); });
+  };
+
+  // Comments
+  var replyTo = null;
+  function loadComments() {
+    if (!LID) return;
+    fetch(BASE + '/api/lessons/' + LID + '/comments')
+      .then(function(r) { return r.json(); })
+      .then(function(d) {
+        var el = document.getElementById('commentsList');
+        if (!el) return;
+        if (!d.comments || !d.comments.length) { el.innerHTML = '<p style="font-size:12px;color:rgba(255,255,255,.3);text-align:center;padding:16px 0">No comments yet.</p>'; return; }
+        el.innerHTML = d.comments.map(function(c) {
+          var rep = (c.replies||[]).map(function(r) {
+            return '<div class="lp-comment-item" style="margin-top:6px"><div class="lp-comment-author">' + r.author_name + '</div>' + r.body.replace(/</g,'&lt;') + '</div>';
+          }).join('');
+          return '<div class="lp-comment-item"><div class="lp-comment-author">' + c.author_name + (c.is_pinned ? ' 📌' : '') + '</div>' + c.body.replace(/</g,'&lt;') + (rep ? '<div class="lp-replies">' + rep + '</div>' : '') + '<button class="lp-reply-btn" onclick="setReply(' + c.id + ')">↩ Reply</button></div>';
+        }).join('');
+      }).catch(function(){});
+  }
+
+  window.setReply = function(id) { replyTo = id; document.getElementById('commentInput')?.focus(); };
+
+  document.getElementById('postCommentBtn')?.addEventListener('click', function() {
+    var body = (document.getElementById('commentInput')?.value || '').trim();
+    if (!body || !LID) return;
+    fetch(BASE + '/api/lessons/' + LID + '/comments', {
+      method: 'POST', headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+      body: 'csrf_token=' + encodeURIComponent(csrf) + '&body=' + encodeURIComponent(body) + (replyTo ? '&parent_id=' + replyTo : '')
+    }).then(function(r) { return r.json(); }).then(function(d) {
+      if (d.success) { document.getElementById('commentInput').value = ''; replyTo = null; loadComments(); }
+    });
+  });
+
+  // Ask question
+  document.getElementById('askQuestionBtn')?.addEventListener('click', function() {
+    var title = (document.getElementById('qaTitle')?.value || '').trim();
+    var body  = (document.getElementById('qaBody')?.value || '').trim();
+    if (!title || !LID) { LMS.toast('error','Enter a question title.'); return; }
+    this.disabled = true;
+    fetch(BASE + '/api/lessons/' + LID + '/ask', {
+      method: 'POST', headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+      body: 'csrf_token=' + encodeURIComponent(csrf) + '&title=' + encodeURIComponent(title) + '&body=' + encodeURIComponent(body)
+    }).then(function(r) { return r.json(); }).then(function(d) {
+      LMS.toast(d.success ? 'success' : 'error', d.message);
+      if (d.success) { document.getElementById('qaTitle').value = ''; document.getElementById('qaBody').value = ''; }
+      document.getElementById('askQuestionBtn').disabled = false;
+    });
+  });
+
+  loadNotes();
+})();
+
 </script>
