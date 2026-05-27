@@ -977,102 +977,100 @@ $typeColors  = ['text'=>'rgba(255,255,255,.5)','video'=>'#f87171','document'=>'#
 <script>
 // ── Section accordion ─────────────────────────────────────────────────────────
 function toggleSection(idx) {
-  const head    = document.getElementById('lpSec' + idx).querySelector('.lp-section-head');
-  const lessons = document.getElementById('lpLessons' + idx);
-  const isOpen  = head.classList.contains('open');
-
-  // Toggle this section
+  var head    = document.getElementById('lpSec' + idx).querySelector('.lp-section-head');
+  var lessons = document.getElementById('lpLessons' + idx);
+  var isOpen  = head.classList.contains('open');
   head.classList.toggle('open', !isOpen);
   lessons.classList.toggle('open', !isOpen);
   head.setAttribute('aria-expanded', String(!isOpen));
 }
 
-// ── Sidebar toggle ────────────────────────────────────────────────────────────
-const lpShell   = document.getElementById('lpShell');
-const isMobile  = () => window.innerWidth < 992;
-
-document.getElementById('lpSidebarToggle').addEventListener('click', function () {
-  if (isMobile()) {
-    lpShell.classList.toggle('sidebar-visible');
-  } else {
-    lpShell.classList.toggle('sidebar-hidden');
-  }
-});
-
-// Close mobile sidebar when clicking lesson link
-document.querySelectorAll('.lp-lesson').forEach(a => {
-  a.addEventListener('click', () => {
-    if (isMobile()) lpShell.classList.remove('sidebar-visible');
-  });
-});
-
-// Close mobile sidebar clicking outside
-document.addEventListener('click', function (e) {
-  if (!isMobile()) return;
-  if (!e.target.closest('#lpSidebar') && !e.target.closest('#lpSidebarToggle')) {
-    lpShell.classList.remove('sidebar-visible');
-  }
-});
-
-// ── Fullscreen toggle ─────────────────────────────────────────────────────────
-const fsBtn  = document.getElementById('lpFullscreenBtn');
-const fsIcon = document.getElementById('lpFsIcon');
-
-function enterFullscreen() {
-  document.getElementById('stTopbar')?.style.setProperty('display','none');
-window.__topbarHidden = true;
-  document.getElementById('bottomNav')?.style.setProperty('display','none');
-  
-  lpShell.style.height = '100vh';
-  lpShell.classList.add('fullscreen');
-  fsIcon.className = 'bi bi-fullscreen-exit';
-  sessionStorage.setItem('lp_fullscreen', '1');
-}
-
-function exitFullscreen() {
-  document.getElementById('stTopbar')?.style.removeProperty('display');
-window.__topbarHidden = false;
-  document.getElementById('bottomNav')?.style.removeProperty('display');
-  
-  lpShell.style.height = '';
-  lpShell.classList.remove('fullscreen');
-  fsIcon.className = 'bi bi-fullscreen';
-  sessionStorage.removeItem('lp_fullscreen');
-}
-
-// Restore fullscreen state on page load
-if (sessionStorage.getItem('lp_fullscreen') === '1') {
-  // Small delay so DOM is ready
-  setTimeout(enterFullscreen, 50);
-}
-
-fsBtn.addEventListener('click', function () {
-  lpShell.classList.contains('fullscreen') ? exitFullscreen() : enterFullscreen();
-});
-
-// Escape key exits
-document.addEventListener('keydown', function (e) {
-  if (e.key === 'Escape' && lpShell.classList.contains('fullscreen')) exitFullscreen();
-});
-
-// ── Collaboration Panel ───────────────────────────────────────────────────
+// ── Sidebar toggle ─────────────────────────────────────────────────────────────
 (function() {
-  var BASE  = (window.LMS && window.LMS.BASE) || '';
+  var btn = document.getElementById('lpSidebarToggle');
+  if (!btn) return;
+  btn.addEventListener('click', function() {
+    var shell = document.getElementById('lpShell');
+    if (!shell) return;
+    var hidden = shell.classList.toggle('sidebar-hidden');
+    shell.classList.toggle('sidebar-visible', !hidden);
+    localStorage.setItem('lp_sidebar', hidden ? 'hidden' : 'visible');
+  });
+  var saved = localStorage.getItem('lp_sidebar');
+  var shell = document.getElementById('lpShell');
+  if (shell && saved === 'hidden') {
+    shell.classList.add('sidebar-hidden');
+    shell.classList.remove('sidebar-visible');
+  }
+})();
+
+// ── Mark lesson complete ───────────────────────────────────────────────────────
+(function() {
+  var BASE = (window.LMS && window.LMS.BASE) || '';
+  var csrf = document.getElementById('csrfToken') ? document.getElementById('csrfToken').value : '<?= $e($csrf_token) ?>';
+
+  var markBtn = document.getElementById('lpMarkComplete');
+  if (!markBtn) return;
+  markBtn.addEventListener('click', function() {
+    var lessonId     = this.dataset.lessonId;
+    var enrollmentId = this.dataset.enrollmentId;
+    this.disabled = true;
+    this.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Saving…';
+    var self = this;
+    fetch(BASE + '/learn/lessons/' + lessonId + '/complete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: 'csrf_token=' + encodeURIComponent(csrf) + '&enrollment_id=' + encodeURIComponent(enrollmentId)
+    }).then(function(r) { return r.json(); })
+      .then(function(d) {
+        if (d.success) {
+          self.classList.remove('btn-primary');
+          self.classList.add('btn-success');
+          self.innerHTML = '<i class="bi bi-check-circle-fill me-1"></i>Completed!';
+          if (d.next_lesson_id) {
+            var nextBtn = document.getElementById('lpNextBtn');
+            if (nextBtn) nextBtn.href = BASE + nextBtn.dataset.baseUrl + '?lesson=' + d.next_lesson_id;
+          }
+          if (d.course_completed) {
+            setTimeout(function() { location.reload(); }, 1200);
+          }
+          // Update sidebar check
+          var check = document.querySelector('.lp-lesson-item[data-lesson-id="' + lessonId + '"] .lp-check-icon');
+          if (check) { check.className = 'bi bi-check-circle-fill lp-check-icon text-success'; }
+        } else {
+          LMS.toast('error', d.message || 'Could not save progress.');
+          self.disabled = false;
+          self.innerHTML = '<i class="bi bi-check-circle me-1"></i>Mark as Complete';
+        }
+      }).catch(function() {
+        self.disabled = false;
+        self.innerHTML = '<i class="bi bi-check-circle me-1"></i>Mark as Complete';
+      });
+  });
+})();
+
+// ── Collaboration Panel (Notes, Comments, Ask) ────────────────────────────────
+(function() {
+  var BASE = (window.LMS && window.LMS.BASE) || '';
   var shell = document.getElementById('lpShell');
   var LID   = shell ? shell.dataset.lessonId : null;
   var CID   = shell ? shell.dataset.courseId : null;
-  var csrf  = document.getElementById('csrfToken')?.value || '<?= $e($csrf_token) ?>';
+  var csrf  = document.getElementById('csrfToken') ? document.getElementById('csrfToken').value : '<?= $e($csrf_token) ?>';
+
+  // Tab switch
+  document.querySelectorAll('.lp-collab-tab').forEach(function(btn) {
     btn.addEventListener('click', function() {
       document.querySelectorAll('.lp-collab-tab').forEach(function(b) { b.classList.remove('active'); });
       document.querySelectorAll('.lp-collab-content').forEach(function(p) { p.classList.add('d-none'); });
       btn.classList.add('active');
       var id = btn.dataset.panel + 'Panel';
-      document.getElementById(id)?.classList.remove('d-none');
+      var panel = document.getElementById(id);
+      if (panel) panel.classList.remove('d-none');
       if (btn.dataset.panel === 'comments') loadComments();
     });
   });
 
-  // Notes
+  // ── Notes ────────────────────────────────────────────────────────────────────
   function loadNotes() {
     if (!LID) return;
     fetch(BASE + '/api/lessons/' + LID + '/notes')
@@ -1080,35 +1078,44 @@ document.addEventListener('keydown', function (e) {
       .then(function(d) {
         var el = document.getElementById('notesList');
         if (!el) return;
-        if (!d.notes || !d.notes.length) { el.innerHTML = '<p style="font-size:12px;color:rgba(255,255,255,.3);text-align:center;padding:16px 0">No notes yet.</p>'; return; }
+        if (!d.notes || !d.notes.length) {
+          el.innerHTML = '<p style="font-size:12px;color:rgba(255,255,255,.3);text-align:center;padding:12px 0">No notes yet.</p>';
+          return;
+        }
         el.innerHTML = d.notes.map(function(n) {
           return '<div class="lp-note-item">' +
             '<button class="lp-note-del" onclick="delNote(' + n.id + ')"><i class="bi bi-x"></i></button>' +
             n.note.replace(/&/g,'&amp;').replace(/</g,'&lt;') +
             '</div>';
         }).join('');
-      }).catch(function(){});
+      }).catch(function() {});
   }
 
-  document.getElementById('saveNoteBtn')?.addEventListener('click', function() {
-    var note = (document.getElementById('noteInput')?.value || '').trim();
+  document.getElementById('saveNoteBtn') && document.getElementById('saveNoteBtn').addEventListener('click', function() {
+    var note = (document.getElementById('noteInput') ? document.getElementById('noteInput').value : '').trim();
     if (!note || !LID) return;
     fetch(BASE + '/api/lessons/' + LID + '/notes', {
       method: 'POST', headers: {'Content-Type': 'application/x-www-form-urlencoded'},
       body: 'csrf_token=' + encodeURIComponent(csrf) + '&note=' + encodeURIComponent(note) + '&course_id=' + CID
     }).then(function(r) { return r.json(); }).then(function(d) {
-      if (d.success) { document.getElementById('noteInput').value = ''; loadNotes(); LMS.toast('success','Note saved!'); }
-    });
+      if (d.success) {
+        document.getElementById('noteInput').value = '';
+        loadNotes();
+        LMS.toast('success', 'Note saved!');
+      }
+    }).catch(function() {});
   });
 
   window.delNote = function(id) {
     fetch(BASE + '/api/notes/' + id + '/delete', {
       method: 'POST', headers: {'Content-Type': 'application/x-www-form-urlencoded'},
       body: 'csrf_token=' + encodeURIComponent(csrf)
-    }).then(function(r) { return r.json(); }).then(function(d) { if (d.success) loadNotes(); });
+    }).then(function(r) { return r.json(); }).then(function(d) {
+      if (d.success) loadNotes();
+    }).catch(function() {});
   };
 
-  // Comments
+  // ── Comments ─────────────────────────────────────────────────────────────────
   var replyTo = null;
   function loadComments() {
     if (!LID) return;
@@ -1117,81 +1124,104 @@ document.addEventListener('keydown', function (e) {
       .then(function(d) {
         var el = document.getElementById('commentsList');
         if (!el) return;
-        if (!d.comments || !d.comments.length) { el.innerHTML = '<p style="font-size:12px;color:rgba(255,255,255,.3);text-align:center;padding:16px 0">No comments yet.</p>'; return; }
+        if (!d.comments || !d.comments.length) {
+          el.innerHTML = '<p style="font-size:12px;color:rgba(255,255,255,.3);text-align:center;padding:12px 0">No comments yet.</p>';
+          return;
+        }
         el.innerHTML = d.comments.map(function(c) {
-          var rep = (c.replies||[]).map(function(r) {
-            return '<div class="lp-comment-item" style="margin-top:6px"><div class="lp-comment-author">' + r.author_name + '</div>' + r.body.replace(/</g,'&lt;') + '</div>';
+          var reps = (c.replies || []).map(function(r) {
+            return '<div class="lp-comment-item" style="margin-top:6px"><div class="lp-comment-author">' +
+              r.author_name + '</div>' + r.body.replace(/</g,'&lt;') + '</div>';
           }).join('');
-          return '<div class="lp-comment-item"><div class="lp-comment-author">' + c.author_name + (c.is_pinned ? ' 📌' : '') + '</div>' + c.body.replace(/</g,'&lt;') + (rep ? '<div class="lp-replies">' + rep + '</div>' : '') + '<button class="lp-reply-btn" onclick="setReply(' + c.id + ')">↩ Reply</button></div>';
+          return '<div class="lp-comment-item"><div class="lp-comment-author">' +
+            c.author_name + (c.is_pinned ? ' 📌' : '') + '</div>' +
+            c.body.replace(/</g,'&lt;') +
+            (reps ? '<div class="lp-replies">' + reps + '</div>' : '') +
+            '<button class="lp-reply-btn" onclick="setReply(' + c.id + ')">↩ Reply</button></div>';
         }).join('');
-      }).catch(function(){});
+      }).catch(function() {});
   }
 
-  window.setReply = function(id) { replyTo = id; document.getElementById('commentInput')?.focus(); };
+  window.setReply = function(id) {
+    replyTo = id;
+    var inp = document.getElementById('commentInput');
+    if (inp) inp.focus();
+  };
 
-  document.getElementById('postCommentBtn')?.addEventListener('click', function() {
-    var body = (document.getElementById('commentInput')?.value || '').trim();
+  document.getElementById('postCommentBtn') && document.getElementById('postCommentBtn').addEventListener('click', function() {
+    var body = (document.getElementById('commentInput') ? document.getElementById('commentInput').value : '').trim();
     if (!body || !LID) return;
     fetch(BASE + '/api/lessons/' + LID + '/comments', {
       method: 'POST', headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-      body: 'csrf_token=' + encodeURIComponent(csrf) + '&body=' + encodeURIComponent(body) + (replyTo ? '&parent_id=' + replyTo : '')
+      body: 'csrf_token=' + encodeURIComponent(csrf) + '&body=' + encodeURIComponent(body) +
+            (replyTo ? '&parent_id=' + replyTo : '')
     }).then(function(r) { return r.json(); }).then(function(d) {
-      if (d.success) { document.getElementById('commentInput').value = ''; replyTo = null; loadComments(); }
-    });
+      if (d.success) {
+        document.getElementById('commentInput').value = '';
+        replyTo = null;
+        loadComments();
+      }
+    }).catch(function() {});
   });
 
-  // Ask question
-  document.getElementById('askQuestionBtn')?.addEventListener('click', function() {
-    var title = (document.getElementById('qaTitle')?.value || '').trim();
-    var body  = (document.getElementById('qaBody')?.value || '').trim();
-    if (!title || !LID) { LMS.toast('error','Enter a question title.'); return; }
+  // ── Ask a question ───────────────────────────────────────────────────────────
+  document.getElementById('askQuestionBtn') && document.getElementById('askQuestionBtn').addEventListener('click', function() {
+    var title = (document.getElementById('qaTitle') ? document.getElementById('qaTitle').value : '').trim();
+    var body  = (document.getElementById('qaBody')  ? document.getElementById('qaBody').value  : '').trim();
+    if (!title || !LID) { LMS.toast('error', 'Enter a question title.'); return; }
     this.disabled = true;
+    var self = this;
     fetch(BASE + '/api/lessons/' + LID + '/ask', {
       method: 'POST', headers: {'Content-Type': 'application/x-www-form-urlencoded'},
       body: 'csrf_token=' + encodeURIComponent(csrf) + '&title=' + encodeURIComponent(title) + '&body=' + encodeURIComponent(body)
     }).then(function(r) { return r.json(); }).then(function(d) {
       LMS.toast(d.success ? 'success' : 'error', d.message);
-      if (d.success) { document.getElementById('qaTitle').value = ''; document.getElementById('qaBody').value = ''; }
-      document.getElementById('askQuestionBtn').disabled = false;
-    });
+      if (d.success) {
+        if (document.getElementById('qaTitle')) document.getElementById('qaTitle').value = '';
+        if (document.getElementById('qaBody'))  document.getElementById('qaBody').value  = '';
+      }
+      self.disabled = false;
+    }).catch(function() { self.disabled = false; });
   });
 
   loadNotes();
 })();
 
-
-// ── AI Tutor Panel ────────────────────────────────────────────────────────
+// ── AI Tutor Panel ────────────────────────────────────────────────────────────
 (function() {
   var BASE  = (window.LMS && window.LMS.BASE) || '';
   var shell = document.getElementById('lpShell');
   var LID   = shell ? shell.dataset.lessonId : null;
   var CID   = shell ? shell.dataset.courseId : null;
-  var csrf  = document.getElementById('csrfToken')?.value || '<?= $e($csrf_token) ?>';
+  var csrf  = document.getElementById('csrfToken') ? document.getElementById('csrfToken').value : '<?= $e($csrf_token) ?>';
 
   // FAB toggle
-  document.getElementById('aiTutorFab')?.addEventListener('click', function() {
-    document.getElementById('lpAiPanel').classList.toggle('open');
+  document.getElementById('aiTutorFab') && document.getElementById('aiTutorFab').addEventListener('click', function() {
+    var panel = document.getElementById('lpAiPanel');
+    if (panel) panel.classList.toggle('open');
   });
 
   // Lesson summary
-  document.getElementById('aiSummaryBtn')?.addEventListener('click', function() {
+  document.getElementById('aiSummaryBtn') && document.getElementById('aiSummaryBtn').addEventListener('click', function() {
     var result = document.getElementById('aiSummaryResult');
+    if (!result) return;
     result.innerHTML = '<div class="lp-ai-thinking">Summarising…</div>';
     result.classList.remove('d-none');
     this.disabled = true;
+    var self = this;
     fetch(BASE + '/api/ai/summarise', {
       method: 'POST', headers: {'Content-Type': 'application/x-www-form-urlencoded'},
       body: 'csrf_token=' + encodeURIComponent(csrf) + '&lesson_id=' + LID
-    }).then(r => r.json()).then(d => {
-      this.disabled = false;
+    }).then(function(r) { return r.json(); }).then(function(d) {
+      self.disabled = false;
       if (d.success && d.bullets) {
-        result.innerHTML = d.bullets.map(b =>
-          '<div class="lp-ai-bullet">' + b.replace(/</g,'&lt;') + '</div>'
-        ).join('');
+        result.innerHTML = d.bullets.map(function(b) {
+          return '<div class="lp-ai-bullet">' + b.replace(/</g,'&lt;') + '</div>';
+        }).join('');
       } else {
-        result.innerHTML = '<div style="color:#f87171">' + (d.message||'Error') + '</div>';
+        result.innerHTML = '<div style="color:#f87171">' + (d.message || 'Error — check AI settings.') + '</div>';
       }
-    }).catch(() => { this.disabled = false; });
+    }).catch(function() { self.disabled = false; });
   });
 
   // Chat
@@ -1200,8 +1230,7 @@ document.addEventListener('keydown', function (e) {
     var div = document.createElement('div');
     div.className = 'lp-ai-msg ' + role;
     div.textContent = text;
-    if (chatLog) chatLog.appendChild(div);
-    if (chatLog) chatLog.scrollTop = chatLog.scrollHeight;
+    if (chatLog) { chatLog.appendChild(div); chatLog.scrollTop = chatLog.scrollHeight; }
     return div;
   }
 
@@ -1212,50 +1241,93 @@ document.addEventListener('keydown', function (e) {
     addMsg('user', q);
     if (input) input.value = '';
     var thinking = addMsg('ai', '…');
-    thinking.className += ' lp-ai-thinking';
-
+    if (thinking) thinking.classList.add('lp-ai-thinking');
     fetch(BASE + '/api/ai/chat', {
       method: 'POST', headers: {'Content-Type': 'application/x-www-form-urlencoded'},
       body: 'csrf_token=' + encodeURIComponent(csrf) +
             '&course_id=' + CID + '&lesson_id=' + LID +
             '&question=' + encodeURIComponent(q)
-    }).then(r => r.json()).then(d => {
-      if (chatLog) chatLog.removeChild(thinking);
+    }).then(function(r) { return r.json(); }).then(function(d) {
+      if (chatLog && thinking.parentNode === chatLog) chatLog.removeChild(thinking);
       addMsg('ai', d.success ? d.answer : (d.message || 'Error'));
-    }).catch(() => { if (chatLog && chatLog.contains(thinking)) chatLog.removeChild(thinking); addMsg('ai','Request failed.'); });
+    }).catch(function() {
+      if (chatLog && thinking.parentNode === chatLog) chatLog.removeChild(thinking);
+      addMsg('ai', 'Request failed. Check your connection.');
+    });
   }
 
-  document.getElementById('aiChatSend')?.addEventListener('click', sendChat);
-  document.getElementById('aiChatInput')?.addEventListener('keydown', function(e) {
+  document.getElementById('aiChatSend') && document.getElementById('aiChatSend').addEventListener('click', sendChat);
+  document.getElementById('aiChatInput') && document.getElementById('aiChatInput').addEventListener('keydown', function(e) {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChat(); }
   });
 
   // Translate
   var showingLang = false;
-  document.getElementById('aiTranslateBtn')?.addEventListener('click', function() {
+  document.getElementById('aiTranslateBtn') && document.getElementById('aiTranslateBtn').addEventListener('click', function() {
     showingLang = !showingLang;
-    document.getElementById('aiLangSelect').classList.toggle('d-none', !showingLang);
-    document.getElementById('aiDoTranslateBtn').classList.toggle('d-none', !showingLang);
+    var sel = document.getElementById('aiLangSelect');
+    var btn = document.getElementById('aiDoTranslateBtn');
+    if (sel) sel.classList.toggle('d-none', !showingLang);
+    if (btn) btn.classList.toggle('d-none', !showingLang);
   });
 
-  document.getElementById('aiDoTranslateBtn')?.addEventListener('click', function() {
-    var lang = document.getElementById('aiLangSelect').value;
+  document.getElementById('aiDoTranslateBtn') && document.getElementById('aiDoTranslateBtn').addEventListener('click', function() {
+    var sel  = document.getElementById('aiLangSelect');
+    var lang = sel ? sel.value : 'Hindi';
     var result = document.getElementById('aiTranslateResult');
+    if (!result) return;
     result.innerHTML = '<div class="lp-ai-thinking">Translating to ' + lang + '…</div>';
     result.classList.remove('d-none');
     this.disabled = true;
+    var self = this;
     fetch(BASE + '/api/ai/translate', {
       method: 'POST', headers: {'Content-Type': 'application/x-www-form-urlencoded'},
       body: 'csrf_token=' + encodeURIComponent(csrf) + '&lesson_id=' + LID + '&language=' + encodeURIComponent(lang)
-    }).then(r => r.json()).then(d => {
-      this.disabled = false;
+    }).then(function(r) { return r.json(); }).then(function(d) {
+      self.disabled = false;
       if (d.success) {
         result.innerHTML = '<div style="max-height:180px;overflow-y:auto;font-size:13px;color:#e2d9f3">' + d.content + '</div>';
       } else {
-        result.innerHTML = '<div style="color:#f87171">' + (d.message||'Error') + '</div>';
+        result.innerHTML = '<div style="color:#f87171">' + (d.message || 'Error') + '</div>';
       }
-    }).catch(() => { this.disabled = false; });
+    }).catch(function() { self.disabled = false; });
   });
 })();
 
+// ── Review form (course completion) ─────────────────────────────────────────
+(function() {
+  var BASE = (window.LMS && window.LMS.BASE) || '';
+  var csrf = document.getElementById('csrfToken') ? document.getElementById('csrfToken').value : '<?= $e($csrf_token) ?>';
+  var reviewForm = document.getElementById('lpReviewForm');
+  if (!reviewForm) return;
+
+  document.getElementById('lpReviewSubmit') && document.getElementById('lpReviewSubmit').addEventListener('click', function() {
+    var rating = 0;
+    reviewForm.querySelectorAll('.lp-star input').forEach(function(s) {
+      if (s.checked) rating = parseInt(s.value);
+    });
+    if (!rating) { LMS.toast('error', 'Please select a rating.'); return; }
+    var comment = (document.getElementById('lpReviewText') ? document.getElementById('lpReviewText').value : '').trim();
+    this.disabled = true;
+    this.textContent = 'Submitting…';
+    var self = this;
+    var courseUuid = '<?= isset($course) ? $e($course["uuid"]) : "" ?>';
+    fetch(BASE + '/learn/courses/' + courseUuid + '/review', {
+      method: 'POST', headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+      body: 'csrf_token=' + encodeURIComponent(csrf) + '&rating=' + rating + '&comment=' + encodeURIComponent(comment)
+    }).then(function(r) { return r.json(); }).then(function(d) {
+      if (d.success) {
+        reviewForm.innerHTML = '<div style="padding:12px;background:#ecfdf5;border-radius:10px;font-size:13.5px;color:#059669"><i class="bi bi-check-circle-fill me-1"></i>' + d.message + '</div>';
+        LMS.toast('success', d.message);
+      } else {
+        LMS.toast('error', d.message || 'Failed to submit review.');
+        self.disabled = false;
+        self.innerHTML = '<i class="bi bi-send-fill me-1"></i>Submit Review';
+      }
+    }).catch(function() {
+      self.disabled = false;
+      self.innerHTML = '<i class="bi bi-send-fill me-1"></i>Submit Review';
+    });
+  });
+})();
 </script>
