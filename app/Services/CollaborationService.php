@@ -121,21 +121,24 @@ class CollaborationService
     {
         $pdo = Database::getInstance();
 
-        // Get course_id for this lesson
         $stmt = $pdo->prepare('SELECT course_id FROM lessons WHERE id=? LIMIT 1');
         $stmt->execute([$lessonId]);
         $lesson = $stmt->fetch();
         if (!$lesson) return 0;
 
-        // Create forum thread tagged to lesson
-        $pdo->prepare(
-            'INSERT INTO forum_threads (uuid, course_id, user_id, title, body, lesson_id)
-             VALUES (?,?,?,?,?,?)'
-        )->execute([
-            \App\Helpers\Uuid::v4(),
-            $lesson['course_id'],
-            $userId, $title, $body, $lessonId,
-        ]);
+        // Check if lesson_id column exists (added by migration 0020)
+        try {
+            $pdo->prepare(
+                'INSERT INTO forum_threads (course_id, user_id, title, body, lesson_id)
+                 VALUES (?,?,?,?,?)'
+            )->execute([$lesson['course_id'], $userId, $title, $body, $lessonId]);
+        } catch (\Throwable) {
+            // Fallback: no lesson_id column yet (migration not run)
+            $pdo->prepare(
+                'INSERT INTO forum_threads (course_id, user_id, title, body)
+                 VALUES (?,?,?,?)'
+            )->execute([$lesson['course_id'], $userId, $title, $body]);
+        }
         return (int)$pdo->lastInsertId();
     }
 
