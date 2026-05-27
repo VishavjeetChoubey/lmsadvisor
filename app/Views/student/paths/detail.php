@@ -65,15 +65,28 @@ $done     = $path['enrollment_status']==='completed';
 </div>
 
 <script>
-document.getElementById('enrollPathBtn')?.addEventListener('click',function(){
-  var BASE=(window.LMS&&window.LMS.BASE)||'';
-  this.disabled=true; this.textContent='Enrolling…';
-  fetch(BASE+'/learn/paths/<?=$e($path['uuid'])?>/enroll',{
-    method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},
-    body:'csrf_token=<?=$e($csrf_token??"")?>'
-  }).then(r=>r.json()).then(d=>{
-    if(d.success){LMS.toast('success',d.message);setTimeout(()=>location.reload(),800);}
-    else{LMS.toast('error',d.message);this.disabled=false;}
+document.getElementById('enrollPathBtn')?.addEventListener('click', function() {
+  var BASE = (window.LMS && window.LMS.BASE) || '';
+  var CSRF = '<?= $e($csrf_token ?? '') ?>';
+  if (!CSRF) { LMS.toast('error', 'Session expired — please reload the page.'); return; }
+  this.disabled = true;
+  this.textContent = 'Enrolling…';
+  fetch(BASE + '/learn/paths/<?= $e($path['uuid']) ?>/enroll', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: 'csrf_token=' + encodeURIComponent(CSRF)
+  }).then(function(r) { return r.json(); }).then(function(d) {
+    if (d.success) {
+      LMS.toast('success', d.message);
+      setTimeout(function() { location.reload(); }, 800);
+    } else {
+      LMS.toast('error', d.message || 'Enrollment failed.');
+      document.getElementById('enrollPathBtn').disabled = false;
+      document.getElementById('enrollPathBtn').innerHTML = '<i class="bi bi-play-fill me-2"></i>Enroll in Path';
+    }
+  }).catch(function() {
+    LMS.toast('error', 'Request failed. Please try again.');
+    document.getElementById('enrollPathBtn').disabled = false;
   });
 });
 </script>

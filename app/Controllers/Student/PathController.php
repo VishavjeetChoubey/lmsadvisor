@@ -43,12 +43,13 @@ class PathController extends Controller
         $pct   = LearningPathService::progressPct($lp['id'], (int)$user['id']);
 
         $this->view('student.paths.detail', [
-            'title'     => $path['title'] . ' — Learning Path',
-            'page_title'=> $path['title'],
-            'auth_user' => $user,
-            'flash'     => $this->getFlash(),
-            'path'      => $path,
-            'pct'       => $pct,
+            'title'      => $path['title'] . ' — Learning Path',
+            'page_title' => $path['title'],
+            'auth_user'  => $user,
+            'flash'      => $this->getFlash(),
+            'path'       => $path,
+            'pct'        => $pct,
+            'csrf_token' => CsrfMiddleware::token(),
         ], 'student');
     }
 
