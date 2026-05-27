@@ -533,11 +533,12 @@ $typeColors  = ['text'=>'rgba(255,255,255,.5)','video'=>'#f87171','document'=>'#
 
 
           <!-- ── Notes & Comments panel ─────────────── -->
-          <div class="lp-collab-panel">
+          <div class="lp-collab-panel" id="lpCollabPanel">
             <div class="lp-collab-tabs">
               <button class="lp-collab-tab active" data-panel="notes"><i class="bi bi-journal-text"></i><span>Notes</span></button>
               <button class="lp-collab-tab" data-panel="comments"><i class="bi bi-chat-dots"></i><span>Comments</span></button>
               <button class="lp-collab-tab" data-panel="qa"><i class="bi bi-question-circle"></i><span>Ask</span></button>
+              <button class="lp-collab-tab lp-collab-close-btn" id="collabCloseBtn" title="Hide panel"><i class="bi bi-chevron-right"></i></button>
             </div>
             <div class="lp-collab-content" id="notesPanel">
               <div class="lp-note-form">
@@ -568,9 +569,14 @@ $typeColors  = ['text'=>'rgba(255,255,255,.5)','video'=>'#f87171','document'=>'#
 <!-- ── AI Tutor — fixed overlay outside shell ──────────── -->
 <div class="lp-ai-panel" id="lpAiPanel">
   <div class="lp-ai-header">
-    <i class="bi bi-stars" style="color:#a78bfa"></i>
-    <span>AI Tutor</span>
-    <button class="lp-ai-close" onclick="document.getElementById('lpAiPanel').classList.toggle('open')" title="Close"><i class="bi bi-x"></i></button>
+    <div class="lp-ai-avatar">
+      <i class="bi bi-robot"></i>
+    </div>
+    <div class="lp-ai-identity">
+      <div class="lp-ai-name">LMSAdvisor AI Tutor</div>
+      <div class="lp-ai-status"><span class="lp-ai-dot"></span>Online</div>
+    </div>
+    <button class="lp-ai-close" onclick="document.getElementById('lpAiPanel').classList.toggle('open')" title="Close"><i class="bi bi-x-lg"></i></button>
   </div>
   <div class="lp-ai-body">
     <button class="lp-ai-quick" id="aiSummaryBtn"><i class="bi bi-list-stars me-1"></i>Summarise This Lesson</button>
@@ -600,6 +606,59 @@ $typeColors  = ['text'=>'rgba(255,255,255,.5)','video'=>'#f87171','document'=>'#
 <button class="lp-ai-fab" id="aiTutorFab" title="AI Tutor">
   <i class="bi bi-stars"></i>
 </button>
+<button class="lp-collab-fab" id="collabOpenBtn" title="Notes & Comments" style="display:none">
+  <i class="bi bi-journal-text"></i>
+</button>
+
+<style>
+/* ── AI Header branding ──────────────────────────────────────────────────── */
+.lp-ai-avatar {
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  background: linear-gradient(135deg,#7c3aed,#5b5ef6);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 17px; color: #fff; flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(124,58,237,.4);
+}
+.lp-ai-identity { flex: 1; min-width: 0; }
+.lp-ai-name { font-size: 13.5px; font-weight: 700; color: #f3e8ff; }
+.lp-ai-status { font-size: 11px; color: rgba(255,255,255,.5); display: flex; align-items: center; gap: 4px; margin-top: 1px; }
+.lp-ai-dot { width: 6px; height: 6px; border-radius: 50%; background: #4ade80; box-shadow: 0 0 4px #4ade80; }
+
+/* ── Collab close/open buttons ──────────────────────────────────────────── */
+.lp-collab-close-btn {
+  flex: none !important;
+  width: 36px !important;
+  padding: 0 !important;
+  border-left: 1px solid rgba(255,255,255,.07);
+  font-size: 14px !important;
+}
+.lp-collab-fab {
+  position: fixed;
+  bottom: 90px; right: 24px;
+  width: 44px; height: 44px;
+  border-radius: 50%;
+  background: rgba(99,102,241,.85);
+  border: 1px solid rgba(165,180,252,.3);
+  color: #fff; font-size: 18px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; z-index: 1290;
+  box-shadow: 0 4px 16px rgba(99,102,241,.4);
+  backdrop-filter: blur(8px);
+  transition: transform .2s, background .2s;
+}
+.lp-collab-fab:hover { transform: scale(1.08); background: rgba(99,102,241,1); }
+
+/* ── Fullscreen ─────────────────────────────────────────────────────────── */
+.lp-shell:fullscreen,
+.lp-shell:-webkit-full-screen,
+.lp-shell:-moz-full-screen {
+  height: 100vh !important;
+  max-height: 100vh !important;
+  border-radius: 0;
+}
+#lpFsIcon.exit { /* icon swapped by JS */ }
+</style>
 
 <style>
 /* ══════════════════════════════════════════════════════════
@@ -928,7 +987,8 @@ $typeColors  = ['text'=>'rgba(255,255,255,.5)','video'=>'#f87171','document'=>'#
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  min-height: 0;
+  height: 100%;
+  align-self: stretch;
   transition: width .25s ease, min-width .25s ease;
   flex-shrink: 0;
 }
@@ -1291,6 +1351,80 @@ function toggleSection(idx) {
   lessons.classList.toggle('open', !isOpen);
   head.setAttribute('aria-expanded', String(!isOpen));
 }
+
+// ── Fullscreen ─────────────────────────────────────────────────────────────────
+(function() {
+  var btn   = document.getElementById('lpFullscreenBtn');
+  var shell = document.getElementById('lpShell');
+  var icon  = document.getElementById('lpFsIcon');
+  if (!btn || !shell) return;
+
+  btn.addEventListener('click', function() {
+    var isFs = !!(document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement);
+    if (isFs) {
+      (document.exitFullscreen || document.webkitExitFullscreen || document.mozCancelFullScreen).call(document);
+    } else {
+      var req = shell.requestFullscreen || shell.webkitRequestFullscreen || shell.mozRequestFullScreen;
+      if (req) req.call(shell);
+    }
+  });
+
+  function onFsChange() {
+    var isFs = !!(document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement);
+    if (icon) {
+      icon.className = isFs ? 'bi bi-fullscreen-exit' : 'bi bi-fullscreen';
+    }
+    if (shell) {
+      shell.classList.toggle('fullscreen', isFs);
+    }
+  }
+  document.addEventListener('fullscreenchange',       onFsChange);
+  document.addEventListener('webkitfullscreenchange', onFsChange);
+  document.addEventListener('mozfullscreenchange',    onFsChange);
+})();
+
+// ── Collab Panel open/close toggle ────────────────────────────────────────────
+(function() {
+  var panel    = document.getElementById('lpCollabPanel');
+  var closeBtn = document.getElementById('collabCloseBtn');
+  var openBtn  = document.getElementById('collabOpenBtn');
+  if (!panel) return;
+
+  function collapsePanel() {
+    panel.style.width     = '0';
+    panel.style.minWidth  = '0';
+    panel.style.overflow  = 'hidden';
+    if (openBtn) openBtn.style.display = 'flex';
+    localStorage.setItem('lp_collab', 'hidden');
+  }
+  function expandPanel() {
+    panel.style.width     = '';
+    panel.style.minWidth  = '';
+    panel.style.overflow  = '';
+    if (openBtn) openBtn.style.display = 'none';
+    localStorage.setItem('lp_collab', 'visible');
+  }
+
+  if (closeBtn) {
+    closeBtn.addEventListener('click', function() {
+      var isHidden = panel.style.width === '0px' || panel.style.width === '0';
+      if (isHidden) { expandPanel(); this.querySelector('i').className = 'bi bi-chevron-right'; }
+      else           { collapsePanel(); this.querySelector('i').className = 'bi bi-chevron-left'; }
+    });
+  }
+  if (openBtn) {
+    openBtn.addEventListener('click', function() {
+      expandPanel();
+      if (closeBtn) closeBtn.querySelector('i').className = 'bi bi-chevron-right';
+    });
+  }
+
+  // Restore saved state
+  if (localStorage.getItem('lp_collab') === 'hidden') {
+    collapsePanel();
+    if (closeBtn) closeBtn.querySelector('i').className = 'bi bi-chevron-left';
+  }
+})();
 
 // ── Sidebar toggle ─────────────────────────────────────────────────────────────
 (function() {
