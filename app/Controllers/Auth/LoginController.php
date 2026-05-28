@@ -67,14 +67,18 @@ class LoginController extends Controller
         $recaptchaSiteKey = Setting::get('recaptcha_site_key', '');
         $recaptchaSecret  = Setting::get('recaptcha_secret', '');
         if ($recaptchaEnabled && $recaptchaSiteKey && $recaptchaSecret) {
-            $token = (string)$this->request->post('g-recaptcha-response', '');
-            if ($token === '') {
-                $this->flash('error', 'Please complete the reCAPTCHA checkbox before logging in.');
-                $this->redirect('/login');
-            }
-            if (!$this->auth->verifyRecaptcha($token)) {
-                $this->flash('error', 'reCAPTCHA verification failed. Please tick the checkbox and try again.');
-                $this->redirect('/login');
+            // Emergency bypass: set recaptcha_debug_bypass=1 in settings to skip verification
+            $bypass = (bool)(int)Setting::get('recaptcha_debug_bypass', 0);
+            if (!$bypass) {
+                $token = (string)$this->request->post('g-recaptcha-response', '');
+                if ($token === '') {
+                    $this->flash('error', 'Please complete the reCAPTCHA checkbox before logging in.');
+                    $this->redirect('/login');
+                }
+                if (!$this->auth->verifyRecaptcha($token)) {
+                    $this->flash('error', 'reCAPTCHA verification failed. Please tick the checkbox and try again.');
+                    $this->redirect('/login');
+                }
             }
         }
 

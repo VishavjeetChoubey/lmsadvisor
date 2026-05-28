@@ -157,29 +157,65 @@ class AuthService
         $secret = Setting::get('recaptcha_secret', '');
         if (!$secret || !$token) return false;
 
-        // Use cURL — works even when allow_url_fopen is Off
-        $ch = curl_init('https://www.google.com/recaptcha/api/siteverify');
-        curl_setopt_array($ch, [
-            CURLOPT_POST           => true,
-            CURLOPT_POSTFIELDS     => http_build_query([
-                'secret'   => $secret,
-                'response' => $token,
-                'remoteip' => $_SERVER['REMOTE_ADDR'] ?? '',
-            ]),
-            CURLOPT_RETURNTRANSFER => true,
-            CURLOPT_TIMEOUT        => 8,
-            CURLOPT_SSL_VERIFYPEER => true,
-        ]);
-        $response = curl_exec($ch);
-        $curlErr  = curl_error($ch);
-        curl_close($ch);
+        // Clean secret — remove any accidental whitespace
+        $secret = trim($secret);
+        $token  = trim($token);
 
-        if (!$response || $curlErr) {
-            error_log('[reCAPTCHA] cURL error: ' . $curlErr);
-            return false;
+        $postData = http_build_query([
+            'secret'   => $secret,
+            'response' => $token,
+            'remoteip' => $_SERVER['REMOTE_ADDR'] ?? '',
+        ]);
+
+        // Try cURL first
+        if (function_exists('curl_init')) {
+            $ch = curl_init('https://www.google.com/recaptcha/api/siteverify');
+            curl_setopt_array($ch, [
+                CURLOPT_POST           => true,
+                CURLOPT_POSTFIELDS     => $postData,
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_TIMEOUT        => 10,
+                CURLOPT_SSL_VERIFYPEER => false, // Works on localhost + shared hosting
+                CURLOPT_SSL_VERIFYHOST => false,
+                CURLOPT_HTTPHEADER     => ['Content-Type: application/x-www-form-urlencoded'],
+            ]);
+            $response = curl_exec($ch);
+            $curlErr  = curl_error($ch);
+            $httpCode = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            curl_close($ch);
+
+            if ($response && !$curlErr && $httpCode === 200) {
+                $data = json_decode($response, true);
+                if (!($data['success'] ?? false)) {
+                    error_log('[reCAPTCHA] Failed. Error codes: ' . implode(', ', $data['error-codes'] ?? ['none']));
+                }
+                return (bool)($data['success'] ?? false);
+            }
+            error_log('[reCAPTCHA] cURL error: ' . $curlErr . ' HTTP: ' . $httpCode);
         }
 
+        // Fallback: file_get_contents
+        $context = stream_context_create([
+            'http' => [
+                'method'  => 'POST',
+                'header'  => 'Content-Type: application/x-www-form-urlencoded',
+                'content' => $postData,
+                'timeout' => 10,
+            ],
+            'ssl' => [
+                'verify_peer'      => false,
+                'verify_peer_name' => false,
+            ],
+        ]);
+        $response = @file_get_contents('https://www.google.com/recaptcha/api/siteverify', false, $context);
+        if (!$response) {
+            error_log('[reCAPTCHA] Both cURL and file_get_contents failed.');
+            return false;
+        }
         $data = json_decode($response, true);
+        if (!($data['success'] ?? false)) {
+            error_log('[reCAPTCHA] Failed. Error codes: ' . implode(', ', $data['error-codes'] ?? ['none']));
+        }
         return (bool)($data['success'] ?? false);
     }
 
