@@ -153,11 +153,23 @@ class Enrollment extends Model
 
     public function enroll(int $courseId, int $userId, int $enrolledBy, ?string $expiresAt = null): int
     {
-        return $this->insert(
-            'INSERT INTO enrollments (uuid, course_id, user_id, enrolled_by, status, expires_at)
-             VALUES (?, ?, ?, ?, "active", ?)',
-            [\App\Helpers\Uuid::v4(), $courseId, $userId, $enrolledBy, $expiresAt]
-        );
+        try {
+            return $this->insert(
+                'INSERT INTO enrollments (uuid, course_id, user_id, enrolled_by, status, expires_at)
+                 VALUES (?, ?, ?, ?, "active", ?)',
+                [\App\Helpers\Uuid::v4(), $courseId, $userId, $enrolledBy, $expiresAt]
+            );
+        } catch (\Throwable $e) {
+            // Fallback: uuid column may not exist yet (migration 0022 not run)
+            if (str_contains($e->getMessage(), 'uuid') || str_contains($e->getMessage(), '1054')) {
+                return $this->insert(
+                    'INSERT INTO enrollments (course_id, user_id, enrolled_by, status, expires_at)
+                     VALUES (?, ?, ?, "active", ?)',
+                    [$courseId, $userId, $enrolledBy, $expiresAt]
+                );
+            }
+            throw $e;
+        }
     }
 
     public function remove(int $id): void

@@ -303,20 +303,20 @@ class DashboardController extends Controller
         $completedLessons = count(array_filter($lessonProgress, fn($lp) => $lp['status'] === 'completed'));
         $courseProgress   = $totalLessons > 0 ? round($completedLessons / $totalLessons * 100) : 0;
 
-        // Load instructor info for AI Tutor avatar
-        $instructorStmt = $pdo->prepare(
-            'SELECT u.first_name, u.last_name, u.profile_photo, u.bio
-             FROM course_instructors ci
-             JOIN users u ON u.id = ci.user_id
-             WHERE ci.course_id = ? LIMIT 1'
-        );
-        $instructorStmt->execute([(int)$course['id']]);
-        $instructor = $instructorStmt->fetch() ?: [
-            'first_name'    => 'AI',
-            'last_name'     => 'Tutor',
-            'profile_photo' => null,
-            'bio'           => 'Your personal AI tutor for this course.',
-        ];
+        // Load instructor info for AI Tutor avatar (table may not exist on older installs)
+        $instructor = ['first_name'=>'AI','last_name'=>'Tutor','profile_photo'=>null,'bio'=>''];
+        try {
+            $instructorStmt = $pdo->prepare(
+                'SELECT u.first_name, u.last_name, u.profile_photo, u.bio
+                 FROM course_instructors ci
+                 JOIN users u ON u.id = ci.user_id
+                 WHERE ci.course_id = ? LIMIT 1'
+            );
+            $instructorStmt->execute([(int)$course['id']]);
+            $instructor = $instructorStmt->fetch() ?: $instructor;
+        } catch (\Throwable $e) {
+            // course_instructors table doesn't exist yet — use default
+        }
 
         $this->view('student.lesson.player', [
             'title'          => ($currentLesson['title'] ?? 'Course') . ' — LMSAdvisor',
