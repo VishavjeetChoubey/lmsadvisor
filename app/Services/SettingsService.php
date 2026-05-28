@@ -212,34 +212,53 @@ class SettingsService
     // ── Test Email ────────────────────────────────────────────────────────────
 
     /**
-     * Send a test email using PHP's mail() or basic SMTP.
+     * Send a test email via the configured SMTP settings.
      * Returns ['success' => bool, 'message' => string].
      */
     public static function sendTestEmail(string $to): array
     {
-        $from     = self::get('smtp_from', '');
-        $fromName = Setting::get('smtp_from_name', 'LMSAdvisor');
-        $subject  = 'LMSAdvisor — Test Email';
-        $body     = "This is a test email from LMSAdvisor.\n\nIf you received this, your email settings are working correctly.";
+        $host      = Setting::get('smtp_host', '');
+        $user      = Setting::get('smtp_user', '');
+        $fromEmail = Setting::get('smtp_from_email', $user);
 
-        if (!$from) {
-            return ['success' => false, 'message' => 'From address not configured in Email settings.'];
+        if (!$host || !$fromEmail) {
+            return [
+                'success' => false,
+                'message' => 'SMTP not configured. Please fill in SMTP Host, Username, and From Email in Email Settings.',
+            ];
         }
 
-        $headers = "From: {$fromName} <{$from}>\r\n"
-                 . "Reply-To: {$from}\r\n"
-                 . "MIME-Version: 1.0\r\n"
-                 . "Content-Type: text/plain; charset=UTF-8";
-
-        $sent = @mail($to, $subject, $body, $headers);
-
-        if ($sent) {
-            return ['success' => true, 'message' => "Test email sent to {$to} successfully."];
+        if (!filter_var($to, FILTER_VALIDATE_EMAIL)) {
+            return ['success' => false, 'message' => 'Invalid recipient email address.'];
         }
 
-        return [
-            'success' => false,
-            'message' => 'mail() failed. Check your XAMPP/server sendmail configuration or use an SMTP plugin.',
-        ];
+        try {
+            \App\Services\EmailService::queue(
+                $to,
+                'Test Recipient',
+                'enrollment_confirmation',
+                [
+                    'student_name'    => 'Test User',
+                    'course_title'    => 'LMSAdvisor Test Email',
+                    'course_level'    => 'Beginner',
+                    'course_duration' => '1 hour',
+                    'grade_points'    => 100,
+                    'course_url'      => rtrim(APP_URL, '/') . '/learn',
+                ]
+            );
+
+            // Process immediately (don't wait for cron)
+            $result = \App\Services\EmailService::processQueue(1);
+
+            if ($result['sent'] > 0) {
+                return ['success' => true, 'message' => "Test email sent to {$to} via SMTP. Check your inbox."];
+            }
+            return [
+                'success' => false,
+                'message' => 'SMTP send failed. Check your SMTP credentials and try again. See server error log for details.',
+            ];
+        } catch (\Throwable $e) {
+            return ['success' => false, 'message' => 'SMTP error: ' . $e->getMessage()];
+        }
     }
 }

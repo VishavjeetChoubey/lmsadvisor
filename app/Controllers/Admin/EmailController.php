@@ -82,8 +82,16 @@ class EmailController extends Controller
         if (!filter_var($to, FILTER_VALIDATE_EMAIL)) {
             $this->json(['success'=>false,'message'=>'Invalid email address.']);
         }
-        $user    = AuthService::user();
-        $queued  = EmailService::queue($to, $user['name'] ?? 'Test User', $slug, [
+
+        // Check SMTP is configured before queuing
+        $smtpHost = \App\Models\Setting::get('smtp_host', '');
+        $smtpEnabled = (bool)(int)\App\Models\Setting::get('smtp_enabled', '0');
+        if (!$smtpEnabled || !$smtpHost) {
+            $this->json(['success'=>false,'message'=>'SMTP is not enabled or configured. Go to Settings → Email and fill in SMTP Host, enable SMTP, then try again.']);
+        }
+
+        $user   = AuthService::user();
+        $queued = EmailService::queue($to, $user['name'] ?? 'Test User', $slug, [
             'student_name'    => 'Test Student',
             'course_title'    => 'Sample Course Title',
             'course_level'    => 'Beginner',
@@ -104,12 +112,21 @@ class EmailController extends Controller
             'quiz_title'      => 'Sample Quiz',
             'certificate_url' => APP_URL . '/certificate/verify/sample',
         ]);
-        if ($queued) {
-            $result = EmailService::processQueue(1);
-            $this->json(['success'=>true,'message'=>'Test email sent to '.$to]);
-        } else {
-            $this->json(['success'=>false,'message'=>'SMTP not configured or email unsubscribed.']);
+
+        if (!$queued) {
+            $this->json(['success'=>false,'message'=>'Could not queue email. Check that SMTP is enabled and the email address is not unsubscribed.']);
         }
+
+        $result = EmailService::processQueue(1);
+        if ($result['sent'] > 0) {
+            $this->json(['success'=>true,'message'=>'Test email sent to ' . $to . '. Check your inbox.']);
+        }
+
+        // Check queue for error message
+        $pdo  = \App\Core\Database::getInstance();
+        $last = $pdo->query("SELECT error_msg FROM email_queue WHERE status IN ('failed','pending') ORDER BY id DESC LIMIT 1")->fetch();
+        $errMsg = $last['error_msg'] ?? 'SMTP send failed. Check your SMTP credentials.';
+        $this->json(['success'=>false,'message'=>$errMsg]);
     }
 
     /** POST /admin/email/process-queue */
