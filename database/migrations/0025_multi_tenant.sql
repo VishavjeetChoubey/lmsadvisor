@@ -87,7 +87,8 @@ CREATE TABLE IF NOT EXISTS course_assignments (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ── API Marketplace ──────────────────────────────────────────────────────────
--- Already have api_tokens from migration 0007; add marketplace fields
+-- Enhance api_tokens with marketplace fields (from migration 0007)
+
 ALTER TABLE api_tokens ADD COLUMN IF NOT EXISTS app_name    VARCHAR(120) NULL AFTER name;
 ALTER TABLE api_tokens ADD COLUMN IF NOT EXISTS app_url     VARCHAR(500) NULL AFTER app_name;
 ALTER TABLE api_tokens ADD COLUMN IF NOT EXISTS app_desc    TEXT         NULL AFTER app_url;

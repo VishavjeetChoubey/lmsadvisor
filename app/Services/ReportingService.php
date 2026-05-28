@@ -113,7 +113,7 @@ class ReportingService
                     COUNT(DISTINCT cert.id) AS certificates
              FROM courses c
              LEFT JOIN enrollments e ON e.course_id=c.id
-             LEFT JOIN reviews r ON r.course_id=c.id
+             LEFT JOIN course_reviews r ON r.course_id=c.id
              LEFT JOIN certificates cert ON cert.course_id=c.id
              WHERE c.status='published'
              GROUP BY c.id

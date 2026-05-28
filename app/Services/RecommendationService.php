@@ -56,7 +56,7 @@ class RecommendationService
                     (SELECT COUNT(*) FROM enrollments e2 WHERE e2.course_id=c.id) AS enroll_count
              FROM courses c
              LEFT JOIN categories cat ON cat.id=c.category_id
-             LEFT JOIN (SELECT course_id, AVG(rating) AS avg_rating FROM reviews GROUP BY course_id) r
+             LEFT JOIN (SELECT course_id, AVG(rating) AS avg_rating FROM course_reviews GROUP BY course_id) r
                ON r.course_id=c.id
              WHERE c.status='published' AND c.id NOT IN ({$excl})
              ORDER BY enroll_count DESC"
