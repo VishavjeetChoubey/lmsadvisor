@@ -154,12 +154,24 @@ class AuthService
 
     public function verifyRecaptcha(string $token): bool
     {
-        $secret = Setting::get('recaptcha_secret', '');
-        if (!$secret || !$token) return false;
+        $rawSecret = Setting::get('recaptcha_secret', '');
+        if (!$rawSecret || !$token) return false;
 
-        // Clean secret — remove any accidental whitespace
+        // recaptcha_secret is stored encrypted — decrypt before use
+        try {
+            $secret = \App\Helpers\Encryption::decrypt($rawSecret);
+        } catch (\Throwable $e) {
+            // Not encrypted (e.g. set directly in DB) — use raw value
+            $secret = $rawSecret;
+        }
+
         $secret = trim($secret);
         $token  = trim($token);
+
+        if (!$secret) {
+            error_log('[reCAPTCHA] Secret is empty after decryption.');
+            return false;
+        }
 
         $postData = http_build_query([
             'secret'   => $secret,
@@ -167,7 +179,7 @@ class AuthService
             'remoteip' => $_SERVER['REMOTE_ADDR'] ?? '',
         ]);
 
-        // Try cURL first
+        // cURL
         if (function_exists('curl_init')) {
             $ch = curl_init('https://www.google.com/recaptcha/api/siteverify');
             curl_setopt_array($ch, [
@@ -175,7 +187,7 @@ class AuthService
                 CURLOPT_POSTFIELDS     => $postData,
                 CURLOPT_RETURNTRANSFER => true,
                 CURLOPT_TIMEOUT        => 10,
-                CURLOPT_SSL_VERIFYPEER => false, // Works on localhost + shared hosting
+                CURLOPT_SSL_VERIFYPEER => false,
                 CURLOPT_SSL_VERIFYHOST => false,
                 CURLOPT_HTTPHEADER     => ['Content-Type: application/x-www-form-urlencoded'],
             ]);
@@ -187,7 +199,7 @@ class AuthService
             if ($response && !$curlErr && $httpCode === 200) {
                 $data = json_decode($response, true);
                 if (!($data['success'] ?? false)) {
-                    error_log('[reCAPTCHA] Failed. Error codes: ' . implode(', ', $data['error-codes'] ?? ['none']));
+                    error_log('[reCAPTCHA] Failed. Codes: ' . implode(', ', $data['error-codes'] ?? ['none']));
                 }
                 return (bool)($data['success'] ?? false);
             }
@@ -195,17 +207,9 @@ class AuthService
         }
 
         // Fallback: file_get_contents
-        $context = stream_context_create([
-            'http' => [
-                'method'  => 'POST',
-                'header'  => 'Content-Type: application/x-www-form-urlencoded',
-                'content' => $postData,
-                'timeout' => 10,
-            ],
-            'ssl' => [
-                'verify_peer'      => false,
-                'verify_peer_name' => false,
-            ],
+        $context  = stream_context_create([
+            'http' => ['method'=>'POST','header'=>'Content-Type: application/x-www-form-urlencoded','content'=>$postData,'timeout'=>10],
+            'ssl'  => ['verify_peer'=>false,'verify_peer_name'=>false],
         ]);
         $response = @file_get_contents('https://www.google.com/recaptcha/api/siteverify', false, $context);
         if (!$response) {
@@ -214,7 +218,7 @@ class AuthService
         }
         $data = json_decode($response, true);
         if (!($data['success'] ?? false)) {
-            error_log('[reCAPTCHA] Failed. Error codes: ' . implode(', ', $data['error-codes'] ?? ['none']));
+            error_log('[reCAPTCHA] Failed. Codes: ' . implode(', ', $data['error-codes'] ?? ['none']));
         }
         return (bool)($data['success'] ?? false);
     }
