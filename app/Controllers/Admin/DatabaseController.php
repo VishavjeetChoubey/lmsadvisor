@@ -15,7 +15,7 @@ class DatabaseController extends Controller
 {
     public function index(array $params): void
     {
-        AuthMiddleware::requireRole(['admin', 'super_admin']);
+        AuthMiddleware::handle();
 
         $migrations = $this->getMigrationStatus();
         $dbVersion  = $this->getDbVersion();
@@ -32,7 +32,7 @@ class DatabaseController extends Controller
 
     public function runAll(array $params): void
     {
-        AuthMiddleware::requireRole(['admin', 'super_admin']);
+        AuthMiddleware::handle();
         \App\Middleware\CsrfMiddleware::verify();
 
         $results = $this->runMigrations();
@@ -50,7 +50,7 @@ class DatabaseController extends Controller
 
     public function runOne(array $params): void
     {
-        AuthMiddleware::requireRole(['admin', 'super_admin']);
+        AuthMiddleware::handle();
         \App\Middleware\CsrfMiddleware::verify();
 
         $file    = basename($this->request->post('file', ''));
@@ -69,7 +69,7 @@ class DatabaseController extends Controller
 
     public function apiStatus(array $params): void
     {
-        AuthMiddleware::requireRole(['admin', 'super_admin']);
+        AuthMiddleware::handle();
         $this->json([
             'migrations' => $this->getMigrationStatus(),
             'version'    => $this->getDbVersion(),
@@ -240,7 +240,7 @@ class DatabaseController extends Controller
 
     public function viewSql(array $params): void
     {
-        AuthMiddleware::requireRole(['admin', 'super_admin']);
+        AuthMiddleware::handle();
         $file = basename($this->request->get('file', ''));
         if (!preg_match('/^[0-9a-z_]+\.sql$/i', $file)) {
             $this->json(['error' => 'Invalid file'], 400);
