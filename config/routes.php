@@ -393,3 +393,9 @@ $router->post('/learn/profile/password', 'Student\ProfileController@changePasswo
 // Global admin search
 $router->get('/admin/search',            'Admin\SearchController@page');
 $router->get('/admin/search/api',        'Admin\SearchController@search');
+
+// Public Help Center (no auth required)
+$router->get('/help',                      'HelpController@index');
+$router->get('/help/search',               'HelpController@search');
+$router->get('/help/category/:slug',       'HelpController@category');
+$router->get('/help/article/:slug',        'HelpController@article');
