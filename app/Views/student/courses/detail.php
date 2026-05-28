@@ -183,13 +183,12 @@ $typeColors= ['text'=>'secondary','video'=>'danger','document'=>'warning','scorm
       <?php endif; ?>
     </div>
 
-    <!-- Tabs -->
+    <!-- Tabs — always 3: Overview, Course Details, Instructor -->
     <div class="cd-tabs-wrap">
       <ul class="cd-tabs">
         <li><a class="cd-tab active" href="#" data-tab="overview">Overview</a></li>
-        <?php if (!empty($instructors)): ?>
+        <li><a class="cd-tab" href="#" data-tab="details">Course Details</a></li>
         <li><a class="cd-tab" href="#" data-tab="instructor">Instructor</a></li>
-        <?php endif; ?>
         <?php if (!empty($reviewList)): ?>
         <li><a class="cd-tab" href="#" data-tab="reviews">Reviews (<?= $reviewCount ?>)</a></li>
         <?php endif; ?>
@@ -197,35 +196,36 @@ $typeColors= ['text'=>'secondary','video'=>'danger','document'=>'warning','scorm
     </div>
 
     <!-- ── Overview tab ── -->
-    <div class="cd-tab-panel active" id="cdTab-overview">
+    <div class="cd-tab-panel" id="cdTab-overview">
       <?php if ($course['description']): ?>
       <div class="cd-section-block">
         <h5 class="cd-section-label">About this course</h5>
         <div class="cd-rich-content"><?= $course['description'] ?></div>
       </div>
+      <?php elseif ($course['short_description']): ?>
+      <div class="cd-section-block">
+        <h5 class="cd-section-label">About this course</h5>
+        <p class="cd-rich-content"><?= $e($course['short_description']) ?></p>
+      </div>
       <?php endif; ?>
 
-      <!-- What you'll learn (parsed from description if lists exist, else show outcome) -->
+      <!-- What you'll learn chips -->
       <div class="cd-section-block">
-        <h5 class="cd-section-label">Course Details</h5>
-        <div class="row g-3">
-          <?php $details = [
-            ['bi-collection','Sections', count($sections) . ' sections'],
-            ['bi-file-play','Lessons', $totalLessons . ' lessons'],
-            ['bi-clock','Duration', $course['duration_hours'] ? $course['duration_hours'] . ' hours' : '—'],
-            ['bi-bar-chart','Level', ucfirst($course['level'] ?? '—')],
-            ['bi-translate','Language', $course['language'] ?? 'English'],
-            ['bi-trophy','Grade Points', $course['grade_points'] ? (int)$course['grade_points'] . ' pts on completion' : '—'],
-            ['bi-award','Certificate', $course['certificate_enabled'] ? 'Issued on completion' : 'Not available'],
-            ['bi-chat-dots','Forum', $course['forum_enabled'] ? 'Available' : 'Not available'],
+        <h5 class="cd-section-label">What you'll learn</h5>
+        <div class="cd-learn-grid">
+          <?php
+          $learnItems = [
+            'Complete ' . $totalLessons . ' structured lessons',
+            count($sections) . ' course sections',
+            $course['duration_hours'] ? $course['duration_hours'] . ' hours of content' : null,
+            $course['certificate_enabled'] ? 'Earn a certificate' : null,
+            $course['grade_points'] ? (int)$course['grade_points'] . ' grade points' : null,
+            $course['forum_enabled'] ? 'Community forum access' : null,
           ];
-          foreach ($details as [$ico, $lbl, $val]): ?>
-          <div class="col-6 col-md-4 col-lg-3">
-            <div class="cd-detail-card">
-              <i class="bi <?= $ico ?> cd-detail-icon"></i>
-              <div class="cd-detail-label"><?= $lbl ?></div>
-              <div class="cd-detail-value"><?= $val ?></div>
-            </div>
+          foreach (array_filter($learnItems) as $item): ?>
+          <div class="cd-learn-item">
+            <i class="bi bi-check2-circle" style="color:#059669;flex-shrink:0;font-size:16px"></i>
+            <span><?= $e($item) ?></span>
           </div>
           <?php endforeach; ?>
         </div>
@@ -249,28 +249,150 @@ $typeColors= ['text'=>'secondary','video'=>'danger','document'=>'warning','scorm
       <?php endif; ?>
     </div>
 
-    <!-- ── Instructor tab ── -->
-    <?php if (!empty($instructors)): ?>
-    <div class="cd-tab-panel d-none" id="cdTab-instructor">
+    <!-- ── Course Details tab ── -->
+    <div class="cd-tab-panel d-none" id="cdTab-details">
       <div class="cd-section-block">
-        <h5 class="cd-section-label">Instructors</h5>
-        <?php foreach ($instructors as $instr): ?>
-        <div class="cd-instructor-card">
-          <div class="cd-instr-avatar">
-            <?= strtoupper(substr($instr['first_name'], 0, 1)) ?>
+        <h5 class="cd-section-label">Course Information</h5>
+        <div class="row g-3">
+          <?php $details = [
+            ['bi-collection','Sections', count($sections) . ' sections'],
+            ['bi-file-play','Lessons', $totalLessons . ' lessons'],
+            ['bi-clock','Duration', $course['duration_hours'] ? $course['duration_hours'] . ' hours' : '—'],
+            ['bi-bar-chart','Level', ucfirst($course['level'] ?? '—')],
+            ['bi-translate','Language', $course['language'] ?? 'English'],
+            ['bi-trophy','Grade Points', $course['grade_points'] ? (int)$course['grade_points'] . ' pts' : '—'],
+            ['bi-award','Certificate', $course['certificate_enabled'] ? '✓ Issued on completion' : 'Not available'],
+            ['bi-chat-dots','Forum', $course['forum_enabled'] ? '✓ Community forum' : 'Not available'],
+          ];
+          foreach ($details as [$ico, $lbl, $val]): ?>
+          <div class="col-6 col-md-4 col-lg-3">
+            <div class="cd-detail-card">
+              <i class="bi <?= $ico ?> cd-detail-icon"></i>
+              <div class="cd-detail-label"><?= $lbl ?></div>
+              <div class="cd-detail-value"><?= $val ?></div>
+            </div>
           </div>
-          <div>
-            <div class="fw-semibold"><?= $e($instr['first_name'] . ' ' . $instr['last_name']) ?></div>
-            <div class="text-muted" style="font-size:13px"><?= $e($instr['email']) ?></div>
-            <span class="badge bg-<?= $instr['cm_role'] === 'manager' ? 'success' : 'primary' ?> mt-1" style="font-size:11px">
-              <?= ucfirst($e($instr['cm_role'])) ?>
-            </span>
+          <?php endforeach; ?>
+        </div>
+      </div>
+
+      <!-- Your Progress -->
+      <?php if ($enrollment): ?>
+      <div class="cd-section-block">
+        <h5 class="cd-section-label">Your Progress</h5>
+        <div class="cd-progress-detail">
+          <div class="cd-progress-bar-wrap">
+            <div class="d-flex justify-content-between mb-2">
+              <span style="font-size:13.5px;font-weight:600"><?= $pct ?>% Complete</span>
+              <span style="font-size:13px;color:var(--text-muted)"><?= $completedCount ?>/<?= $totalLessons ?> lessons</span>
+            </div>
+            <div style="height:10px;background:var(--border-color);border-radius:5px;overflow:hidden">
+              <div style="height:100%;width:<?= $pct ?>%;background:<?= $isDone ? 'linear-gradient(90deg,#059669,#10b981)' : 'linear-gradient(90deg,#6366f1,#3b82f6)' ?>;border-radius:5px;transition:width .4s"></div>
+            </div>
+          </div>
+          <div class="cd-progress-stats">
+            <div class="cd-stat-pill">
+              <i class="bi bi-calendar3"></i>
+              Enrolled <?= date('d M Y', strtotime($enrollment['enrolled_at'])) ?>
+            </div>
+            <?php if ($enrollment['completed_at']): ?>
+            <div class="cd-stat-pill" style="background:#ecfdf5;color:#059669;border-color:#a7f3d0">
+              <i class="bi bi-check-circle-fill"></i>
+              Completed <?= date('d M Y', strtotime($enrollment['completed_at'])) ?>
+            </div>
+            <?php endif; ?>
+          </div>
+        </div>
+      </div>
+      <?php endif; ?>
+
+      <!-- Course outline summary -->
+      <div class="cd-section-block">
+        <h5 class="cd-section-label">Course Outline</h5>
+        <?php foreach ($sections as $si => $sec): ?>
+        <div class="cd-outline-row">
+          <div class="cd-outline-row-head">
+            <div class="cd-outline-num"><?= $si + 1 ?></div>
+            <div class="cd-outline-sec-title"><?= $e($sec['title']) ?></div>
+            <div class="cd-outline-sec-count"><?= count($sec['lessons']) ?> lessons</div>
           </div>
         </div>
         <?php endforeach; ?>
       </div>
     </div>
-    <?php endif; ?>
+
+    <!-- ── Instructor tab ── -->
+    <div class="cd-tab-panel d-none" id="cdTab-instructor">
+      <?php if (!empty($instructors)): ?>
+      <?php foreach ($instructors as $instr): ?>
+      <div class="cd-instr-profile">
+        <div class="cd-instr-profile-header">
+          <?php if (!empty($instr['profile_photo'])): ?>
+            <img src="<?= $e(APP_URL . '/storage/uploads/' . $instr['profile_photo']) ?>"
+                 alt="<?= $e($instr['first_name']) ?>"
+                 class="cd-instr-photo">
+          <?php else: ?>
+            <div class="cd-instr-photo cd-instr-initials">
+              <?= strtoupper(substr($instr['first_name'], 0, 1) . substr($instr['last_name'], 0, 1)) ?>
+            </div>
+          <?php endif; ?>
+          <div class="cd-instr-info">
+            <div class="cd-instr-name"><?= $e($instr['first_name'] . ' ' . $instr['last_name']) ?></div>
+            <div class="cd-instr-role">
+              <span class="cd-instr-badge <?= $instr['cm_role'] === 'manager' ? 'manager' : 'instructor' ?>">
+                <i class="bi bi-<?= $instr['cm_role'] === 'manager' ? 'briefcase' : 'person-video3' ?>"></i>
+                <?= ucfirst($e($instr['cm_role'] ?? 'Instructor')) ?>
+              </span>
+            </div>
+            <?php if (!empty($instr['bio'])): ?>
+            <p class="cd-instr-bio"><?= $e($instr['bio']) ?></p>
+            <?php endif; ?>
+          </div>
+        </div>
+
+        <!-- Stats row -->
+        <div class="cd-instr-stats">
+          <div class="cd-instr-stat">
+            <i class="bi bi-book"></i>
+            <span>Teaching this course</span>
+          </div>
+          <?php if (!empty($instr['email'])): ?>
+          <div class="cd-instr-stat">
+            <i class="bi bi-envelope"></i>
+            <span><?= $e($instr['email']) ?></span>
+          </div>
+          <?php endif; ?>
+        </div>
+      </div>
+      <?php endforeach; ?>
+
+      <?php else: ?>
+      <!-- No instructors assigned — show AI Tutor as instructor -->
+      <div class="cd-instr-profile">
+        <div class="cd-instr-profile-header">
+          <div class="cd-instr-photo cd-instr-ai">
+            <i class="bi bi-robot" style="font-size:32px;color:#a78bfa"></i>
+          </div>
+          <div class="cd-instr-info">
+            <div class="cd-instr-name">LMSAdvisor AI Tutor</div>
+            <div class="cd-instr-role">
+              <span class="cd-instr-badge instructor">
+                <i class="bi bi-stars"></i> AI Instructor
+              </span>
+            </div>
+            <p class="cd-instr-bio">
+              Your personal AI tutor is available throughout this course. Ask questions, get explanations,
+              request summaries, or have concepts translated — at any time during a lesson.
+            </p>
+          </div>
+        </div>
+        <div class="cd-instr-stats">
+          <div class="cd-instr-stat"><i class="bi bi-chat-dots"></i><span>Available in every lesson</span></div>
+          <div class="cd-instr-stat"><i class="bi bi-mic"></i><span>Voice input & spoken answers</span></div>
+          <div class="cd-instr-stat"><i class="bi bi-translate"></i><span>Multilingual support</span></div>
+        </div>
+      </div>
+      <?php endif; ?>
 
     <!-- ── Reviews tab ── -->
     <?php if (!empty($reviewList)): ?>
@@ -626,19 +748,70 @@ $typeColors= ['text'=>'secondary','video'=>'danger','document'=>'warning','scorm
 }
 .cd-btn-cert:hover { opacity:.9; }
 
-/* Instructor */
-.cd-instructor-card {
-  display:flex;align-items:center;gap:14px;
-  padding:16px;border:1px solid var(--border-color);
-  border-radius:12px;margin-bottom:12px;
-  background:var(--content-bg);
+/* Instructor profile */
+.cd-instr-profile {
+  background: var(--content-bg); border: 1px solid var(--border-color);
+  border-radius: 16px; padding: 24px; margin-bottom: 20px;
 }
-.cd-instr-avatar {
-  width:52px;height:52px;border-radius:50%;flex-shrink:0;
-  background:linear-gradient(135deg,#6366f1,#1a56db);
-  display:flex;align-items:center;justify-content:center;
-  font-size:20px;font-weight:700;color:#fff;
+.cd-instr-profile-header { display: flex; gap: 20px; margin-bottom: 20px; align-items: flex-start; flex-wrap: wrap; }
+.cd-instr-photo {
+  width: 80px; height: 80px; border-radius: 50%; flex-shrink: 0;
+  object-fit: cover;
 }
+.cd-instr-initials {
+  background: linear-gradient(135deg,#6366f1,#1a56db);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 26px; font-weight: 700; color: #fff;
+}
+.cd-instr-ai {
+  background: linear-gradient(135deg,#1a0f2e,#2d1b69);
+  display: flex; align-items: center; justify-content: center;
+  border: 2px solid rgba(167,139,250,.3);
+}
+.cd-instr-name { font-size: 19px; font-weight: 700; color: var(--text-primary); margin-bottom: 6px; }
+.cd-instr-role { margin-bottom: 10px; }
+.cd-instr-badge {
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 4px 12px; border-radius: 20px; font-size: 12px; font-weight: 600;
+}
+.cd-instr-badge.instructor { background: #ededff; color: #4338ca; }
+.cd-instr-badge.manager    { background: #ecfdf5; color: #059669; }
+.cd-instr-bio { font-size: 14px; color: var(--text-muted); line-height: 1.7; margin: 0; }
+.cd-instr-stats {
+  display: flex; flex-wrap: wrap; gap: 12px;
+  padding-top: 16px; border-top: 1px solid var(--border-color);
+}
+.cd-instr-stat {
+  display: flex; align-items: center; gap: 7px;
+  font-size: 13px; color: var(--text-muted);
+  background: var(--card-bg); border: 1px solid var(--border-color);
+  border-radius: 8px; padding: 6px 12px;
+}
+.cd-instr-stat i { color: var(--primary); }
+
+/* Learn grid */
+.cd-learn-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+@media (max-width: 600px) { .cd-learn-grid { grid-template-columns: 1fr; } }
+.cd-learn-item { display: flex; align-items: flex-start; gap: 10px; font-size: 14px; color: var(--text-primary); }
+
+/* Progress detail */
+.cd-progress-detail { background: var(--content-bg); border: 1px solid var(--border-color); border-radius: 12px; padding: 20px; }
+.cd-progress-bar-wrap { margin-bottom: 16px; }
+.cd-progress-stats { display: flex; flex-wrap: wrap; gap: 10px; }
+.cd-stat-pill {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 13px; color: var(--text-muted);
+  background: var(--card-bg); border: 1px solid var(--border-color);
+  border-radius: 20px; padding: 5px 14px;
+}
+.cd-stat-pill i { color: var(--primary); }
+
+/* Outline rows in details tab */
+.cd-outline-row { border: 1px solid var(--border-color); border-radius: 10px; padding: 12px 16px; margin-bottom: 8px; background: var(--content-bg); }
+.cd-outline-row-head { display: flex; align-items: center; gap: 12px; }
+.cd-outline-num { width: 28px; height: 28px; border-radius: 50%; background: var(--primary-light, #ededff); color: var(--primary); font-size: 13px; font-weight: 700; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.cd-outline-sec-title { flex: 1; font-size: 14px; font-weight: 600; color: var(--text-primary); }
+.cd-outline-sec-count { font-size: 12px; color: var(--text-muted); white-space: nowrap; }
 
 /* Reviews */
 .cd-review-item { padding:18px 0;border-bottom:1px solid var(--border-color); }
@@ -662,22 +835,21 @@ $typeColors= ['text'=>'secondary','video'=>'danger','document'=>'warning','scorm
 
 <script>
 // ── Tab switching ──────────────────────────────────────────────────────────
-document.querySelectorAll('.cd-tab').forEach(tab => {
+document.querySelectorAll('.cd-tab').forEach(function(tab) {
   tab.addEventListener('click', function(e) {
     e.preventDefault();
-    document.querySelectorAll('.cd-tab').forEach(t => t.classList.remove('active'));
-    document.querySelectorAll('.cd-tab-panel').forEach(p => p.classList.add('d-none'));
+    document.querySelectorAll('.cd-tab').forEach(function(t) { t.classList.remove('active'); });
+    document.querySelectorAll('.cd-tab-panel').forEach(function(p) { p.classList.add('d-none'); });
     this.classList.add('active');
-    const panel = document.getElementById('cdTab-' + this.dataset.tab);
+    var panel = document.getElementById('cdTab-' + this.dataset.tab);
     if (panel) panel.classList.remove('d-none');
   });
 });
 
-// ── Section accordion — click on header toggles open/close ─────────────────
-document.querySelectorAll('.cd-section-head').forEach(head => {
+// ── Section accordion ──────────────────────────────────────────────────────
+document.querySelectorAll('.cd-section-head').forEach(function(head) {
   head.addEventListener('click', function() {
     this.closest('.cd-section').classList.toggle('open');
   });
 });
-// All start open — already set in PHP (class="cd-section open")
 </script>

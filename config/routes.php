@@ -32,6 +32,12 @@ $router->get('/admin/settings',             'Admin\SettingsController@index');
 $router->post('/admin/settings',            'Admin\SettingsController@save');
 $router->post('/admin/settings/test-email', 'Admin\SettingsController@testEmail');
 
+// Database Upgrader
+$router->get('/admin/database',             'Admin\DatabaseController@index');
+$router->post('/admin/database/run-all',    'Admin\DatabaseController@runAll');
+$router->post('/admin/database/run-one',    'Admin\DatabaseController@runOne');
+$router->get('/admin/database/view-sql',    'Admin\DatabaseController@viewSql');
+
 // Admin — Categories
 $router->get('/admin/courses/categories',             'Admin\CategoryController@index');
 $router->post('/admin/courses/categories',            'Admin\CategoryController@store');

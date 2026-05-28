@@ -14,10 +14,15 @@ class Course extends Model
     public function findByUuidFull(string $uuid): ?array
     {
         return $this->queryOne(
-            'SELECT c.*, cat.name AS category_name, u.first_name, u.last_name
+            'SELECT c.*,
+                    cat.name AS category_name,
+                    u.first_name, u.last_name,
+                    (SELECT COUNT(*) FROM enrollments e WHERE e.course_id = c.id) AS enrollment_count,
+                    (SELECT COUNT(*) FROM sections s  WHERE s.course_id = c.id) AS section_count,
+                    (SELECT COUNT(*) FROM lessons l   WHERE l.course_id = c.id) AS lesson_count
              FROM courses c
              LEFT JOIN categories cat ON cat.id = c.category_id
-             LEFT JOIN users u ON u.id = c.created_by
+             LEFT JOIN users u        ON u.id   = c.created_by
              WHERE c.uuid = ? LIMIT 1',
             [$uuid]
         );
