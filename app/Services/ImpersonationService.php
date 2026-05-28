@@ -16,6 +16,10 @@ class ImpersonationService
      */
     public static function impersonate(int $targetUserId): void
     {
+        if (session_status() !== PHP_SESSION_ACTIVE) {
+            session_start();
+        }
+
         $currentRole = $_SESSION['user_role'] ?? '';
 
         // Only admin/super_admin may impersonate
@@ -35,8 +39,8 @@ class ImpersonationService
             throw new \RuntimeException('You cannot impersonate a Super Admin.');
         }
 
-        // Save original session
-        $_SESSION['impersonator'] = [
+        // Save original session before regenerating
+        $original = [
             'user_id'      => $_SESSION['user_id'],
             'user_uuid'    => $_SESSION['user_uuid'],
             'user_email'   => $_SESSION['user_email'],
@@ -46,21 +50,27 @@ class ImpersonationService
             'session_token'=> $_SESSION['session_token'] ?? '',
         ];
 
-        // Switch to target user (keep same session, just swap data)
+        // Write new session data BEFORE regenerating ID
+        $_SESSION['impersonator']  = $original;
+        $_SESSION['user_id']       = $targetUser['id'];
+        $_SESSION['user_uuid']     = $targetUser['uuid'];
+        $_SESSION['user_email']    = $targetUser['email'];
+        $_SESSION['user_name']     = $targetUser['first_name'] . ' ' . $targetUser['last_name'];
+        $_SESSION['user_role']     = $targetUser['role_name'];
+        $_SESSION['role_display']  = $targetUser['role_display'] ?? '';
+        unset($_SESSION['session_token']); // Force fresh token check
+
+        // Write session to disk THEN regenerate ID (safe order)
+        session_write_close();
+        session_start();
         session_regenerate_id(true);
-        $_SESSION['user_id']      = $targetUser['id'];
-        $_SESSION['user_uuid']    = $targetUser['uuid'];
-        $_SESSION['user_email']   = $targetUser['email'];
-        $_SESSION['user_name']    = $targetUser['first_name'] . ' ' . $targetUser['last_name'];
-        $_SESSION['user_role']    = $targetUser['role_name'];
-        $_SESSION['role_display'] = $targetUser['role_display'];
 
         AuditLog::write(
             'user.impersonate_start',
             'user',
             $targetUserId,
             null,
-            ['impersonated_by' => $_SESSION['impersonator']['user_id']]
+            ['impersonated_by' => $original['user_id']]
         );
     }
 
@@ -83,8 +93,7 @@ class ImpersonationService
             ['reverted_to' => $orig['user_id']]
         );
 
-        // Restore original session data
-        session_regenerate_id(true);
+        // Write restored data THEN regenerate (safe order)
         $_SESSION['user_id']       = $orig['user_id'];
         $_SESSION['user_uuid']     = $orig['user_uuid'];
         $_SESSION['user_email']    = $orig['user_email'];
@@ -92,8 +101,11 @@ class ImpersonationService
         $_SESSION['user_role']     = $orig['user_role'];
         $_SESSION['role_display']  = $orig['role_display'];
         $_SESSION['session_token'] = $orig['session_token'];
-
         unset($_SESSION['impersonator']);
+
+        session_write_close();
+        session_start();
+        session_regenerate_id(true);
     }
 
     public static function isImpersonating(): bool
