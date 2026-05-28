@@ -18,15 +18,19 @@ class CourseApiController extends AuthController
         $catId    = (int)$this->request->get('cat', 0);
         $page     = max(1, (int)$this->request->get('page', 1));
         $perPage  = min(200, max(1, (int)$this->request->get('per_page', 20)));
-        $status   = $this->request->get('status', 'published');
 
-        // Validate status (only allow safe values)
+        // Read status — accept comma-separated list e.g. "published" or "published,draft"
+        $statusRaw = trim((string)$this->request->get('status', 'published'));
         $allowedStatuses = ['published', 'draft', 'archived'];
-        if (!in_array($status, $allowedStatuses, true)) {
-            $status = 'published';
-        }
+        $statuses = array_filter(
+            array_map('trim', explode(',', $statusRaw)),
+            fn($s) => in_array($s, $allowedStatuses, true)
+        );
+        if (empty($statuses)) $statuses = ['published'];
 
-        $where = ["c.status=?"]; $binds = [$status];
+        // Build IN clause
+        $placeholders = implode(',', array_fill(0, count($statuses), '?'));
+        $where = ["c.status IN ({$placeholders})"]; $binds = array_values($statuses);
         if ($search) { $where[] = 'c.title LIKE ?'; $binds[] = "%{$search}%"; }
         if ($catId)  { $where[] = 'c.category_id = ?'; $binds[] = $catId; }
         $ws     = implode(' AND ', $where);
@@ -44,11 +48,17 @@ class CourseApiController extends AuthController
              FROM courses c
              LEFT JOIN categories cat ON cat.id=c.category_id
              WHERE {$ws}
-             ORDER BY c.published_at DESC
+             ORDER BY c.created_at DESC
              LIMIT {$perPage} OFFSET {$offset}"
         );
         $stmt->execute($binds);
-        $this->json(['data' => $stmt->fetchAll(), 'total' => $total, 'page' => $page, 'per_page' => $perPage]);
+        $this->json([
+            'data'     => $stmt->fetchAll(),
+            'total'    => $total,
+            'page'     => $page,
+            'per_page' => $perPage,
+            'status'   => $statuses, // echo back for debugging
+        ]);
     }
 
     // GET /api/v1/courses/:uuid
