@@ -64,20 +64,22 @@ class AuthApiController extends AuthController
                     KEY idx_expires (expires_at)
                 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci'
             );
-        } catch (\PDOException $e) {
-            // Table already exists — ignore
+        } catch (\Throwable $e) {
+            // Table already exists or other non-critical error — ignore
         }
 
-        // Delete expired tokens for this user
-        $pdo->prepare('DELETE FROM sso_tokens WHERE expires_at < NOW() OR (user_id = ? AND used = 1)')
-            ->execute([(int)$user['id']]);
+        // Delete expired tokens for this user — wrapped in case table just created
+        try {
+            $pdo->prepare('DELETE FROM sso_tokens WHERE expires_at < NOW() OR (user_id = ? AND used = 1)')
+                ->execute([(int)$user['id']]);
+        } catch (\Throwable $e) {
+            // Non-fatal — table may have just been created
+        }
 
         // Insert new token
-        $ins = $pdo->prepare(
-            'INSERT INTO sso_tokens (user_id, token, redirect_path, expires_at)
-             VALUES (?, ?, ?, ?)'
-        );
-        $ins->execute([(int)$user['id'], $token, $redirectPath, $expires]);
+        $pdo->prepare(
+            'INSERT INTO sso_tokens (user_id, token, redirect_path, expires_at) VALUES (?, ?, ?, ?)'
+        )->execute([(int)$user['id'], $token, $redirectPath, $expires]);
 
         // ── 4. Build redirect URL ─────────────────────────────────────────────
         $redirectUrl = rtrim(APP_URL, '/') . '/sso/login?token=' . $token;
