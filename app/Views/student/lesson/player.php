@@ -695,6 +695,12 @@ $typeColors  = ['text'=>'rgba(255,255,255,.5)','video'=>'#f87171','document'=>'#
   overflow: hidden;
   z-index: 1300;
   box-shadow: 0 24px 64px rgba(0,0,0,.7), 0 0 0 1px rgba(167,139,250,.1);
+  transition: right .25s ease;
+}
+/* When collab panel is open (not collapsed), push AI panel left of it */
+.lp-shell:not(.collab-hidden) ~ .lp-ai-panel,
+body:not(.collab-panel-hidden) .lp-ai-panel {
+  right: 300px;
 }
 .lp-ai-panel.open { display: flex; }
 
@@ -1747,6 +1753,7 @@ function toggleSection(idx) {
     panel.style.minWidth  = '0';
     panel.style.overflow  = 'hidden';
     if (openBtn) openBtn.style.display = 'flex';
+    document.body.classList.add('collab-panel-hidden');
     localStorage.setItem('lp_collab', 'hidden');
   }
   function expandPanel() {
@@ -1754,6 +1761,7 @@ function toggleSection(idx) {
     panel.style.minWidth  = '';
     panel.style.overflow  = '';
     if (openBtn) openBtn.style.display = 'none';
+    document.body.classList.remove('collab-panel-hidden');
     localStorage.setItem('lp_collab', 'visible');
   }
 
