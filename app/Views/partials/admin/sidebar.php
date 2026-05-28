@@ -38,6 +38,8 @@ $navItems = [
   ['Database',      'bi-database-fill-gear','admin/database',      '/admin/database'],
   ['Tenants',      'bi-building-fill',     'admin/tenants',       '/admin/tenants'],
   ['Corporate',    'bi-briefcase-fill',    'admin/organisations', '/admin/organisations'],
+  ['Marketplace',  'bi-shop',              'admin/marketplace/api', '/admin/marketplace'],
+  ['Reporting',    'bi-bar-chart-fill',    'admin/reporting',     '/admin/reporting'],
 ];
 ?>
 <aside class="adm-sidebar" id="adminSidebar">

@@ -369,3 +369,12 @@ $router->post('/admin/organisations',                   'Admin\OrganisationContr
 $router->get('/admin/organisations/:uuid',              'Admin\OrganisationController@show');
 $router->post('/admin/organisations/:uuid/assign',      'Admin\OrganisationController@assignCourse');
 $router->get('/admin/organisations/:uuid/export',       'Admin\OrganisationController@exportReport');
+
+// API Marketplace
+$router->get('/admin/marketplace/api',                           'Admin\MarketplaceController@apiPortal');
+$router->get('/admin/marketplace/instructors',                   'Admin\MarketplaceController@instructors');
+$router->post('/admin/marketplace/instructors/:id/review',       'Admin\MarketplaceController@reviewApplication');
+
+// Executive Reporting
+$router->get('/admin/reporting',            'Admin\ReportingController@index');
+$router->get('/admin/reporting/chart-data', 'Admin\ReportingController@chartData');
