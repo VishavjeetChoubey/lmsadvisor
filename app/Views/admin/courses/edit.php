@@ -244,7 +244,7 @@ $statusColors     = ['draft'=>'secondary','published'=>'success','archived'=>'wa
 
 <div class="ce-tab-content" id="tab-media">
   <div class="ce-form-wrap">
-    <form action="<?= $url('admin/courses/' . $course['uuid'] . '/edit') ?>"
+    <form action="<?= $url('admin/courses/' . $course['uuid'] . '/thumbnail') ?>"
           method="POST" enctype="multipart/form-data" id="editCourseFormMedia" novalidate>
       <input type="hidden" name="csrf_token" value="<?= $e($csrf_token) ?>">
       <?php include __DIR__ . '/_media_fields.php'; ?>

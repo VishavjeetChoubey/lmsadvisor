@@ -45,6 +45,7 @@ $router->post('/admin/courses/create',              'Admin\CourseController@stor
 $router->post('/admin/courses/import',              'Admin\CourseController@import');
 $router->get('/admin/courses/:uuid/edit',           'Admin\CourseController@edit');
 $router->post('/admin/courses/:uuid/edit',          'Admin\CourseController@update');
+$router->post('/admin/courses/:uuid/thumbnail',     'Admin\CourseController@updateThumbnail');
 $router->post('/admin/courses/:uuid/delete',        'Admin\CourseController@delete');
 $router->get('/admin/courses/:uuid/preview',        'Admin\CourseController@preview');
 $router->get('/admin/courses/:uuid/export',         'Admin\CourseController@export');

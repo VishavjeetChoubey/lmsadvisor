@@ -136,6 +136,35 @@ class CourseController extends Controller
         ]);
     }
 
+    // ── POST /admin/courses/:uuid/thumbnail — thumbnail-only update ───────────
+    public function updateThumbnail(array $params): void
+    {
+        CsrfMiddleware::verify();
+        $course = $this->getCourseOrFail($params['uuid'] ?? '');
+
+        if (empty($_FILES['thumbnail']['name'])) {
+            $this->flash('error', 'Please select an image file to upload.');
+            $this->redirect('/admin/courses/' . $course['uuid'] . '/edit?tab=media');
+        }
+
+        try {
+            $old = $course['thumbnail'];
+            $thumbnail = StorageService::upload('thumbnail', 'image', 'thumbnails');
+            if ($old) StorageService::delete($old);
+
+            $pdo = \App\Core\Database::getInstance();
+            $pdo->prepare('UPDATE courses SET thumbnail=?, updated_at=NOW() WHERE uuid=?')
+                ->execute([$thumbnail, $course['uuid']]);
+
+            AuditLog::write('course.thumbnail', 'course', (int)$course['id']);
+            $this->flash('success', 'Course thumbnail updated successfully.');
+        } catch (\RuntimeException $e) {
+            $this->flash('error', 'Thumbnail upload failed: ' . $e->getMessage());
+        }
+
+        $this->redirect('/admin/courses/' . $course['uuid'] . '/edit?tab=media');
+    }
+
     // ── POST /admin/courses/:uuid/edit ────────────────────────────────────────
     public function update(array $params): void
     {
