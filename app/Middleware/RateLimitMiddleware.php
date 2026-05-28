@@ -1,73 +1,93 @@
 <?php
 declare(strict_types=1);
-
 namespace App\Middleware;
 
+use App\Core\Database;
+
 /**
- * Simple file-based rate limiter.
- * Uses STORE_PATH/cache/ratelimit/ for counters.
+ * RateLimitMiddleware — per-IP and per-token rate limiting for API endpoints.
+ * Uses a sliding window stored in the database.
  */
 class RateLimitMiddleware
 {
     /**
-     * Check rate limit. Throws 429 if exceeded.
+     * Check rate limit. Sends 429 and exits if exceeded.
      *
-     * @param string $key     Identifier (e.g. 'login:' . $ip)
-     * @param int    $max     Maximum hits allowed
-     * @param int    $window  Time window in seconds
+     * @param int $maxRequests Max requests in the window
+     * @param int $windowSec   Window size in seconds
+     * @param string $key      Identifier (IP, token, user_id)
      */
-    public static function check(string $key, int $max = 10, int $window = 60): void
+    public static function check(int $maxRequests = 60, int $windowSec = 60, string $key = ''): void
     {
-        if (!defined('STORE_PATH')) return; // safety
-
-        $dir  = STORE_PATH . '/cache/ratelimit/';
-        if (!is_dir($dir)) @mkdir($dir, 0755, true);
-
-        $file = $dir . md5($key) . '.json';
-        $now  = time();
-        $data = ['count' => 0, 'reset_at' => $now + $window];
-
-        if (file_exists($file)) {
-            $raw  = file_get_contents($file);
-            $data = json_decode($raw, true) ?: $data;
+        if (!$key) {
+            $key = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
         }
 
-        // Reset window if expired
-        if ($now > $data['reset_at']) {
-            $data = ['count' => 0, 'reset_at' => $now + $window];
+        try {
+            $pdo   = Database::getInstance();
+            $now   = time();
+            $since = date('Y-m-d H:i:s', $now - $windowSec);
+            $cacheKey = 'rl_' . md5($key);
+
+            // Ensure rate_limit_log table exists
+            $pdo->exec(
+                'CREATE TABLE IF NOT EXISTS rate_limit_log (
+                    id         BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+                    cache_key  VARCHAR(64)  NOT NULL,
+                    hit_at     TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    KEY idx_rl_key (cache_key),
+                    KEY idx_rl_at  (hit_at)
+                ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4'
+            );
+
+            // Count hits in window
+            $stmt = $pdo->prepare('SELECT COUNT(*) FROM rate_limit_log WHERE cache_key=? AND hit_at >= ?');
+            $stmt->execute([$cacheKey, $since]);
+            $count = (int)$stmt->fetchColumn();
+
+            if ($count >= $maxRequests) {
+                http_response_code(429);
+                header('Content-Type: application/json');
+                header('Retry-After: ' . $windowSec);
+                header('X-RateLimit-Limit: ' . $maxRequests);
+                header('X-RateLimit-Remaining: 0');
+                echo json_encode([
+                    'error'   => 'Too Many Requests',
+                    'message' => "Rate limit exceeded. Max {$maxRequests} requests per {$windowSec} seconds.",
+                    'retry_after' => $windowSec,
+                ]);
+                exit;
+            }
+
+            // Log this hit
+            $pdo->prepare('INSERT INTO rate_limit_log (cache_key) VALUES (?)')->execute([$cacheKey]);
+
+            // Cleanup old entries periodically (1% chance to keep overhead low)
+            if (rand(1, 100) === 1) {
+                $pdo->prepare('DELETE FROM rate_limit_log WHERE hit_at < ?')
+                    ->execute([date('Y-m-d H:i:s', $now - 3600)]);
+            }
+
+            // Set headers
+            header('X-RateLimit-Limit: ' . $maxRequests);
+            header('X-RateLimit-Remaining: ' . max(0, $maxRequests - $count - 1));
+            header('X-RateLimit-Reset: ' . ($now + $windowSec));
+
+        } catch (\Throwable $e) {
+            // Never block on rate limiter failure
+            error_log('[RateLimit] ' . $e->getMessage());
         }
-
-        $data['count']++;
-        file_put_contents($file, json_encode($data), LOCK_EX);
-
-        if ($data['count'] > $max) {
-            $retryAfter = $data['reset_at'] - $now;
-            header('Retry-After: ' . $retryAfter);
-            header('X-RateLimit-Limit: ' . $max);
-            header('X-RateLimit-Remaining: 0');
-            http_response_code(429);
-            echo json_encode(['error' => 'Too many requests. Please wait ' . $retryAfter . ' seconds.']);
-            exit;
-        }
-
-        header('X-RateLimit-Limit: '    . $max);
-        header('X-RateLimit-Remaining: '. max(0, $max - $data['count']));
-        header('X-RateLimit-Reset: '    . $data['reset_at']);
     }
 
-    /** Apply rate limit to API routes */
-    public static function api(): void
+    /** Strict rate limit for auth endpoints (prevent brute force) */
+    public static function auth(): void
     {
-        $ip  = $_SERVER['HTTP_X_FORWARDED_FOR'] ?? $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
-        $uri = $_SERVER['REQUEST_URI'] ?? '';
+        self::check(10, 300, 'auth_' . ($_SERVER['REMOTE_ADDR'] ?? '0')); // 10 per 5 min
+    }
 
-        // API: 100 req/min per IP
-        if (str_contains($uri, '/api/')) {
-            self::check('api:' . $ip, 100, 60);
-        }
-        // Login: 10 attempts per 5 minutes per IP
-        if (str_contains($uri, '/login') || str_contains($uri, '/api/v1/auth/token')) {
-            self::check('login:' . $ip, 10, 300);
-        }
+    /** Standard API rate limit */
+    public static function api(string $token = ''): void
+    {
+        self::check(120, 60, 'api_' . ($token ?: ($_SERVER['REMOTE_ADDR'] ?? '0'))); // 120 per min
     }
 }

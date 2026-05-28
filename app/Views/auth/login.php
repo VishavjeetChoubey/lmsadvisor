@@ -114,6 +114,7 @@ $recaptchaSiteKey  = $recaptcha_site_key ?? '';
         <!-- Password -->
         <div class="mb-4">
           <label class="form-label fw-semibold" style="font-size:13.5px" for="password">Password</label>
+          <a href="<?= View::url('forgot-password') ?>" style="font-size:12px;color:#6366f1;float:right;text-decoration:none;font-weight:500">Forgot password?</a>
           <div class="input-group" style="border:1.5px solid var(--border-color);border-radius:10px;overflow:hidden;transition:border-color .15s" id="passGroup">
             <span class="input-group-text" style="background:transparent;border:none;color:var(--text-muted);padding-left:14px">
               <i class="bi bi-lock"></i>

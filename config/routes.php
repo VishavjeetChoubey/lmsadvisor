@@ -378,3 +378,18 @@ $router->post('/admin/marketplace/instructors/:id/review',       'Admin\Marketpl
 // Executive Reporting
 $router->get('/admin/reporting',            'Admin\ReportingController@index');
 $router->get('/admin/reporting/chart-data', 'Admin\ReportingController@chartData');
+
+// Password reset
+$router->get('/forgot-password',         'Auth\PasswordResetController@forgot');
+$router->post('/forgot-password',        'Auth\PasswordResetController@sendReset');
+$router->get('/reset-password',          'Auth\PasswordResetController@resetForm');
+$router->post('/reset-password',         'Auth\PasswordResetController@doReset');
+
+// Student profile
+$router->get('/learn/profile',           'Student\ProfileController@show');
+$router->post('/learn/profile/update',   'Student\ProfileController@update');
+$router->post('/learn/profile/password', 'Student\ProfileController@changePassword');
+
+// Global admin search
+$router->get('/admin/search',            'Admin\SearchController@page');
+$router->get('/admin/search/api',        'Admin\SearchController@search');

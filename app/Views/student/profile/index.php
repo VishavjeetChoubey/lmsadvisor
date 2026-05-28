@@ -1,362 +1,203 @@
 <?php
 use App\Core\View;
-$e   = fn(mixed $v): string => View::e($v);
-$url = fn(string $p = ''): string => View::url($p);
-
-$completed  = count(array_filter($enrolled, fn($e) => $e['status'] === 'completed'));
-$active     = count(array_filter($enrolled, fn($e) => $e['status'] === 'active'));
-$fu         = $full_user ?? [];
-$flash      = $flash ?? [];
-$csrf       = $csrf_token ?? '';
-
-$statusColors = ['active'=>'primary','completed'=>'success','suspended'=>'warning','expired'=>'danger'];
+$e   = fn($v) => View::e($v);
+$url = fn($p='') => View::url($p);
+$u   = $full_user;
+$initials = strtoupper(substr($u['first_name']??'',0,1) . substr($u['last_name']??'',0,1));
 ?>
+<style>
+.pf-wrap { max-width:860px; margin:0 auto; padding:24px 16px; }
+.pf-header { display:flex; align-items:center; gap:24px; background:var(--content-bg); border:1px solid var(--border-color); border-radius:16px; padding:24px; margin-bottom:24px; flex-wrap:wrap; }
+.pf-avatar-wrap { position:relative; flex-shrink:0; }
+.pf-avatar { width:88px; height:88px; border-radius:50%; object-fit:cover; border:3px solid var(--border-color); }
+.pf-avatar-init { width:88px; height:88px; border-radius:50%; background:linear-gradient(135deg,#6366f1,#3b82f6); display:flex; align-items:center; justify-content:center; font-size:28px; font-weight:700; color:#fff; border:3px solid rgba(99,102,241,.2); }
+.pf-avatar-edit { position:absolute; bottom:0; right:0; width:28px; height:28px; background:#6366f1; border-radius:50%; display:flex; align-items:center; justify-content:center; cursor:pointer; border:2px solid var(--content-bg); }
+.pf-avatar-edit i { color:#fff; font-size:12px; }
+.pf-name { font-size:22px; font-weight:800; color:var(--text-primary); margin-bottom:4px; }
+.pf-email { font-size:14px; color:var(--text-muted); margin-bottom:12px; }
+.pf-stat-row { display:flex; gap:20px; flex-wrap:wrap; }
+.pf-stat { text-align:center; }
+.pf-stat-val { font-size:20px; font-weight:800; color:var(--primary); line-height:1; }
+.pf-stat-lbl { font-size:12px; color:var(--text-muted); margin-top:2px; }
+.pf-card { background:var(--content-bg); border:1px solid var(--border-color); border-radius:14px; padding:22px; margin-bottom:20px; }
+.pf-card h5 { font-size:15px; font-weight:700; color:var(--text-primary); margin-bottom:16px; padding-bottom:10px; border-bottom:1px solid var(--border-color); display:flex; align-items:center; gap:8px; }
+.pf-form-grid { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+@media(max-width:600px){ .pf-form-grid{grid-template-columns:1fr;} .pf-stat-row{gap:12px;} }
+.pf-form-group { display:flex; flex-direction:column; gap:6px; }
+.pf-form-group label { font-size:13px; font-weight:600; color:var(--text-primary); }
+.pf-input { background:var(--card-bg); border:1px solid var(--border-color); border-radius:9px; padding:9px 13px; font-size:13.5px; color:var(--text-primary); font-family:inherit; outline:none; transition:border-color .15s; width:100%; }
+.pf-input:focus { border-color:#6366f1; }
+.pf-btn { background:#6366f1; color:#fff; border:none; border-radius:9px; padding:10px 24px; font-size:14px; font-weight:600; cursor:pointer; transition:background .15s; }
+.pf-btn:hover { background:#4f46e5; }
+.pf-btn-outline { background:transparent; color:var(--text-primary); border:1px solid var(--border-color); }
+.pf-btn-outline:hover { background:var(--card-bg); }
+.pf-activity-row { display:flex; align-items:center; gap:12px; padding:10px 0; border-bottom:1px solid var(--border-color); }
+.pf-activity-row:last-child { border-bottom:none; }
+.pf-activity-icon { width:36px; height:36px; border-radius:10px; background:#ededff; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.pf-activity-icon i { color:#6366f1; font-size:15px; }
+</style>
 
-<!-- Flash messages -->
-<?php foreach ($flash as $type => $msg): ?>
-  <?php $cls = $type === 'error' ? 'danger' : $e($type); ?>
-  <div class="alert alert-<?= $cls ?> d-flex align-items-center gap-2 mb-4" style="border-radius:12px">
-    <i class="bi <?= $type==='error'?'bi-exclamation-circle':'bi-check-circle' ?> flex-shrink-0"></i>
-    <div><?= $e($msg) ?></div>
-  </div>
-<?php endforeach; ?>
+<div class="pf-wrap">
 
-<div class="row g-4">
+<?php if ($flash): ?>
+<div class="alert alert-<?= $flash['type']==='success'?'success':'danger' ?> mb-3"><?= $e($flash['message']) ?></div>
+<?php endif; ?>
 
-  <!-- LEFT: Profile card -->
-  <div class="col-12 col-lg-4">
-
-    <!-- Avatar + stats -->
-    <div class="card lms-card text-center p-4 mb-4">
-      <!-- Avatar with upload -->
-      <div class="position-relative d-inline-block mx-auto mb-3">
-        <?php $avatarUrl = !empty($full_user['avatar']) ? (APP_URL . '/storage/uploads/avatars/' . $full_user['avatar']) : null; ?>
-        <div style="width:88px;height:88px;border-radius:50%;overflow:hidden;margin:0 auto;box-shadow:0 8px 24px rgba(91,94,246,.25);border:3px solid #5b5ef6">
-          <?php if ($avatarUrl): ?>
-            <img src="<?= $e($avatarUrl) ?>" style="width:100%;height:100%;object-fit:cover" id="avatarPreview" alt="">
-          <?php else: ?>
-            <div id="avatarPreview" style="width:100%;height:100%;background:linear-gradient(135deg,#5b5ef6,#3b82f6);display:flex;align-items:center;justify-content:center">
-              <span style="color:#fff;font-size:32px;font-weight:700">
-                <?= strtoupper(substr($fu['first_name'] ?? 'S', 0, 1)) ?><?= strtoupper(substr($fu['last_name'] ?? '', 0, 1)) ?>
-              </span>
-            </div>
-          <?php endif; ?>
-        </div>
-        <!-- Camera overlay -->
-        <label for="avatarInput" title="Change profile photo"
-               style="position:absolute;bottom:2px;right:-2px;width:26px;height:26px;border-radius:50%;background:#5b5ef6;display:flex;align-items:center;justify-content:center;cursor:pointer;border:2px solid #fff;box-shadow:0 2px 8px rgba(91,94,246,.4)">
-          <i class="bi bi-camera-fill" style="font-size:12px;color:#fff"></i>
-        </label>
-        <input type="file" id="avatarInput" accept="image/jpeg,image/png,image/webp,image/gif" class="d-none">
-      </div>
-
-      <!-- Avatar upload form (submits on file select) -->
-      <form action="<?= $url('learn/profile/avatar') ?>" method="POST" enctype="multipart/form-data" id="avatarForm">
-        <input type="hidden" name="csrf_token" value="<?= $e($csrf) ?>">
-        <input type="file" name="avatar" id="avatarFileReal" class="d-none" accept="image/*">
-      </form>
-
-      <h5 class="fw-bold mb-0"><?= $e(($fu['first_name'] ?? '') . ' ' . ($fu['last_name'] ?? '')) ?></h5>
-      <div class="text-muted mb-2" style="font-size:13.5px"><?= $e($fu['email'] ?? '') ?></div>
-      <span class="badge bg-primary px-3 py-2 mb-3" style="font-size:12px">
-        <?= $e($fu['role_display'] ?? 'Student') ?>
-      </span>
-
-      <div class="row g-2 text-center">
-        <div class="col-4">
-          <div class="fw-bold" style="font-size:22px;color:#5b5ef6"><?= count($enrolled) ?></div>
-          <div class="text-muted" style="font-size:11px">Enrolled</div>
-        </div>
-        <div class="col-4">
-          <div class="fw-bold" style="font-size:22px;color:#12b76a"><?= $completed ?></div>
-          <div class="text-muted" style="font-size:11px">Completed</div>
-        </div>
-        <div class="col-4">
-          <div class="fw-bold" style="font-size:22px;color:#f79009"><?= number_format((int)$points) ?></div>
-          <div class="text-muted" style="font-size:11px">Points</div>
-        </div>
-      </div>
-
-      <?php if ($fu['last_login_at']): ?>
-      <div class="text-muted mt-3" style="font-size:11.5px">
-        Last login: <?= date('d M Y, H:i', strtotime($fu['last_login_at'])) ?>
-      </div>
-      <?php endif; ?>
-
-      <script>
-      // Avatar upload on file select
-      document.getElementById('avatarInput').addEventListener('change', function() {
-        if (!this.files[0]) return;
-        var file = this.files[0];
-        // Preview
-        var reader = new FileReader();
-        reader.onload = function(e) {
-          var prev = document.getElementById('avatarPreview');
-          if (prev.tagName === 'IMG') {
-            prev.src = e.target.result;
-          } else {
-            var img = document.createElement('img');
-            img.id = 'avatarPreview';
-            img.style = 'width:100%;height:100%;object-fit:cover';
-            img.src = e.target.result;
-            prev.replaceWith(img);
-          }
-        };
-        reader.readAsDataURL(file);
-        // Upload via fetch
-        var form = new FormData();
-        form.append('csrf_token', document.querySelector('#avatarForm [name=csrf_token]').value);
-        form.append('avatar', file);
-        fetch('<?= $url('learn/profile/avatar') ?>', { method:'POST', body:form })
-          .then(r=>r.json())
-          .then(d=>{
-            if(d.success) {
-              if(window.LMS && window.LMS.toast) LMS.toast('success','Profile photo updated!');
-            } else {
-              if(window.LMS && window.LMS.toast) LMS.toast('error', d.message||'Upload failed');
-            }
-          }).catch(()=>{});
-      });
-      </script>
-    </div>
-
-    <!-- Certificates earned -->
-    <?php $completedCourses = array_filter($enrolled, fn($e) => $e['status'] === 'completed' && $e['certificate_enabled']); ?>
-    <?php if (!empty($completedCourses)): ?>
-    <div class="card lms-card">
-      <div class="card-header lms-card-header">
-        <h6 class="mb-0"><i class="bi bi-award text-warning me-2"></i> Certificates Earned</h6>
-      </div>
-      <div class="list-group list-group-flush">
-        <?php foreach ($completedCourses as $ce): ?>
-        <a href="<?= $url('learn/certificate/' . $ce['id']) ?>"
-           class="list-group-item list-group-item-action d-flex align-items-center gap-3 py-3">
-          <div style="width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#e3a008,#f59e0b);display:flex;align-items:center;justify-content:center;flex-shrink:0">
-            <i class="bi bi-award-fill text-white"></i>
-          </div>
-          <div class="flex-grow-1" style="min-width:0">
-            <div class="fw-semibold" style="font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
-              <?= $e($ce['title']) ?>
-            </div>
-            <div class="text-muted" style="font-size:11.5px">
-              Completed <?= $ce['completed_at'] ? date('d M Y', strtotime($ce['completed_at'])) : '' ?>
-            </div>
-          </div>
-          <i class="bi bi-chevron-right text-muted" style="font-size:12px"></i>
-        </a>
-        <?php endforeach; ?>
-      </div>
-    </div>
+<!-- Profile header -->
+<div class="pf-header">
+  <div class="pf-avatar-wrap">
+    <?php if (!empty($u['profile_photo'])): ?>
+      <img src="<?= $e(APP_URL . '/storage/uploads/' . $u['profile_photo']) ?>"
+           alt="<?= $e($u['first_name']) ?>" class="pf-avatar">
+    <?php else: ?>
+      <div class="pf-avatar-init"><?= $e($initials) ?></div>
     <?php endif; ?>
-
+    <label class="pf-avatar-edit" for="photoInput" title="Change photo">
+      <i class="bi bi-camera-fill"></i>
+    </label>
   </div>
-
-  <!-- RIGHT: Edit forms -->
-  <div class="col-12 col-lg-8">
-
-    <!-- Edit Profile -->
-    <div class="card lms-card mb-4">
-      <div class="card-header lms-card-header">
-        <h5 class="mb-0"><i class="bi bi-person-gear me-2"></i> Edit Profile</h5>
-      </div>
-      <div class="card-body p-4">
-        <form action="<?= $url('learn/profile/update') ?>" method="POST" novalidate>
-          <input type="hidden" name="csrf_token" value="<?= $e($csrf) ?>">
-          <div class="row g-3">
-            <div class="col-md-6">
-              <label class="form-label fw-semibold">First Name <span class="text-danger">*</span></label>
-              <input type="text" class="form-control" name="first_name"
-                     value="<?= $e($fu['first_name'] ?? '') ?>" required maxlength="80"
-                     placeholder="Your first name">
-            </div>
-            <div class="col-md-6">
-              <label class="form-label fw-semibold">Last Name <span class="text-danger">*</span></label>
-              <input type="text" class="form-control" name="last_name"
-                     value="<?= $e($fu['last_name'] ?? '') ?>" required maxlength="80"
-                     placeholder="Your last name">
-            </div>
-            <div class="col-12">
-              <label class="form-label fw-semibold">Email Address <span class="text-danger">*</span></label>
-              <input type="email" class="form-control" name="email"
-                     value="<?= $e($fu['email'] ?? '') ?>" required maxlength="191"
-                     placeholder="your@email.com">
-            </div>
-          </div>
-          <div class="mt-4">
-            <button type="submit" class="btn btn-primary px-4">
-              <i class="bi bi-check-circle me-1"></i> Save Changes
-            </button>
-          </div>
-        </form>
-      </div>
+  <div style="flex:1;min-width:0">
+    <div class="pf-name"><?= $e($u['first_name'] . ' ' . $u['last_name']) ?></div>
+    <div class="pf-email"><?= $e($u['email']) ?></div>
+    <div class="pf-stat-row">
+      <div class="pf-stat"><div class="pf-stat-val"><?= $stats['enrollments'] ?></div><div class="pf-stat-lbl">Enrolled</div></div>
+      <div class="pf-stat"><div class="pf-stat-val"><?= $stats['completions'] ?></div><div class="pf-stat-lbl">Completed</div></div>
+      <div class="pf-stat"><div class="pf-stat-val"><?= $stats['certificates'] ?></div><div class="pf-stat-lbl">Certificates</div></div>
     </div>
-
-    <!-- Change Password -->
-    <div class="card lms-card mb-4">
-      <div class="card-header lms-card-header">
-        <h5 class="mb-0"><i class="bi bi-lock me-2"></i> Change Password</h5>
-      </div>
-      <div class="card-body p-4">
-        <form action="<?= $url('learn/profile/change-password') ?>" method="POST" id="pwForm" novalidate>
-          <input type="hidden" name="csrf_token" value="<?= $e($csrf) ?>">
-          <div class="row g-3">
-            <div class="col-12">
-              <label class="form-label fw-semibold">Current Password <span class="text-danger">*</span></label>
-              <div class="input-group">
-                <input type="password" class="form-control" name="current_password"
-                       id="currentPw" placeholder="Enter current password" required>
-                <button type="button" class="btn btn-outline-secondary toggle-pw" data-target="currentPw">
-                  <i class="bi bi-eye"></i>
-                </button>
-              </div>
-            </div>
-            <div class="col-md-6">
-              <label class="form-label fw-semibold">New Password <span class="text-danger">*</span></label>
-              <div class="input-group">
-                <input type="password" class="form-control" name="new_password"
-                       id="newPw" placeholder="Min. 8 characters" required minlength="8">
-                <button type="button" class="btn btn-outline-secondary toggle-pw" data-target="newPw">
-                  <i class="bi bi-eye"></i>
-                </button>
-              </div>
-              <div id="pwStrengthBar" class="mt-1" style="height:4px;border-radius:2px;background:var(--border-color);overflow:hidden">
-                <div id="pwStrengthFill" style="height:100%;width:0;transition:width .3s,background .3s;border-radius:2px"></div>
-              </div>
-              <div id="pwStrengthLabel" class="mt-1" style="font-size:11.5px"></div>
-            </div>
-            <div class="col-md-6">
-              <label class="form-label fw-semibold">Confirm New Password <span class="text-danger">*</span></label>
-              <div class="input-group">
-                <input type="password" class="form-control" name="confirm_password"
-                       id="confirmPw" placeholder="Repeat new password" required>
-                <button type="button" class="btn btn-outline-secondary toggle-pw" data-target="confirmPw">
-                  <i class="bi bi-eye"></i>
-                </button>
-              </div>
-              <div id="matchMsg" class="mt-1" style="font-size:11.5px"></div>
-            </div>
-          </div>
-          <div class="mt-4">
-            <button type="submit" class="btn btn-warning px-4 fw-semibold" id="pwSubmitBtn">
-              <i class="bi bi-shield-lock me-1"></i> Update Password
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-
-    <!-- Recent Courses -->
-    <?php if (!empty($enrolled)): ?>
-    <div class="card lms-card">
-      <div class="card-header lms-card-header">
-        <h5 class="mb-0"><i class="bi bi-clock-history me-2"></i> Recent Courses</h5>
-      </div>
-      <div class="table-responsive">
-        <table class="table lms-table mb-0">
-          <thead>
-            <tr><th>Course</th><th>Status</th><th>Progress</th><th>Enrolled</th></tr>
-          </thead>
-          <tbody>
-            <?php foreach (array_slice($enrolled, 0, 6) as $e2):
-              $pct = (int)($e2['progress_pct'] ?? 0);
-            ?>
-            <tr>
-              <td class="fw-semibold" style="font-size:13px">
-                <?= $e(mb_strimwidth($e2['title'], 0, 38, '…')) ?>
-              </td>
-              <td>
-                <span class="badge bg-<?= $statusColors[$e2['status']] ?? 'secondary' ?>" style="font-size:11px">
-                  <?= ucfirst($e($e2['status'])) ?>
-                </span>
-              </td>
-              <td style="min-width:110px">
-                <div class="d-flex align-items-center gap-2">
-                  <div class="progress flex-grow-1" style="height:6px;border-radius:3px">
-                    <div class="progress-bar bg-<?= $pct>=100?'success':'primary' ?>" style="width:<?= $pct ?>%"></div>
-                  </div>
-                  <span style="font-size:11.5px;color:var(--text-muted)"><?= $pct ?>%</span>
-                </div>
-              </td>
-              <td class="text-muted" style="font-size:12px;white-space:nowrap">
-                <?= date('d M Y', strtotime($e2['enrolled_at'])) ?>
-              </td>
-            </tr>
-            <?php endforeach; ?>
-          </tbody>
-        </table>
-      </div>
-    </div>
-    <?php endif; ?>
-
   </div>
 </div>
 
+<div class="row g-4">
+  <div class="col-lg-7">
+
+    <!-- Edit profile form -->
+    <div class="pf-card">
+      <h5><i class="bi bi-person-fill"></i> Edit Profile</h5>
+      <form method="POST" action="<?= $url('learn/profile/update') ?>" enctype="multipart/form-data">
+        <input type="hidden" name="csrf_token" value="<?= $e($csrf_token) ?>">
+        <input type="file" id="photoInput" name="profile_photo" accept="image/*" style="display:none"
+               onchange="previewPhoto(this)">
+
+        <div class="pf-form-grid mb-3">
+          <div class="pf-form-group">
+            <label>First Name</label>
+            <input type="text" class="pf-input" name="first_name" value="<?= $e($u['first_name']??'') ?>" required>
+          </div>
+          <div class="pf-form-group">
+            <label>Last Name</label>
+            <input type="text" class="pf-input" name="last_name" value="<?= $e($u['last_name']??'') ?>" required>
+          </div>
+        </div>
+        <div class="pf-form-group mb-3">
+          <label>Bio</label>
+          <textarea class="pf-input" name="bio" rows="3" style="resize:vertical"
+                    placeholder="Tell us a bit about yourself..."><?= $e($u['bio']??'') ?></textarea>
+        </div>
+        <div class="pf-form-grid mb-4">
+          <div class="pf-form-group">
+            <label>Phone</label>
+            <input type="tel" class="pf-input" name="phone" value="<?= $e($u['phone']??'') ?>">
+          </div>
+          <div class="pf-form-group">
+            <label>Timezone</label>
+            <select class="pf-input" name="timezone">
+              <?php $tzones = ['UTC','Asia/Kolkata','Asia/Dubai','Europe/London','Europe/Paris','America/New_York','America/Los_Angeles','Asia/Singapore','Asia/Tokyo'];
+              foreach ($tzones as $tz): ?>
+              <option value="<?= $e($tz) ?>" <?= ($u['timezone']??'UTC')===$tz?'selected':'' ?>><?= $e($tz) ?></option>
+              <?php endforeach; ?>
+            </select>
+          </div>
+        </div>
+        <button type="submit" class="pf-btn">Save Profile</button>
+      </form>
+    </div>
+
+    <!-- Change password -->
+    <div class="pf-card">
+      <h5><i class="bi bi-shield-lock-fill"></i> Change Password</h5>
+      <form method="POST" action="<?= $url('learn/profile/password') ?>">
+        <input type="hidden" name="csrf_token" value="<?= $e($csrf_token) ?>">
+        <div class="pf-form-group mb-3">
+          <label>Current Password</label>
+          <input type="password" class="pf-input" name="current_password" required>
+        </div>
+        <div class="pf-form-grid mb-4">
+          <div class="pf-form-group">
+            <label>New Password</label>
+            <input type="password" class="pf-input" name="new_password" minlength="8" required>
+          </div>
+          <div class="pf-form-group">
+            <label>Confirm New Password</label>
+            <input type="password" class="pf-input" name="confirm_password" required>
+          </div>
+        </div>
+        <button type="submit" class="pf-btn">Change Password</button>
+      </form>
+    </div>
+
+  </div>
+  <div class="col-lg-5">
+
+    <!-- Recent activity -->
+    <div class="pf-card">
+      <h5><i class="bi bi-clock-history"></i> Recent Activity</h5>
+      <?php if (empty($activity)): ?>
+        <p style="font-size:13.5px;color:var(--text-muted)">No activity yet. Start learning!</p>
+      <?php else: foreach ($activity as $a): ?>
+      <div class="pf-activity-row">
+        <div class="pf-activity-icon">
+          <i class="bi bi-<?= $a['status']==='completed'?'check-circle-fill':'play-circle-fill' ?>"></i>
+        </div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"><?= $e($a['lesson_title']) ?></div>
+          <div style="font-size:12px;color:var(--text-muted)"><?= $e($a['course_title']) ?></div>
+        </div>
+        <div style="font-size:11.5px;color:var(--text-muted);white-space:nowrap">
+          <?= $a['last_accessed'] ? date('d M', strtotime($a['last_accessed'])) : '' ?>
+        </div>
+      </div>
+      <?php endforeach; endif; ?>
+    </div>
+
+    <!-- Account info -->
+    <div class="pf-card">
+      <h5><i class="bi bi-info-circle-fill"></i> Account Info</h5>
+      <?php $info = [
+        ['bi-envelope','Email', $u['email']??''],
+        ['bi-calendar','Joined', $u['created_at'] ? date('d M Y', strtotime($u['created_at'])) : '—'],
+        ['bi-person-badge','Role', ucfirst($auth_user['role_name']??'Student')],
+        ['bi-clock','Last Login', $u['last_login_at'] ? date('d M Y H:i', strtotime($u['last_login_at'])) : 'First visit'],
+      ];
+      foreach ($info as [$ico,$lbl,$val]): ?>
+      <div style="display:flex;align-items:center;gap:12px;padding:9px 0;border-bottom:1px solid var(--border-color);font-size:13.5px">
+        <i class="bi <?= $ico ?>" style="color:var(--primary);width:18px;flex-shrink:0"></i>
+        <span style="color:var(--text-muted);flex:1"><?= $e($lbl) ?></span>
+        <span style="font-weight:600"><?= $e($val) ?></span>
+      </div>
+      <?php endforeach; ?>
+    </div>
+
+  </div>
+</div>
+</div>
+
 <script>
-// Password toggle visibility
-document.querySelectorAll('.toggle-pw').forEach(btn => {
-  btn.addEventListener('click', function () {
-    const target = document.getElementById(this.dataset.target);
-    const icon   = this.querySelector('i');
-    if (target.type === 'password') {
-      target.type = 'text'; icon.className = 'bi bi-eye-slash';
-    } else {
-      target.type = 'password'; icon.className = 'bi bi-eye';
-    }
-  });
-});
-
-// Password strength meter
-const newPwEl     = document.getElementById('newPw');
-const confirmPwEl = document.getElementById('confirmPw');
-const fillEl      = document.getElementById('pwStrengthFill');
-const labelEl     = document.getElementById('pwStrengthLabel');
-const matchEl     = document.getElementById('matchMsg');
-
-newPwEl?.addEventListener('input', function () {
-  const v = this.value;
-  let strength = 0;
-  if (v.length >= 8)           strength++;
-  if (/[A-Z]/.test(v))         strength++;
-  if (/[0-9]/.test(v))         strength++;
-  if (/[^A-Za-z0-9]/.test(v)) strength++;
-
-  const colors = ['','#e02424','#e3a008','#1a56db','#0e9f6e'];
-  const labels = ['','Weak','Fair','Good','Strong'];
-
-  fillEl.style.width      = (strength * 25) + '%';
-  fillEl.style.background = colors[strength] || '';
-  labelEl.textContent     = v.length ? labels[strength] : '';
-  labelEl.style.color     = colors[strength] || '';
-  checkMatch();
-});
-
-confirmPwEl?.addEventListener('input', checkMatch);
-
-function checkMatch() {
-  const nv = newPwEl?.value;
-  const cv = confirmPwEl?.value;
-  if (!cv) { matchEl.textContent = ''; return; }
-  if (nv === cv) {
-    matchEl.textContent = '✓ Passwords match';
-    matchEl.style.color = '#0e9f6e';
-  } else {
-    matchEl.textContent = '✗ Passwords do not match';
-    matchEl.style.color = '#e02424';
+function previewPhoto(input) {
+  if (input.files && input.files[0]) {
+    var reader = new FileReader();
+    reader.onload = function(e) {
+      var wrap = document.querySelector('.pf-avatar-wrap');
+      var existing = wrap.querySelector('.pf-avatar') || wrap.querySelector('.pf-avatar-init');
+      if (existing) {
+        var img = document.createElement('img');
+        img.className = 'pf-avatar';
+        img.src = e.target.result;
+        existing.replaceWith(img);
+      }
+    };
+    reader.readAsDataURL(input.files[0]);
+    // Auto-submit the form after selecting
+    input.closest('form') || document.querySelector('form[action*="profile/update"]').submit();
   }
 }
-
-// Prevent submit if passwords don't match
-document.getElementById('pwForm')?.addEventListener('submit', function (e) {
-  const nv = document.getElementById('newPw').value;
-  const cv = document.getElementById('confirmPw').value;
-  if (nv !== cv) {
-    e.preventDefault();
-    matchEl.textContent = '✗ Passwords do not match';
-    matchEl.style.color = '#e02424';
-    return;
-  }
-  const btn = document.getElementById('pwSubmitBtn');
-  btn.disabled = true;
-  btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Updating…';
-});
 </script>
