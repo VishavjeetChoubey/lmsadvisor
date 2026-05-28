@@ -1,50 +1,53 @@
 <?php
 declare(strict_types=1);
-
 namespace App\Controllers\Api;
 
+use App\Core\Controller;
 use App\Core\Database;
+use App\Helpers\Uuid;
 use App\Helpers\Sanitizer;
+use App\Middleware\ApiAuthMiddleware;
 
-class UserApiController extends AuthController
+class UserApiController extends Controller
 {
-    // GET /api/v1/users  (admin/manager only)
-    public function index(array $params): void
+    public function create(array $p): void
     {
-        $user = $this->apiAuth('read');
-        if (!in_array($user['role_name'], ['admin','super_admin','manager'])) {
-            http_response_code(403); $this->json(['error'=>'Insufficient permissions.','code'=>'FORBIDDEN']);
+        ApiAuthMiddleware::handle();
+        $email     = Sanitizer::email($this->request->post('email', ''));
+        $firstName = Sanitizer::string($this->request->post('first_name', ''), 80);
+        $lastName  = Sanitizer::string($this->request->post('last_name', ''),  80);
+        if (!$email) { $this->json(['success'=>false,'message'=>'Email required.'], 422); }
+
+        $pdo  = Database::getInstance();
+        $stmt = $pdo->prepare('SELECT id, uuid FROM users WHERE email=? LIMIT 1');
+        $stmt->execute([$email]);
+        $existing = $stmt->fetch();
+        if ($existing) {
+            $this->json(['success'=>true,'uuid'=>$existing['uuid'],'created'=>false,'message'=>'User already exists.']);
         }
-        $pdo    = Database::getInstance();
-        $page   = max(1,(int)$this->request->get('page',1));
-        $search = Sanitizer::string($this->request->get('search',''),100);
-        $role   = Sanitizer::string($this->request->get('role',''),30);
-        $perPage= 25;
-        $where  = ['1=1']; $binds = [];
-        if ($search) { $where[] = '(u.first_name LIKE ? OR u.last_name LIKE ? OR u.email LIKE ?)'; $binds[] = "%$search%"; $binds[] = "%$search%"; $binds[] = "%$search%"; }
-        if ($role)   { $where[] = 'r.name = ?'; $binds[] = $role; }
-        $ws = implode(' AND ', $where);
-        $offset = ($page-1)*$perPage;
-        $countS = $pdo->prepare("SELECT COUNT(*) FROM users u JOIN roles r ON r.id=u.role_id WHERE $ws");
-        $countS->execute($binds); $total = (int)$countS->fetchColumn();
-        $stmt = $pdo->prepare("SELECT u.uuid,u.first_name,u.last_name,u.email,u.is_active,u.created_at,u.last_login_at,r.name AS role FROM users u JOIN roles r ON r.id=u.role_id WHERE $ws ORDER BY u.created_at DESC LIMIT $perPage OFFSET $offset");
-        $stmt->execute($binds);
-        $this->json(['data'=>$stmt->fetchAll(),'meta'=>$this->apiPaginate($total,$page,$perPage)]);
+
+        $roleStmt = $pdo->prepare("SELECT id FROM roles WHERE name='student' LIMIT 1");
+        $roleStmt->execute();
+        $roleId = (int)$roleStmt->fetchColumn();
+
+        $uuid = Uuid::v4();
+        $hash = password_hash(bin2hex(random_bytes(16)), PASSWORD_BCRYPT);
+        $pdo->prepare(
+            'INSERT INTO users (uuid, first_name, last_name, email, password_hash, role_id, is_active)
+             VALUES (?,?,?,?,?,?,1)'
+        )->execute([$uuid, $firstName, $lastName, $email, $hash, $roleId]);
+
+        $this->json(['success'=>true,'uuid'=>$uuid,'created'=>true,'message'=>'Student account created.']);
     }
 
-    // GET /api/v1/users/:uuid
-    public function show(array $params): void
+    public function update(array $p): void
     {
-        $authUser = $this->apiAuth('read');
-        $pdo  = Database::getInstance();
-        $stmt = $pdo->prepare('SELECT u.uuid,u.first_name,u.last_name,u.email,u.is_active,u.created_at,r.name AS role FROM users u JOIN roles r ON r.id=u.role_id WHERE u.uuid=? LIMIT 1');
-        $stmt->execute([$params['uuid']??'']);
-        $u = $stmt->fetch();
-        if (!$u) { http_response_code(404); $this->json(['error'=>'User not found.']); }
-        // Only admin or self
-        if (!in_array($authUser['role_name'],['admin','super_admin']) && $authUser['uuid'] !== $u['uuid']) {
-            http_response_code(403); $this->json(['error'=>'Forbidden.','code'=>'FORBIDDEN']);
-        }
-        $this->json(['data'=>$u]);
+        ApiAuthMiddleware::handle();
+        $pdo       = Database::getInstance();
+        $firstName = Sanitizer::string($this->request->post('first_name',''), 80);
+        $lastName  = Sanitizer::string($this->request->post('last_name',''), 80);
+        $pdo->prepare('UPDATE users SET first_name=?, last_name=? WHERE uuid=?')
+            ->execute([$firstName, $lastName, $p['uuid'] ?? '']);
+        $this->json(['success'=>true,'message'=>'User updated.']);
     }
 }

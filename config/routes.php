@@ -334,3 +334,9 @@ $router->get('/auth/google',          'Auth\SocialController@googleRedirect');
 $router->get('/auth/google/callback', 'Auth\SocialController@googleCallback');
 $router->get('/auth/github',          'Auth\SocialController@githubRedirect');
 $router->get('/auth/github/callback', 'Auth\SocialController@githubCallback');
+
+// ── WooCommerce Plugin API endpoints ─────────────────────────────────────────
+$router->post('/api/v1/users',            'Api\UserApiController@create');
+$router->put('/api/v1/users/:uuid',       'Api\UserApiController@update');
+$router->post('/api/v1/auth/sso-token',   'Api\AuthApiController@ssoToken');
+$router->get('/sso/login',                'Auth\SsoController@handle');
