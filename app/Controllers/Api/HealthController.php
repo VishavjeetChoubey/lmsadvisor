@@ -10,7 +10,9 @@ class HealthController extends Controller
 {
     public function index(array $params): void
     {
-        // Test DB connectivity
+        // Validate Bearer token — rejects wrong/missing tokens
+        $this->apiAuth();
+
         $dbOk = false;
         try {
             Database::getInstance()->query('SELECT 1');

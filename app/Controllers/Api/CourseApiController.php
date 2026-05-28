@@ -67,18 +67,57 @@ class CourseApiController extends AuthController
         $this->apiAuth();
         $pdo  = Database::getInstance();
         $stmt = $pdo->prepare('SELECT * FROM courses WHERE uuid=? AND status="published" LIMIT 1');
-        $stmt->execute([$params['uuid']??'']);
+        $stmt->execute([$params['uuid'] ?? '']);
         $course = $stmt->fetch();
-        if (!$course) { http_response_code(404); $this->json(['error'=>'Course not found.']); }
+        if (!$course) { http_response_code(404); $this->json(['error' => 'Course not found.']); }
 
-        // Sections + lessons
-        $secs = $pdo->prepare('SELECT s.*,
-          (SELECT JSON_ARRAYAGG(JSON_OBJECT("id",l.id,"title",l.title,"type",l.type,"duration_sec",l.duration_sec,"is_previewable",l.is_previewable))
-           FROM lessons l WHERE l.section_id=s.id ORDER BY l.sort_order) AS lessons
-          FROM sections s WHERE s.course_id=? ORDER BY s.sort_order');
+        // Fetch sections with lessons
+        $secs = $pdo->prepare(
+            'SELECT s.id, s.title, s.sort_order,
+                (SELECT JSON_ARRAYAGG(
+                    JSON_OBJECT(
+                        "id",           l.id,
+                        "title",        l.title,
+                        "type",         l.type,
+                        "duration_sec", l.duration_sec,
+                        "is_previewable", l.is_previewable,
+                        "sort_order",   l.sort_order
+                    )
+                 )
+                 FROM lessons l
+                 WHERE l.section_id = s.id
+                 ORDER BY l.sort_order
+                ) AS lessons_json
+             FROM sections s
+             WHERE s.course_id = ?
+             ORDER BY s.sort_order'
+        );
         $secs->execute([$course['id']]);
-        $course['sections'] = $secs->fetchAll();
-        $this->json(['data'=>$course]);
+        $sections = $secs->fetchAll();
+
+        // Decode lessons JSON string → PHP array for each section
+        foreach ($sections as &$sec) {
+            $raw = $sec['lessons_json'] ?? null;
+            if (is_string($raw)) {
+                $decoded = json_decode($raw, true);
+                // Sort by sort_order since JSON_ARRAYAGG order isn't guaranteed in all MariaDB versions
+                if (is_array($decoded)) {
+                    usort($decoded, fn($a, $b) => ($a['sort_order'] ?? 0) <=> ($b['sort_order'] ?? 0));
+                    $sec['lessons'] = $decoded;
+                } else {
+                    $sec['lessons'] = [];
+                }
+            } elseif (is_array($raw)) {
+                $sec['lessons'] = $raw;
+            } else {
+                $sec['lessons'] = [];
+            }
+            unset($sec['lessons_json']);
+        }
+        unset($sec);
+
+        $course['sections'] = $sections;
+        $this->json(['data' => $course]);
     }
 
     // GET /api/v1/courses/:uuid/progress
