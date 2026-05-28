@@ -34,6 +34,7 @@ $navItems = [
   ['API',           'bi-braces-asterisk',   'admin/api',           '/admin/api'],
   ['Webhooks',      'bi-plug-fill',          'admin/webhooks',      '/admin/webhooks'],
   ['Settings',      'bi-gear-fill',         'admin/settings',      '/admin/settings'],
+  ['Database',      'bi-database-fill-gear','admin/database',      '/admin/database'],
 ];
 ?>
 <aside class="adm-sidebar" id="adminSidebar">
