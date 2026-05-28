@@ -16,7 +16,7 @@ class InstructorMarketplaceService
         $pdo   = Database::getInstance();
         $where = $status ? 'WHERE ia.status=?' : '';
         $stmt  = $pdo->prepare(
-            "SELECT ia.*, u.first_name, u.last_name, u.email, u.profile_photo,
+            "SELECT ia.*, u.first_name, u.last_name, u.email,
                     (SELECT COUNT(*) FROM courses c WHERE c.created_by=ia.user_id) AS course_count,
                     (SELECT COUNT(*) FROM enrollments e JOIN courses c2 ON c2.id=e.course_id WHERE c2.created_by=ia.user_id) AS student_count
              FROM instructor_applications ia

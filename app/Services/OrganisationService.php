@@ -43,7 +43,7 @@ class OrganisationService
     {
         $pdo  = Database::getInstance();
         $stmt = $pdo->prepare(
-            'SELECT om.*, u.first_name, u.last_name, u.email, u.profile_photo, u.last_login_at
+            'SELECT om.*, u.first_name, u.last_name, u.email, u.last_login_at
              FROM organisation_members om
              JOIN users u ON u.id=om.user_id
              WHERE om.organisation_id=?

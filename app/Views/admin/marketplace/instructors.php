@@ -49,14 +49,10 @@
 <div class="card border-0 shadow-sm mb-3">
   <div class="card-body">
     <div class="d-flex align-items-start gap-3 flex-wrap">
-      <!-- Avatar -->
-      <?php if(!empty($a['profile_photo'])): ?>
-        <img src="<?=APP_URL?>/storage/uploads/<?=$e($a['profile_photo'])?>" style="width:56px;height:56px;border-radius:50%;object-fit:cover;flex-shrink:0" alt="">
-      <?php else: ?>
-        <div style="width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#3b82f6);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:20px;flex-shrink:0">
-          <?=strtoupper(substr($a['first_name']??'',0,1))?>
-        </div>
-      <?php endif; ?>
+      <!-- Avatar — initials fallback -->
+      <div style="width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#3b82f6);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:20px;flex-shrink:0">
+        <?=strtoupper(substr($a['first_name']??'',0,1).substr($a['last_name']??'',0,1))?>
+      </div>
       <!-- Info -->
       <div style="flex:1;min-width:0">
         <div class="fw-bold fs-6"><?=$e($a['first_name'].' '.$a['last_name'])?></div>

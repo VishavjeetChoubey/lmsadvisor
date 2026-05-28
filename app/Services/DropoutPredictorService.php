@@ -164,7 +164,7 @@ class DropoutPredictorService
         };
         $in = implode(',', array_fill(0, count($levels), '?'));
         $stmt = $pdo->prepare(
-            "SELECT dr.*, u.first_name, u.last_name, u.email, u.profile_photo,
+            "SELECT dr.*, u.first_name, u.last_name, u.email,
                     c.title AS course_title, c.uuid AS course_uuid,
                     e.enrolled_at, e.status AS enrollment_status
              FROM dropout_risk dr
