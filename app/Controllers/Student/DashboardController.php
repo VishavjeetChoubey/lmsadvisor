@@ -303,6 +303,21 @@ class DashboardController extends Controller
         $completedLessons = count(array_filter($lessonProgress, fn($lp) => $lp['status'] === 'completed'));
         $courseProgress   = $totalLessons > 0 ? round($completedLessons / $totalLessons * 100) : 0;
 
+        // Load instructor info for AI Tutor avatar
+        $instructorStmt = $pdo->prepare(
+            'SELECT u.first_name, u.last_name, u.profile_photo, u.bio
+             FROM course_instructors ci
+             JOIN users u ON u.id = ci.user_id
+             WHERE ci.course_id = ? LIMIT 1'
+        );
+        $instructorStmt->execute([(int)$course['id']]);
+        $instructor = $instructorStmt->fetch() ?: [
+            'first_name'    => 'AI',
+            'last_name'     => 'Tutor',
+            'profile_photo' => null,
+            'bio'           => 'Your personal AI tutor for this course.',
+        ];
+
         $this->view('student.lesson.player', [
             'title'          => ($currentLesson['title'] ?? 'Course') . ' — LMSAdvisor',
             'page_title'     => $course['title'],
@@ -316,6 +331,7 @@ class DashboardController extends Controller
             'lessonProgress' => $lessonProgress,
             'courseProgress' => $courseProgress,
             'enrollment'     => $enrollment,
+            'instructor'     => $instructor,
             'csrf_token'     => \App\Middleware\CsrfMiddleware::token(),
         ], 'student');
     }

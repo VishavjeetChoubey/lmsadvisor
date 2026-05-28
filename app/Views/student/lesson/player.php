@@ -566,30 +566,96 @@ $typeColors  = ['text'=>'rgba(255,255,255,.5)','video'=>'#f87171','document'=>'#
           </div>
 </div><!-- /.lp-shell -->
 
-<!-- ── AI Tutor — fixed overlay outside shell ──────────── -->
+<!-- ═══════════════════════════════════════════════════════════════
+     AI TUTOR — Instructor Avatar Panel
+     Features: voice input, TTS output, animated avatar, text chat
+════════════════════════════════════════════════════════════════ -->
 <div class="lp-ai-panel" id="lpAiPanel">
-  <div class="lp-ai-header">
-    <div class="lp-ai-avatar">
-      <i class="bi bi-robot"></i>
+
+  <!-- ── Avatar section ─────────────────────────────────────────── -->
+  <div class="lp-ai-avatar-section" id="aiAvatarSection">
+    <div class="lp-ai-avatar-wrap" id="aiAvatarWrap">
+      <?php
+        $instrPhoto = $instructor['profile_photo'] ?? null;
+        $instrName  = trim(($instructor['first_name'] ?? 'AI') . ' ' . ($instructor['last_name'] ?? 'Tutor'));
+      ?>
+      <?php if ($instrPhoto): ?>
+        <img src="<?= APP_URL ?>/storage/uploads/<?= $e($instrPhoto) ?>"
+             alt="<?= $e($instrName) ?>"
+             class="lp-ai-instructor-img" id="aiInstructorImg">
+      <?php else: ?>
+        <div class="lp-ai-instructor-initials" id="aiInstructorImg">
+          <?= $e(mb_strtoupper(mb_substr($instructor['first_name'] ?? 'A', 0, 1) . mb_substr($instructor['last_name'] ?? 'T', 0, 1))) ?>
+        </div>
+      <?php endif; ?>
+      <!-- Speaking rings — pulse when AI is talking -->
+      <div class="lp-ai-ring lp-ai-ring-1" id="aiRing1"></div>
+      <div class="lp-ai-ring lp-ai-ring-2" id="aiRing2"></div>
+      <div class="lp-ai-ring lp-ai-ring-3" id="aiRing3"></div>
     </div>
-    <div class="lp-ai-identity">
-      <div class="lp-ai-name">LMSAdvisor AI Tutor</div>
-      <div class="lp-ai-status"><span class="lp-ai-dot"></span>Online</div>
+
+    <div class="lp-ai-tutor-name"><?= $e($instrName) ?></div>
+    <div class="lp-ai-tutor-role">AI Tutor · <span class="lp-ai-dot-inline"></span> Online</div>
+
+    <!-- Speaking waveform (shown when TTS is playing) -->
+    <div class="lp-ai-waveform" id="aiWaveform">
+      <?php for ($w = 0; $w < 20; $w++): ?>
+        <div class="lp-ai-wave-bar" style="animation-delay:<?= $w * 0.07 ?>s"></div>
+      <?php endfor; ?>
     </div>
-    <button class="lp-ai-close" onclick="document.getElementById('lpAiPanel').classList.toggle('open')" title="Close"><i class="bi bi-x-lg"></i></button>
+
+    <!-- Status text under avatar -->
+    <div class="lp-ai-status-text" id="aiStatusText">Ask me anything about this lesson</div>
   </div>
-  <div class="lp-ai-body">
-    <button class="lp-ai-quick" id="aiSummaryBtn"><i class="bi bi-list-stars me-1"></i>Summarise This Lesson</button>
-    <div id="aiSummaryResult" class="lp-ai-result d-none"></div>
-    <div class="lp-ai-chat" id="aiChatLog"></div>
-    <div class="lp-ai-input-row">
-      <input type="text" id="aiChatInput" placeholder="Ask the AI tutor anything…" autocomplete="off">
-      <button id="aiChatSend"><i class="bi bi-send-fill"></i></button>
+
+  <!-- ── Header controls ────────────────────────────────────────── -->
+  <div class="lp-ai-controls-bar">
+    <button class="lp-ai-ctrl-btn" id="aiMinimiseBtn" title="Minimise">
+      <i class="bi bi-dash-lg"></i>
+    </button>
+    <button class="lp-ai-ctrl-btn" id="aiSoundToggle" title="Toggle voice output">
+      <i class="bi bi-volume-up-fill" id="aiSoundIcon"></i>
+    </button>
+    <button class="lp-ai-ctrl-btn" onclick="document.getElementById('lpAiPanel').classList.remove('open')" title="Close">
+      <i class="bi bi-x-lg"></i>
+    </button>
+  </div>
+
+  <!-- ── Quick actions ──────────────────────────────────────────── -->
+  <div class="lp-ai-quick-row" id="aiQuickRow">
+    <button class="lp-ai-chip" id="aiSummaryBtn">
+      <i class="bi bi-list-stars"></i> Summarise
+    </button>
+    <button class="lp-ai-chip" id="aiQuizMeBtn">
+      <i class="bi bi-patch-question"></i> Quiz me
+    </button>
+    <button class="lp-ai-chip" id="aiTranslateBtn">
+      <i class="bi bi-translate"></i> Translate
+    </button>
+  </div>
+
+  <!-- ── Chat log ───────────────────────────────────────────────── -->
+  <div class="lp-ai-chat" id="aiChatLog"></div>
+
+  <!-- ── Input bar ──────────────────────────────────────────────── -->
+  <div class="lp-ai-input-bar">
+    <!-- Voice input button -->
+    <button class="lp-ai-voice-btn" id="aiVoiceBtn" title="Voice input">
+      <i class="bi bi-mic-fill" id="aiMicIcon"></i>
+    </button>
+    <div class="lp-ai-input-wrap">
+      <input type="text" id="aiChatInput"
+             placeholder="Type or press mic to speak…"
+             autocomplete="off">
     </div>
-    <div class="d-flex gap-2 mt-2 flex-wrap">
-      <button class="lp-ai-quick" id="aiTranslateBtn"><i class="bi bi-translate me-1"></i>Translate</button>
-    </div>
-    <select id="aiLangSelect" class="form-select form-select-sm mt-2 d-none" style="background:rgba(255,255,255,.07);border-color:rgba(255,255,255,.15);color:#f1f5f9">
+    <button class="lp-ai-send-btn" id="aiChatSend">
+      <i class="bi bi-send-fill"></i>
+    </button>
+  </div>
+
+  <!-- Translate language picker -->
+  <div id="aiLangPicker" class="lp-ai-lang-picker" style="display:none">
+    <select id="aiLangSelect">
       <option value="Hindi">Hindi</option>
       <option value="Spanish">Spanish</option>
       <option value="French">French</option>
@@ -599,16 +665,302 @@ $typeColors  = ['text'=>'rgba(255,255,255,.5)','video'=>'#f87171','document'=>'#
       <option value="Chinese (Simplified)">Chinese</option>
       <option value="Japanese">Japanese</option>
     </select>
-    <button id="aiDoTranslateBtn" class="btn btn-sm btn-outline-light w-100 mt-2 d-none"><i class="bi bi-check me-1"></i>Translate Now</button>
-    <div id="aiTranslateResult" class="lp-ai-result d-none"></div>
+    <button id="aiDoTranslateBtn"><i class="bi bi-check2"></i> Translate</button>
   </div>
-</div>
+
+</div><!-- /.lp-ai-panel -->
+
+<!-- FAB button -->
 <button class="lp-ai-fab" id="aiTutorFab" title="AI Tutor">
   <i class="bi bi-stars"></i>
 </button>
 <button class="lp-collab-fab" id="collabOpenBtn" title="Notes & Comments" style="display:none">
   <i class="bi bi-journal-text"></i>
 </button>
+
+<style>
+/* ═══════════════════════════════════════════════════════
+   AI TUTOR PANEL — Full redesign
+═══════════════════════════════════════════════════════ */
+.lp-ai-panel {
+  position: fixed;
+  bottom: 96px; right: 20px;
+  width: 360px;
+  max-height: 680px;
+  background: linear-gradient(180deg, #1a0f2e 0%, #110a22 100%);
+  border: 1px solid rgba(167,139,250,.2);
+  border-radius: 20px;
+  display: none;
+  flex-direction: column;
+  overflow: hidden;
+  z-index: 1300;
+  box-shadow: 0 24px 64px rgba(0,0,0,.7), 0 0 0 1px rgba(167,139,250,.1);
+}
+.lp-ai-panel.open { display: flex; }
+
+/* ── Controls bar ── */
+.lp-ai-controls-bar {
+  position: absolute;
+  top: 10px; right: 10px;
+  display: flex; gap: 4px; z-index: 2;
+}
+.lp-ai-ctrl-btn {
+  width: 28px; height: 28px; border-radius: 50%;
+  background: rgba(255,255,255,.08); border: none; color: rgba(255,255,255,.5);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px; cursor: pointer; transition: background .15s, color .15s;
+}
+.lp-ai-ctrl-btn:hover { background: rgba(255,255,255,.15); color: #fff; }
+
+/* ── Avatar section ── */
+.lp-ai-avatar-section {
+  display: flex; flex-direction: column; align-items: center;
+  padding: 28px 20px 16px;
+  background: linear-gradient(180deg, rgba(124,58,237,.2) 0%, transparent 100%);
+  position: relative;
+}
+.lp-ai-avatar-wrap {
+  position: relative;
+  width: 90px; height: 90px;
+  margin-bottom: 12px;
+}
+.lp-ai-instructor-img {
+  width: 90px; height: 90px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 3px solid rgba(167,139,250,.5);
+  position: relative; z-index: 1;
+  transition: transform .3s;
+}
+.lp-ai-panel.speaking .lp-ai-instructor-img { transform: scale(1.05); }
+.lp-ai-instructor-initials {
+  width: 90px; height: 90px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #7c3aed, #5b5ef6);
+  border: 3px solid rgba(167,139,250,.5);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 28px; font-weight: 700; color: #fff;
+  position: relative; z-index: 1;
+  transition: transform .3s;
+}
+.lp-ai-panel.speaking .lp-ai-instructor-initials { transform: scale(1.05); }
+
+/* Speaking rings */
+.lp-ai-ring {
+  position: absolute; inset: -4px; border-radius: 50%;
+  border: 2px solid rgba(167,139,250,0);
+  transition: all .3s;
+}
+.lp-ai-panel.speaking .lp-ai-ring-1 {
+  border-color: rgba(167,139,250,.5);
+  animation: aiRing 1.2s ease-out infinite;
+}
+.lp-ai-panel.speaking .lp-ai-ring-2 {
+  inset: -12px;
+  border-color: rgba(167,139,250,.3);
+  animation: aiRing 1.2s ease-out .3s infinite;
+}
+.lp-ai-panel.speaking .lp-ai-ring-3 {
+  inset: -20px;
+  border-color: rgba(167,139,250,.15);
+  animation: aiRing 1.2s ease-out .6s infinite;
+}
+@keyframes aiRing {
+  0%   { transform: scale(.9); opacity: 0; }
+  50%  { opacity: 1; }
+  100% { transform: scale(1.15); opacity: 0; }
+}
+
+/* Tutor name / role */
+.lp-ai-tutor-name {
+  font-size: 15px; font-weight: 700; color: #f3e8ff; letter-spacing: .01em;
+}
+.lp-ai-tutor-role {
+  font-size: 12px; color: rgba(255,255,255,.45); margin-top: 3px;
+  display: flex; align-items: center; gap: 5px;
+}
+.lp-ai-dot-inline {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: #4ade80; box-shadow: 0 0 6px #4ade80;
+  display: inline-block;
+}
+
+/* Waveform */
+.lp-ai-waveform {
+  display: flex; align-items: center; gap: 2px;
+  height: 24px; margin-top: 10px;
+  opacity: 0; transition: opacity .3s;
+}
+.lp-ai-panel.speaking .lp-ai-waveform { opacity: 1; }
+.lp-ai-wave-bar {
+  width: 3px; border-radius: 2px;
+  background: #a78bfa;
+  height: 4px;
+}
+.lp-ai-panel.speaking .lp-ai-wave-bar {
+  animation: aiWave 0.8s ease-in-out infinite alternate;
+}
+@keyframes aiWave {
+  from { height: 4px; }
+  to   { height: 20px; }
+}
+
+/* Status text */
+.lp-ai-status-text {
+  font-size: 12px; color: rgba(255,255,255,.35);
+  margin-top: 8px; text-align: center; min-height: 16px;
+  transition: color .3s;
+}
+.lp-ai-panel.speaking .lp-ai-status-text { color: #c4b5fd; }
+
+/* ── Quick chips ── */
+.lp-ai-quick-row {
+  display: flex; gap: 6px; padding: 8px 14px;
+  flex-wrap: wrap;
+}
+.lp-ai-chip {
+  background: rgba(167,139,250,.1);
+  border: 1px solid rgba(167,139,250,.2);
+  color: #c4b5fd;
+  border-radius: 20px; padding: 5px 12px;
+  font-size: 12px; font-weight: 600;
+  cursor: pointer; display: flex; align-items: center; gap: 5px;
+  transition: background .15s, border-color .15s, transform .1s;
+  white-space: nowrap;
+}
+.lp-ai-chip:hover { background: rgba(167,139,250,.2); border-color: rgba(167,139,250,.4); }
+.lp-ai-chip:active { transform: scale(.96); }
+
+/* ── Chat log ── */
+.lp-ai-chat {
+  flex: 1; overflow-y: auto; padding: 10px 14px;
+  display: flex; flex-direction: column; gap: 10px;
+  min-height: 80px; max-height: 240px;
+  scroll-behavior: smooth;
+}
+.lp-ai-chat::-webkit-scrollbar { width: 3px; }
+.lp-ai-chat::-webkit-scrollbar-thumb { background: rgba(167,139,250,.2); border-radius: 2px; }
+
+.lp-ai-msg {
+  max-width: 88%; padding: 9px 13px;
+  border-radius: 14px; font-size: 13.5px;
+  line-height: 1.55; word-break: break-word;
+  position: relative;
+}
+.lp-ai-msg.user {
+  align-self: flex-end;
+  background: #5b5ef6;
+  color: #fff;
+  border-bottom-right-radius: 4px;
+}
+.lp-ai-msg.ai {
+  align-self: flex-start;
+  background: rgba(255,255,255,.07);
+  color: #f1f5f9;
+  border-bottom-left-radius: 4px;
+}
+.lp-ai-msg.ai .lp-ai-speak-btn {
+  position: absolute; top: 6px; right: 8px;
+  background: none; border: none; color: rgba(255,255,255,.3);
+  font-size: 12px; cursor: pointer; padding: 2px;
+  transition: color .15s;
+}
+.lp-ai-msg.ai .lp-ai-speak-btn:hover { color: #a78bfa; }
+.lp-ai-msg.thinking { color: rgba(255,255,255,.4); font-style: italic; }
+
+/* Typing dots */
+.lp-ai-typing { display: flex; gap: 4px; padding: 12px 14px; }
+.lp-ai-typing span {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: rgba(167,139,250,.5);
+  animation: aiTyping 1.2s ease-in-out infinite;
+}
+.lp-ai-typing span:nth-child(2) { animation-delay: .2s; }
+.lp-ai-typing span:nth-child(3) { animation-delay: .4s; }
+@keyframes aiTyping {
+  0%,80%,100% { transform: scale(.7); opacity: .4; }
+  40%          { transform: scale(1); opacity: 1; }
+}
+
+/* ── Input bar ── */
+.lp-ai-input-bar {
+  display: flex; align-items: center; gap: 8px;
+  padding: 10px 12px;
+  background: rgba(0,0,0,.3);
+  border-top: 1px solid rgba(255,255,255,.06);
+  flex-shrink: 0;
+}
+.lp-ai-input-wrap { flex: 1; }
+.lp-ai-input-wrap input {
+  width: 100%; background: rgba(255,255,255,.07);
+  border: 1px solid rgba(255,255,255,.1); color: #f1f5f9;
+  border-radius: 24px; padding: 9px 14px;
+  font-size: 13px; outline: none; font-family: inherit;
+  transition: border-color .15s;
+}
+.lp-ai-input-wrap input:focus { border-color: rgba(124,58,237,.5); }
+.lp-ai-input-wrap input::placeholder { color: rgba(255,255,255,.3); }
+
+.lp-ai-voice-btn {
+  width: 38px; height: 38px; border-radius: 50%; flex-shrink: 0;
+  background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.1);
+  color: rgba(255,255,255,.5); font-size: 15px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: all .15s;
+}
+.lp-ai-voice-btn:hover { background: rgba(255,255,255,.12); color: #fff; }
+.lp-ai-voice-btn.recording {
+  background: rgba(239,68,68,.3);
+  border-color: rgba(239,68,68,.5);
+  color: #fca5a5;
+  animation: aiPulse .6s ease-in-out infinite alternate;
+}
+@keyframes aiPulse { from { box-shadow: 0 0 0 0 rgba(239,68,68,.4); } to { box-shadow: 0 0 0 8px rgba(239,68,68,0); } }
+
+.lp-ai-send-btn {
+  width: 38px; height: 38px; border-radius: 50%; flex-shrink: 0;
+  background: #7c3aed; border: none; color: #fff; font-size: 15px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; transition: background .15s, transform .1s;
+}
+.lp-ai-send-btn:hover { background: #6d28d9; transform: scale(1.05); }
+
+/* Language picker */
+.lp-ai-lang-picker {
+  display: flex; gap: 8px; padding: 8px 12px;
+  background: rgba(0,0,0,.2);
+  border-top: 1px solid rgba(255,255,255,.05);
+}
+.lp-ai-lang-picker select {
+  flex: 1; background: rgba(255,255,255,.07);
+  border: 1px solid rgba(255,255,255,.1); color: #f1f5f9;
+  border-radius: 8px; padding: 6px 10px; font-size: 13px; outline: none;
+}
+.lp-ai-lang-picker button {
+  background: #7c3aed; border: none; color: #fff;
+  border-radius: 8px; padding: 6px 14px; font-size: 13px;
+  cursor: pointer; font-weight: 600; white-space: nowrap;
+  display: flex; align-items: center; gap: 5px;
+}
+
+/* FAB */
+.lp-ai-fab {
+  position: fixed; bottom: 28px; right: 20px;
+  width: 56px; height: 56px; border-radius: 50%;
+  background: linear-gradient(135deg, #7c3aed, #5b5ef6);
+  border: none; color: #fff; font-size: 24px;
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; z-index: 1300;
+  box-shadow: 0 6px 24px rgba(124,58,237,.5);
+  transition: transform .2s, box-shadow .2s;
+}
+.lp-ai-fab:hover { transform: scale(1.08); box-shadow: 0 8px 28px rgba(124,58,237,.65); }
+
+/* Mobile */
+@media (max-width: 480px) {
+  .lp-ai-panel { width: calc(100vw - 24px); right: 12px; bottom: 88px; max-height: 70vh; }
+}
+</style>
 
 <style>
 /* ── AI Header branding ──────────────────────────────────────────────────── */
@@ -1635,104 +1987,268 @@ function toggleSection(idx) {
   var LID   = shell ? shell.dataset.lessonId : null;
   var CID   = shell ? shell.dataset.courseId : null;
   var csrf  = document.getElementById('csrfToken') ? document.getElementById('csrfToken').value : '<?= $e($csrf_token) ?>';
-
-  // FAB toggle
-  document.getElementById('aiTutorFab') && document.getElementById('aiTutorFab').addEventListener('click', function() {
-    var panel = document.getElementById('lpAiPanel');
-    if (panel) panel.classList.toggle('open');
-  });
-
-  // Lesson summary
-  document.getElementById('aiSummaryBtn') && document.getElementById('aiSummaryBtn').addEventListener('click', function() {
-    var result = document.getElementById('aiSummaryResult');
-    if (!result) return;
-    result.innerHTML = '<div class="lp-ai-thinking">Summarising…</div>';
-    result.classList.remove('d-none');
-    this.disabled = true;
-    var self = this;
-    fetch(BASE + '/api/ai/summarise', {
-      method: 'POST', headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-      body: 'csrf_token=' + encodeURIComponent(csrf) + '&lesson_id=' + LID
-    }).then(function(r) { return r.json(); }).then(function(d) {
-      self.disabled = false;
-      if (d.success && d.bullets) {
-        result.innerHTML = d.bullets.map(function(b) {
-          return '<div class="lp-ai-bullet">' + b.replace(/</g,'&lt;') + '</div>';
-        }).join('');
-      } else {
-        result.innerHTML = '<div style="color:#f87171">' + (d.message || 'Error — check AI settings.') + '</div>';
-      }
-    }).catch(function() { self.disabled = false; });
-  });
-
-  // Chat
+  var panel = document.getElementById('lpAiPanel');
   var chatLog = document.getElementById('aiChatLog');
-  function addMsg(role, text) {
+
+  // ── State ──────────────────────────────────────────────────────
+  var soundEnabled  = true;
+  var isRecording   = false;
+  var isSpeaking    = false;
+  var currentUtter  = null;
+  var recognition   = null;
+  var hasSpeechAPI  = ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window);
+  var hasTTSAPI     = ('speechSynthesis' in window);
+
+  // ── FAB open/close ─────────────────────────────────────────────
+  document.getElementById('aiTutorFab') && document.getElementById('aiTutorFab').addEventListener('click', function() {
+    panel.classList.toggle('open');
+  });
+  document.getElementById('aiMinimiseBtn') && document.getElementById('aiMinimiseBtn').addEventListener('click', function() {
+    panel.classList.remove('open');
+  });
+
+  // ── Sound toggle ───────────────────────────────────────────────
+  document.getElementById('aiSoundToggle') && document.getElementById('aiSoundToggle').addEventListener('click', function() {
+    soundEnabled = !soundEnabled;
+    var icon = document.getElementById('aiSoundIcon');
+    if (icon) icon.className = soundEnabled ? 'bi bi-volume-up-fill' : 'bi bi-volume-mute-fill';
+    if (!soundEnabled && currentUtter) { window.speechSynthesis.cancel(); setSpeaking(false); }
+  });
+
+  // ── Speaking state ─────────────────────────────────────────────
+  function setSpeaking(on) {
+    isSpeaking = on;
+    if (panel) panel.classList.toggle('speaking', on);
+    var st = document.getElementById('aiStatusText');
+    if (st) st.textContent = on ? 'Speaking…' : 'Ask me anything about this lesson';
+  }
+
+  // ── TTS ────────────────────────────────────────────────────────
+  function speak(text) {
+    if (!hasTTSAPI || !soundEnabled) return;
+    window.speechSynthesis.cancel();
+    // Strip markdown-ish syntax from spoken text
+    var clean = text.replace(/\*\*/g,'').replace(/\*/g,'').replace(/#{1,6}\s/g,'').replace(/`[^`]+`/g, function(m){ return m.replace(/`/g,''); });
+    currentUtter = new SpeechSynthesisUtterance(clean);
+    currentUtter.rate  = 1.0;
+    currentUtter.pitch = 1.0;
+    currentUtter.volume = 0.9;
+    // Prefer a natural voice
+    var voices = window.speechSynthesis.getVoices();
+    var preferred = voices.find(function(v) {
+      return /Google|Natural|Premium|Enhanced/i.test(v.name) && /en/i.test(v.lang);
+    }) || voices.find(function(v) { return /en/i.test(v.lang); });
+    if (preferred) currentUtter.voice = preferred;
+    currentUtter.onstart = function() { setSpeaking(true); };
+    currentUtter.onend   = function() { setSpeaking(false); };
+    currentUtter.onerror = function() { setSpeaking(false); };
+    window.speechSynthesis.speak(currentUtter);
+  }
+
+  // ── Voice input ────────────────────────────────────────────────
+  if (!hasSpeechAPI) {
+    var voiceBtn = document.getElementById('aiVoiceBtn');
+    if (voiceBtn) { voiceBtn.style.opacity = '.3'; voiceBtn.title = 'Voice input not supported in this browser'; }
+  }
+
+  document.getElementById('aiVoiceBtn') && document.getElementById('aiVoiceBtn').addEventListener('click', function() {
+    if (!hasSpeechAPI) { addMsg('ai', 'Voice input isn\'t supported in this browser. Please use Chrome or Edge.'); return; }
+    if (isRecording) { recognition && recognition.stop(); return; }
+
+    var SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+    recognition = new SpeechRec();
+    recognition.lang = 'en-US';
+    recognition.continuous = false;
+    recognition.interimResults = false;
+
+    recognition.onstart = function() {
+      isRecording = true;
+      var btn = document.getElementById('aiVoiceBtn');
+      var icon = document.getElementById('aiMicIcon');
+      if (btn) btn.classList.add('recording');
+      if (icon) icon.className = 'bi bi-record-circle-fill';
+      var st = document.getElementById('aiStatusText');
+      if (st) st.textContent = 'Listening…';
+    };
+    recognition.onresult = function(e) {
+      var transcript = e.results[0][0].transcript;
+      var input = document.getElementById('aiChatInput');
+      if (input) { input.value = transcript; }
+      // Auto-send
+      setTimeout(sendChat, 150);
+    };
+    recognition.onerror = function(e) {
+      addMsg('ai', 'Couldn\'t hear you — please try again or type your question.');
+    };
+    recognition.onend = function() {
+      isRecording = false;
+      var btn = document.getElementById('aiVoiceBtn');
+      var icon = document.getElementById('aiMicIcon');
+      if (btn) btn.classList.remove('recording');
+      if (icon) icon.className = 'bi bi-mic-fill';
+      var st = document.getElementById('aiStatusText');
+      if (st) st.textContent = 'Ask me anything about this lesson';
+    };
+    recognition.start();
+  });
+
+  // ── Chat message helpers ───────────────────────────────────────
+  function addMsg(role, text, withSpeakBtn) {
     var div = document.createElement('div');
     div.className = 'lp-ai-msg ' + role;
-    div.textContent = text;
+
+    // Render simple markdown
+    var html = text
+      .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+      .replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+      .replace(/\*(.+?)\*/g,'<em>$1</em>')
+      .replace(/`(.+?)`/g,'<code style="background:rgba(255,255,255,.1);padding:1px 5px;border-radius:4px;font-size:12px">$1</code>')
+      .replace(/\n/g,'<br>');
+    div.innerHTML = html;
+
+    // Add speaker button on AI messages
+    if (role === 'ai' && hasTTSAPI && withSpeakBtn !== false) {
+      var speakBtn = document.createElement('button');
+      speakBtn.className = 'lp-ai-speak-btn';
+      speakBtn.title = 'Listen';
+      speakBtn.innerHTML = '<i class="bi bi-play-circle"></i>';
+      speakBtn.addEventListener('click', function() {
+        if (isSpeaking) { window.speechSynthesis.cancel(); setSpeaking(false); speakBtn.innerHTML='<i class="bi bi-play-circle"></i>'; }
+        else            { speak(text); speakBtn.innerHTML='<i class="bi bi-stop-circle"></i>'; }
+      });
+      div.appendChild(speakBtn);
+    }
+
     if (chatLog) { chatLog.appendChild(div); chatLog.scrollTop = chatLog.scrollHeight; }
     return div;
   }
 
+  function showTyping() {
+    var d = document.createElement('div');
+    d.className = 'lp-ai-typing'; d.id = 'aiTypingDots';
+    d.innerHTML = '<span></span><span></span><span></span>';
+    if (chatLog) { chatLog.appendChild(d); chatLog.scrollTop = chatLog.scrollHeight; }
+  }
+  function hideTyping() {
+    var d = document.getElementById('aiTypingDots');
+    if (d) d.remove();
+  }
+
+  function setStatus(text) {
+    var st = document.getElementById('aiStatusText');
+    if (st) st.textContent = text;
+  }
+
+  // ── Send chat ──────────────────────────────────────────────────
   function sendChat() {
     var input = document.getElementById('aiChatInput');
     var q = input ? input.value.trim() : '';
     if (!q) return;
     addMsg('user', q);
     if (input) input.value = '';
-    var thinking = addMsg('ai', '…');
-    if (thinking) thinking.classList.add('lp-ai-thinking');
+    showTyping();
+    setStatus('Thinking…');
+
     fetch(BASE + '/api/ai/chat', {
       method: 'POST', headers: {'Content-Type': 'application/x-www-form-urlencoded'},
       body: 'csrf_token=' + encodeURIComponent(csrf) +
             '&course_id=' + CID + '&lesson_id=' + LID +
             '&question=' + encodeURIComponent(q)
-    }).then(function(r) { return r.json(); }).then(function(d) {
-      if (chatLog && thinking.parentNode === chatLog) chatLog.removeChild(thinking);
-      addMsg('ai', d.success ? d.answer : (d.message || 'Error'));
-    }).catch(function() {
-      if (chatLog && thinking.parentNode === chatLog) chatLog.removeChild(thinking);
-      addMsg('ai', 'Request failed. Check your connection.');
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      hideTyping();
+      setStatus('Ask me anything about this lesson');
+      var answer = d.success ? d.answer : (d.message || 'Something went wrong.');
+      addMsg('ai', answer);
+      if (d.success && soundEnabled) speak(answer);
+    })
+    .catch(function() {
+      hideTyping();
+      setStatus('Ask me anything about this lesson');
+      addMsg('ai', 'Connection error. Please try again.');
     });
   }
 
+  // Send button + Enter key
   document.getElementById('aiChatSend') && document.getElementById('aiChatSend').addEventListener('click', sendChat);
   document.getElementById('aiChatInput') && document.getElementById('aiChatInput').addEventListener('keydown', function(e) {
     if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendChat(); }
   });
 
-  // Translate
-  var showingLang = false;
+  // ── Summarise ──────────────────────────────────────────────────
+  document.getElementById('aiSummaryBtn') && document.getElementById('aiSummaryBtn').addEventListener('click', function() {
+    showTyping(); setStatus('Summarising lesson…');
+    fetch(BASE + '/api/ai/summarise', {
+      method: 'POST', headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+      body: 'csrf_token=' + encodeURIComponent(csrf) + '&lesson_id=' + LID
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      hideTyping(); setStatus('Ask me anything about this lesson');
+      if (d.success && d.bullets && d.bullets.length) {
+        var text = 'Here\'s a summary:\n' + d.bullets.map(function(b){ return '• ' + b; }).join('\n');
+        addMsg('ai', text);
+        if (soundEnabled) speak(text);
+      } else {
+        addMsg('ai', d.message || 'Could not summarise this lesson.');
+      }
+    })
+    .catch(function() { hideTyping(); addMsg('ai', 'Connection error.'); });
+  });
+
+  // ── Quiz me ────────────────────────────────────────────────────
+  document.getElementById('aiQuizMeBtn') && document.getElementById('aiQuizMeBtn').addEventListener('click', function() {
+    showTyping(); setStatus('Generating a question…');
+    fetch(BASE + '/api/ai/chat', {
+      method: 'POST', headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+      body: 'csrf_token=' + encodeURIComponent(csrf) +
+            '&course_id=' + CID + '&lesson_id=' + LID +
+            '&question=' + encodeURIComponent('Give me one quiz question about this lesson to test my understanding. Wait for my answer before revealing the correct answer.')
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      hideTyping(); setStatus('Waiting for your answer…');
+      var q = d.success ? d.answer : 'Could not generate a question.';
+      addMsg('ai', q);
+      if (soundEnabled) speak(q);
+    })
+    .catch(function() { hideTyping(); addMsg('ai', 'Connection error.'); });
+  });
+
+  // ── Translate ──────────────────────────────────────────────────
   document.getElementById('aiTranslateBtn') && document.getElementById('aiTranslateBtn').addEventListener('click', function() {
-    showingLang = !showingLang;
-    var sel = document.getElementById('aiLangSelect');
-    var btn = document.getElementById('aiDoTranslateBtn');
-    if (sel) sel.classList.toggle('d-none', !showingLang);
-    if (btn) btn.classList.toggle('d-none', !showingLang);
+    var picker = document.getElementById('aiLangPicker');
+    if (picker) picker.style.display = picker.style.display === 'none' ? 'flex' : 'none';
   });
 
   document.getElementById('aiDoTranslateBtn') && document.getElementById('aiDoTranslateBtn').addEventListener('click', function() {
-    var sel  = document.getElementById('aiLangSelect');
-    var lang = sel ? sel.value : 'Hindi';
-    var result = document.getElementById('aiTranslateResult');
-    if (!result) return;
-    result.innerHTML = '<div class="lp-ai-thinking">Translating to ' + lang + '…</div>';
-    result.classList.remove('d-none');
-    this.disabled = true;
-    var self = this;
+    var lang = document.getElementById('aiLangSelect') ? document.getElementById('aiLangSelect').value : 'Hindi';
+    var picker = document.getElementById('aiLangPicker');
+    if (picker) picker.style.display = 'none';
+    showTyping(); setStatus('Translating to ' + lang + '…');
     fetch(BASE + '/api/ai/translate', {
       method: 'POST', headers: {'Content-Type': 'application/x-www-form-urlencoded'},
       body: 'csrf_token=' + encodeURIComponent(csrf) + '&lesson_id=' + LID + '&language=' + encodeURIComponent(lang)
-    }).then(function(r) { return r.json(); }).then(function(d) {
-      self.disabled = false;
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      hideTyping(); setStatus('Ask me anything about this lesson');
       if (d.success) {
-        result.innerHTML = '<div style="max-height:180px;overflow-y:auto;font-size:13px;color:#e2d9f3">' + d.content + '</div>';
+        addMsg('ai', 'Translation to ' + lang + ':\n\n' + d.content);
       } else {
-        result.innerHTML = '<div style="color:#f87171">' + (d.message || 'Error') + '</div>';
+        addMsg('ai', d.message || 'Translation failed.');
       }
-    }).catch(function() { self.disabled = false; });
+    })
+    .catch(function() { hideTyping(); addMsg('ai', 'Connection error.'); });
   });
+
+  // Load voices on first interaction (browsers lazy-load voice list)
+  if (hasTTSAPI) {
+    window.speechSynthesis.getVoices();
+    window.speechSynthesis.onvoiceschanged = function() { window.speechSynthesis.getVoices(); };
+  }
+
 })();
 
 // ── Review form (course completion) ─────────────────────────────────────────
