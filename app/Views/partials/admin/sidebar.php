@@ -61,6 +61,45 @@ $navItems = [
     <?php endforeach; ?>
   </nav>
 
+  <script>
+  (function() {
+    var nav    = document.getElementById('adminNav');
+    var active = nav && nav.querySelector('.adm-nav-btn.active');
+
+    // Scroll active item into centre of nav on page load
+    if (active && nav) {
+      // Wait for layout then scroll
+      requestAnimationFrame(function() {
+        var navTop    = nav.getBoundingClientRect().top;
+        var itemTop   = active.getBoundingClientRect().top;
+        var itemH     = active.offsetHeight;
+        var navH      = nav.clientHeight;
+        var target    = nav.scrollTop + (itemTop - navTop) - (navH / 2) + (itemH / 2);
+        nav.scrollTo({ top: target, behavior: 'smooth' });
+      });
+    }
+
+    // On click: add active class immediately + scroll into view before navigate
+    if (nav) {
+      nav.querySelectorAll('.adm-nav-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+          // Remove active from all
+          nav.querySelectorAll('.adm-nav-btn').forEach(function(b) {
+            b.classList.remove('active');
+          });
+          // Add to clicked
+          this.classList.add('active');
+          // Scroll clicked item to centre
+          var navH   = nav.clientHeight;
+          var itemH  = this.offsetHeight;
+          var target = this.offsetTop - (navH / 2) + (itemH / 2);
+          nav.scrollTo({ top: target, behavior: 'smooth' });
+        });
+      });
+    }
+  })();
+  </script>
+
   <!-- User + logout at bottom -->
   <div class="adm-sidebar-bottom">
     <div class="adm-user-row">
