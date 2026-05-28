@@ -355,3 +355,17 @@ $router->post('/admin/dropout/alert',       'Admin\DropoutController@sendAlert')
 // Recommendations API
 $router->get('/api/v1/recommendations',     'Api\RecommendationApiController@index');
 $router->post('/api/v1/recommendations/:course_id/dismiss', 'Api\RecommendationApiController@dismiss');
+
+// Multi-tenant
+$router->get('/admin/tenants',                  'Admin\TenantController@index');
+$router->get('/admin/tenants/create',           'Admin\TenantController@create');
+$router->post('/admin/tenants',                 'Admin\TenantController@store');
+$router->get('/admin/tenants/:uuid/edit',       'Admin\TenantController@edit');
+$router->post('/admin/tenants/:uuid/update',    'Admin\TenantController@update');
+
+// Corporate Training
+$router->get('/admin/organisations',                    'Admin\OrganisationController@index');
+$router->post('/admin/organisations',                   'Admin\OrganisationController@store');
+$router->get('/admin/organisations/:uuid',              'Admin\OrganisationController@show');
+$router->post('/admin/organisations/:uuid/assign',      'Admin\OrganisationController@assignCourse');
+$router->get('/admin/organisations/:uuid/export',       'Admin\OrganisationController@exportReport');
