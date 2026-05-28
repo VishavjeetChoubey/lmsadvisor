@@ -3,14 +3,13 @@ declare(strict_types=1);
 
 namespace App\Controllers\Api;
 
-use App\Core\Controller;
 use App\Core\Database;
 
-class HealthController extends Controller
+class HealthController extends AuthController
 {
     public function index(array $params): void
     {
-        // Validate Bearer token — rejects wrong/missing tokens
+        // Validate Bearer token — wrong/missing token returns 401
         $this->apiAuth();
 
         $dbOk = false;
