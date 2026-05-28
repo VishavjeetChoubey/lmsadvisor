@@ -159,10 +159,25 @@ class AuthController extends Controller
 
     protected function getBearerToken(): string
     {
-        $auth = $_SERVER['HTTP_AUTHORIZATION'] ?? $_SERVER['HTTP_X_API_TOKEN'] ?? '';
-        if (preg_match('/Bearer\s+(.+)/i', $auth, $m)) return trim($m[1]);
-        // Also accept ?token= query param for playground convenience
-        return Sanitizer::string($this->request->get('token', ''), 60);
+        // Apache/mod_php: HTTP_AUTHORIZATION (requires .htaccess passthrough rule)
+        // Apache/CGI: REDIRECT_HTTP_AUTHORIZATION
+        // FastCGI/Nginx: HTTP_AUTHORIZATION is usually available directly
+        $auth = $_SERVER['HTTP_AUTHORIZATION']
+             ?? $_SERVER['REDIRECT_HTTP_AUTHORIZATION']
+             ?? $_SERVER['HTTP_X_API_TOKEN']
+             ?? '';
+
+        // Also check Apache's rewritten env var (set by our .htaccess SetEnvIf)
+        if (!$auth && isset($_SERVER['Authorization'])) {
+            $auth = $_SERVER['Authorization'];
+        }
+
+        if ($auth && preg_match('/Bearer\s+(.+)/i', $auth, $m)) {
+            return trim($m[1]);
+        }
+
+        // Also accept ?token= query param for Postman/playground convenience
+        return Sanitizer::string($this->request->get('token', ''), 255);
     }
 
     protected function clientIp(): string
