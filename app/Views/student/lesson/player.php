@@ -700,7 +700,7 @@ $typeColors  = ['text'=>'rgba(255,255,255,.5)','video'=>'#f87171','document'=>'#
 /* When collab panel is open (not collapsed), push AI panel left of it */
 .lp-shell:not(.collab-hidden) ~ .lp-ai-panel,
 body:not(.collab-panel-hidden) .lp-ai-panel {
-  right: 300px;
+  right: 00px;
 }
 .lp-ai-panel.open { display: flex; }
 
@@ -1026,12 +1026,20 @@ body:not(.collab-panel-hidden) .lp-ai-panel {
   width: 280px;
   min-width: 280px;
   background: #0d1117;
-  border-left: 1px solid rgba(255,255,255,.07);
+  border-left: 0px solid rgba(255,255,255,.07);
   display: flex;
   flex-direction: column;
   overflow: hidden;
   flex-shrink: 0;
   height: 100%;
+}
+button#collabCloseBtn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    align-content: center;
+    color: #fff;
+    background: #999;
 }
 .lp-collab-tabs {
   display: flex;
@@ -1346,6 +1354,7 @@ body:not(.collab-panel-hidden) .lp-ai-panel {
   flex-direction: column;
   overflow: hidden;
   height: 100%;
+  height: 93vh;
   align-self: stretch;
   transition: width .25s ease, min-width .25s ease;
   flex-shrink: 0;
