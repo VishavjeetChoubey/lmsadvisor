@@ -154,9 +154,9 @@ class Enrollment extends Model
     public function enroll(int $courseId, int $userId, int $enrolledBy, ?string $expiresAt = null): int
     {
         return $this->insert(
-            'INSERT INTO enrollments (course_id, user_id, enrolled_by, status, expires_at)
-             VALUES (?, ?, ?, "active", ?)',
-            [$courseId, $userId, $enrolledBy, $expiresAt]
+            'INSERT INTO enrollments (uuid, course_id, user_id, enrolled_by, status, expires_at)
+             VALUES (?, ?, ?, ?, "active", ?)',
+            [\App\Helpers\Uuid::v4(), $courseId, $userId, $enrolledBy, $expiresAt]
         );
     }
 

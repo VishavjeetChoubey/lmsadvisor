@@ -13,26 +13,42 @@ class CourseApiController extends AuthController
     public function index(array $params): void
     {
         $this->apiAuth();
-        $pdo    = Database::getInstance();
-        $search = Sanitizer::string($this->request->get('search',''), 100);
-        $catId  = (int)$this->request->get('cat', 0);
-        $page   = max(1, (int)$this->request->get('page', 1));
+        $pdo      = Database::getInstance();
+        $search   = \App\Helpers\Sanitizer::string($this->request->get('search', ''), 100);
+        $catId    = (int)$this->request->get('cat', 0);
+        $page     = max(1, (int)$this->request->get('page', 1));
+        $perPage  = min(200, max(1, (int)$this->request->get('per_page', 20)));
+        $status   = $this->request->get('status', 'published');
 
-        $where = ["c.status='published'"]; $binds = [];
-        if ($search) { $where[] = 'c.title LIKE ?'; $binds[] = "%$search%"; }
+        // Validate status (only allow safe values)
+        $allowedStatuses = ['published', 'draft', 'archived'];
+        if (!in_array($status, $allowedStatuses, true)) {
+            $status = 'published';
+        }
+
+        $where = ["c.status=?"]; $binds = [$status];
+        if ($search) { $where[] = 'c.title LIKE ?'; $binds[] = "%{$search}%"; }
         if ($catId)  { $where[] = 'c.category_id = ?'; $binds[] = $catId; }
         $ws     = implode(' AND ', $where);
-        $offset = ($page-1)*20;
+        $offset = ($page - 1) * $perPage;
 
-        $countS = $pdo->prepare("SELECT COUNT(*) FROM courses c WHERE $ws");
+        $countS = $pdo->prepare("SELECT COUNT(*) FROM courses c WHERE {$ws}");
         $countS->execute($binds);
         $total  = (int)$countS->fetchColumn();
 
-        $stmt = $pdo->prepare("SELECT c.uuid,c.title,c.short_description,c.level,c.language,c.duration_hours,c.grade_points,c.thumbnail,cat.name AS category,
-          (SELECT COUNT(*) FROM enrollments e WHERE e.course_id=c.id) AS enrollment_count
-          FROM courses c LEFT JOIN categories cat ON cat.id=c.category_id WHERE $ws ORDER BY c.published_at DESC LIMIT 20 OFFSET $offset");
+        $stmt = $pdo->prepare(
+            "SELECT c.uuid, c.title, c.short_description, c.level, c.language,
+                    c.duration_hours, c.grade_points, c.thumbnail, c.status,
+                    cat.name AS category,
+                    (SELECT COUNT(*) FROM enrollments e WHERE e.course_id=c.id) AS enrollment_count
+             FROM courses c
+             LEFT JOIN categories cat ON cat.id=c.category_id
+             WHERE {$ws}
+             ORDER BY c.published_at DESC
+             LIMIT {$perPage} OFFSET {$offset}"
+        );
         $stmt->execute($binds);
-        $this->json(['data'=>$stmt->fetchAll(),'total'=>$total,'page'=>$page,'per_page'=>20]);
+        $this->json(['data' => $stmt->fetchAll(), 'total' => $total, 'page' => $page, 'per_page' => $perPage]);
     }
 
     // GET /api/v1/courses/:uuid
