@@ -171,29 +171,46 @@ class DatabaseController extends Controller
 
         $sql = file_get_contents($path);
 
-        // Split on semicolons, skip comments and empty
+        // Split on semicolons outside quotes — skip empty/comment-only blocks
         $statements = array_filter(
-            array_map('trim', preg_split('/;(?=(?:[^\'"]|\'[^\']*\'|"[^"]*")*$)/', $sql)),
-            fn($s) => $s !== '' && !preg_match('/^--/', ltrim($s))
+            array_map('trim', preg_split('/;(?=(?:[^\'"]|\'[^\']*\'|"[^"]*")*$)/m', $sql)),
+            fn($s) => $s !== '' && !preg_match('/^\s*--/', $s)
         );
 
-        $pdo->exec('SET FOREIGN_KEY_CHECKS=0');
+        try { $pdo->exec('SET FOREIGN_KEY_CHECKS=0'); } catch (\Throwable $e) {}
+
         $errors = [];
         foreach ($statements as $stmt) {
+            // Skip pure comment blocks
+            $stripped = preg_replace('/--[^\n]*\n?/', '', $stmt);
+            if (trim($stripped) === '') continue;
+
             try {
-                $pdo->exec($stmt);
-            } catch (\PDOException $e) {
-                // Ignore "already exists" type errors — migrations are idempotent
-                $code = $e->getCode();
-                if (!in_array($code, ['42S01','42S21','42701'], true) &&
-                    !str_contains($e->getMessage(), 'Duplicate column') &&
-                    !str_contains($e->getMessage(), 'already exists') &&
-                    !str_contains($e->getMessage(), 'Duplicate key name')) {
-                    $errors[] = $e->getMessage();
+                // Use query() + closeCursor() instead of exec() to prevent
+                // "unbuffered queries" error from PREPARE/EXECUTE statements
+                $result = $pdo->query($stmt);
+                if ($result !== false) {
+                    $result->closeCursor();
                 }
+            } catch (\PDOException $e) {
+                $msg  = $e->getMessage();
+                $code = (string)$e->getCode();
+                // Ignore safe "already exists" type errors
+                $ignore = [
+                    'already exists', 'Duplicate column', 'Duplicate key name',
+                    'Duplicate entry', "Can't DROP", 'Multiple primary key',
+                ];
+                $safeCode = in_array($code, ['42S01','42S21','42701','23000'], true);
+                $safeMsg  = array_filter($ignore, fn($i) => str_contains($msg, $i));
+                if (!$safeCode && empty($safeMsg)) {
+                    $errors[] = $msg;
+                }
+            } catch (\Throwable $e) {
+                $errors[] = $e->getMessage();
             }
         }
-        $pdo->exec('SET FOREIGN_KEY_CHECKS=1');
+
+        try { $pdo->exec('SET FOREIGN_KEY_CHECKS=1'); } catch (\Throwable $e) {}
 
         if ($errors) {
             error_log('[DB Upgrader] ' . $file . ': ' . implode(' | ', $errors));
