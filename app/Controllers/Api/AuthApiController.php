@@ -24,18 +24,8 @@ class AuthApiController extends AuthController
         try {
             $pdo = Database::getInstance();
 
-            // Ensure table exists
-            $pdo->exec('CREATE TABLE IF NOT EXISTS sso_tokens (
-                id            INT UNSIGNED    PRIMARY KEY AUTO_INCREMENT,
-                user_id       INT UNSIGNED    NOT NULL,
-                token         VARCHAR(64)     NOT NULL UNIQUE,
-                redirect_path VARCHAR(300)    NOT NULL DEFAULT \'/learn/dashboard\',
-                expires_at    TIMESTAMP       NOT NULL,
-                used          TINYINT(1)      NOT NULL DEFAULT 0,
-                created_at    TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                KEY idx_token (token),
-                KEY idx_expires (expires_at)
-            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci');
+            // Fix column size if table was created with wrong CHAR(48)
+            $pdo->exec("ALTER TABLE sso_tokens MODIFY COLUMN token VARCHAR(64) NOT NULL");
 
             // Find user
             $stmt = $pdo->prepare('SELECT id FROM users WHERE email = ? AND is_active = 1 LIMIT 1');
@@ -47,11 +37,13 @@ class AuthApiController extends AuthController
             }
 
             // Clean up old tokens
-            $pdo->prepare('DELETE FROM sso_tokens WHERE user_id = ? AND (used = 1 OR expires_at < NOW())')
-                ->execute([(int)$user['id']]);
+            try {
+                $pdo->prepare('DELETE FROM sso_tokens WHERE user_id = ? AND (used = 1 OR expires_at < NOW())')
+                    ->execute([(int)$user['id']]);
+            } catch (\Throwable $e) {}
 
-            // Generate and store token
-            $token   = bin2hex(random_bytes(32));
+            // Generate 48-char token — fits both CHAR(48) and VARCHAR(64)
+            $token   = bin2hex(random_bytes(24)); // 48 hex chars
             $expires = date('Y-m-d H:i:s', time() + 900);
 
             $pdo->prepare('INSERT INTO sso_tokens (user_id, token, redirect_path, expires_at) VALUES (?,?,?,?)')
@@ -64,13 +56,8 @@ class AuthApiController extends AuthController
             ]);
 
         } catch (\Throwable $e) {
-            // Return exact error so we can debug
-            error_log('[SSO] ssoToken error: ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine());
-            $this->json([
-                'success' => false,
-                'message' => 'SSO internal error: ' . $e->getMessage(),
-                'file'    => basename($e->getFile()) . ':' . $e->getLine(),
-            ], 500);
+            error_log('[SSO] ' . $e->getMessage());
+            $this->json(['success' => false, 'message' => 'SSO error: ' . $e->getMessage()], 500);
         }
     }
 }
