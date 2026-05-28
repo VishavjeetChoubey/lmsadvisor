@@ -122,7 +122,6 @@ if (!empty($inProgress)):
     View All <i class="bi bi-arrow-right ms-1"></i>
   </a>
 </div>
-
 <?php if (empty($enrolled)): ?>
 <div class="lms-surface text-center py-5 px-4">
   <div style="font-size:3rem;color:var(--border)"><i class="bi bi-mortarboard"></i></div>
@@ -178,6 +177,64 @@ if (!empty($inProgress)):
         <a href="<?= $playerUrl ?>" class="btn-course-action <?= $isDone ? 'btn-success-action' : 'btn-primary-action' ?>">
           <i class="bi <?= $isDone ? 'bi-eye-fill' : 'bi-play-fill' ?>"></i>
           <?= $isDone ? 'View' : ($pct > 0 ? 'Resume' : 'Start') ?>
+        </a>
+      </div>
+    </div>
+  </div>
+  <?php endforeach; ?>
+</div>
+<?php endif; ?>
+
+<!-- ── Recommended Courses ────────────────────────────────────────────────── -->
+<?php
+try {
+  $recommendations = \App\Services\RecommendationService::getForUser((int)($authUser['id'] ?? 0), 4);
+} catch (\Throwable $ex) {
+  $recommendations = [];
+}
+?>
+<?php if (!empty($recommendations)): ?>
+<div class="d-flex align-items-center justify-content-between mb-3 mt-5">
+  <h3 style="font-size:16px;font-weight:800;color:var(--text-1);margin:0;display:flex;align-items:center;gap:7px">
+    <i class="bi bi-stars" style="color:#f59e0b"></i> Recommended For You
+  </h3>
+</div>
+<div class="row g-3">
+  <?php foreach ($recommendations as $rec):
+    $rDetUrl = $url('learn/courses/' . ($rec['uuid'] ?? ''));
+  ?>
+  <div class="col-12 col-sm-6 col-xl-3">
+    <div class="course-card h-100" style="border-top:3px solid #f59e0b">
+      <a href="<?= $rDetUrl ?>" class="course-thumb-wrap" style="text-decoration:none">
+        <?php if (!empty($rec['thumbnail'])): ?>
+          <img src="<?= $e(APP_URL . '/storage/uploads/' . $rec['thumbnail']) ?>" alt="<?= $e($rec['title']) ?>">
+        <?php else: ?>
+          <div class="course-thumb-placeholder"><i class="bi bi-journal-bookmark-fill"></i></div>
+        <?php endif; ?>
+        <div class="course-progress-chip" style="background:#f59e0b;color:#fff">
+          <i class="bi bi-stars me-1"></i>Recommended
+        </div>
+      </a>
+      <div class="course-body">
+        <a href="<?= $rDetUrl ?>" class="course-title-link">
+          <div class="course-title-text"><?= $e($rec['title']) ?></div>
+        </a>
+        <div class="course-chips">
+          <?php if (!empty($rec['level'])): ?>
+          <span class="course-chip chip-<?= $e($rec['level']) ?>"><?= ucfirst($e($rec['level'])) ?></span>
+          <?php endif; ?>
+          <?php if (!empty($rec['category_name'])): ?>
+          <span class="course-chip chip-category"><?= $e($rec['category_name']) ?></span>
+          <?php endif; ?>
+        </div>
+        <div style="font-size:12px;color:#d97706;margin-top:6px;font-weight:600">
+          <i class="bi bi-info-circle me-1"></i><?= $e($rec['recommendation_reason'] ?? 'You might like this') ?>
+        </div>
+      </div>
+      <div class="course-footer">
+        <span></span>
+        <a href="<?= $rDetUrl ?>" class="btn-course-action btn-primary-action" style="background:#f59e0b;border-color:#f59e0b">
+          <i class="bi bi-eye-fill"></i> View
         </a>
       </div>
     </div>

@@ -15,6 +15,7 @@ $navItems = [
   ['Dashboard',     'bi-speedometer2',      'admin/dashboard',     '/admin/dashboard'],
   ['Analytics',    'bi-bar-chart-fill',    'admin/analytics',        '/admin/analytics'],
   ['Learner Data', 'bi-person-lines-fill', 'admin/learner-analytics','/admin/learner-analytics'],
+  ['At-Risk',      'bi-exclamation-triangle-fill','admin/dropout','/admin/dropout'],
   ['Courses',       'bi-book-fill',         'admin/courses',       '/admin/courses'],
   ['Learning Paths','bi-signpost-2-fill',   'admin/learning-paths','/admin/learning-paths'],
   ['Groups',        'bi-people-fill',       'admin/groups',        '/admin/groups'],

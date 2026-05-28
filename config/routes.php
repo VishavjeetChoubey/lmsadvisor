@@ -346,3 +346,12 @@ $router->post('/api/v1/users',            'Api\UserApiController@create');
 $router->put('/api/v1/users/:uuid',       'Api\UserApiController@update');
 $router->post('/api/v1/auth/sso-token',   'Api\AuthApiController@ssoToken');
 $router->get('/sso/login',                'Auth\SsoController@handle');
+
+// Drop-out Predictor
+$router->get('/admin/dropout',              'Admin\DropoutController@index');
+$router->post('/admin/dropout/recalculate', 'Admin\DropoutController@recalculate');
+$router->post('/admin/dropout/alert',       'Admin\DropoutController@sendAlert');
+
+// Recommendations API
+$router->get('/api/v1/recommendations',     'Api\RecommendationApiController@index');
+$router->post('/api/v1/recommendations/:course_id/dismiss', 'Api\RecommendationApiController@dismiss');
