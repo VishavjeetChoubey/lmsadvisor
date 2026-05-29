@@ -77,7 +77,9 @@ class AuthController extends Controller
     protected function apiAuth(?string $requiredScope = null): array
     {
         $this->setCorsHeaders();
-        \App\Middleware\RateLimitMiddleware::api(); // 120 requests per minute
+        // Note: rate limiting is NOT applied here — apiAuth() is also used by
+        // internal AJAX (AI Tutor, admin) which should never be rate-limited.
+        // External rate limiting is applied only in specific public endpoints.
         $token = $this->getBearerToken();
 
         if (!$token) {
