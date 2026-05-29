@@ -97,7 +97,7 @@ $passPct = (int)$r['pass_pct'];
 
     <!-- Options with correct/wrong indicators -->
     <div class="qr-options">
-      <?php if ($q['type'] === 'fill_blank'): ?>
+      <?php if ($q['type'] === 'fill_blank' || $q['type'] === 'short_answer'): ?>
         <div class="qr-fill-answer">
           <div class="qr-your-answer <?= $isCorrect ? 'correct' : 'wrong' ?>">
             <span class="qr-answer-lbl">Your answer:</span>
@@ -107,13 +107,71 @@ $passPct = (int)$r['pass_pct'];
           <?php if (!$isCorrect): ?>
           <div class="qr-correct-answer">
             <span class="qr-answer-lbl">Correct answer:</span>
-            <?php $correctTexts = array_column(array_filter($q['options'], fn($o) => $o['is_correct']), 'option_text'); ?>
-            <span><?= $e(implode(', ', $correctTexts)) ?></span>
+            <?php if ($q['type'] === 'short_answer'): ?>
+              <?php $acceptable = json_decode($q['acceptable_answers'] ?? '[]', true) ?: []; ?>
+              <span><?= $e(implode(' or ', $acceptable)) ?></span>
+            <?php else: ?>
+              <?php $correctTexts = array_column(array_filter($q['options'], fn($o) => $o['is_correct']), 'option_text'); ?>
+              <span><?= $e(implode(', ', $correctTexts)) ?></span>
+            <?php endif; ?>
           </div>
           <?php endif; ?>
         </div>
 
-      <?php else: ?>
+      <?php elseif ($q['type'] === 'ordering'): ?>
+        <?php
+          $correctOrder  = json_decode($q['order_items'] ?? '[]', true) ?: [];
+          $submittedOrder = is_string($submitted) ? json_decode($submitted, true) : (array)$submitted;
+        ?>
+        <div class="qr-fill-answer">
+          <div class="qr-answer-lbl mb-2">Your order:</div>
+          <?php foreach ((array)$submittedOrder as $si => $item): ?>
+          <div class="d-flex align-items-center gap-2 mb-1">
+            <span class="badge bg-secondary"><?= $si+1 ?></span>
+            <span style="font-size:14px"><?= $e($item) ?></span>
+            <?php if (isset($correctOrder[$si]) && $correctOrder[$si] === $item): ?>
+              <i class="bi bi-check-circle-fill text-success"></i>
+            <?php else: ?>
+              <i class="bi bi-x-circle-fill text-danger"></i>
+            <?php endif; ?>
+          </div>
+          <?php endforeach; ?>
+          <?php if (!$isCorrect): ?>
+          <div class="qr-correct-answer mt-2">
+            <div class="qr-answer-lbl mb-1">Correct order:</div>
+            <?php foreach ($correctOrder as $ci => $item): ?>
+            <div class="d-flex align-items-center gap-2 mb-1">
+              <span class="badge bg-success"><?= $ci+1 ?></span>
+              <span style="font-size:14px"><?= $e($item) ?></span>
+            </div>
+            <?php endforeach; ?>
+          </div>
+          <?php endif; ?>
+        </div>
+
+      <?php elseif ($q['type'] === 'matching'): ?>
+        <?php $pairs = json_decode($q['match_pairs'] ?? '[]', true) ?: []; ?>
+        <div class="qr-fill-answer">
+          <?php foreach ($pairs as $pi => $pair):
+            $given   = strtolower(trim((string)($submitted[$pi] ?? '')));
+            $expected = strtolower(trim($pair['right']));
+            $pairOk  = $given === $expected;
+          ?>
+          <div class="d-flex align-items-center gap-2 mb-2 flex-wrap">
+            <span style="min-width:120px;font-weight:600;font-size:13.5px"><?= $e($pair['left']) ?></span>
+            <i class="bi bi-arrow-right text-muted"></i>
+            <span style="font-size:13.5px"><?= $e($submitted[$pi] ?? '(no answer)') ?></span>
+            <?php if ($pairOk): ?>
+              <i class="bi bi-check-circle-fill text-success"></i>
+            <?php else: ?>
+              <i class="bi bi-x-circle-fill text-danger"></i>
+              <span style="font-size:12px;color:#059669">→ <?= $e($pair['right']) ?></span>
+            <?php endif; ?>
+          </div>
+          <?php endforeach; ?>
+        </div>
+
+      <?php else: // single, multiple, true_false ?>
         <?php foreach ($q['options'] as $opt):
           $isCorrectOpt = in_array($opt['id'], $correctIds, false);
           $wasSelected  = is_array($submitted)

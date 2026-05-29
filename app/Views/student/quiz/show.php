@@ -330,7 +330,7 @@ $url = fn(string $p = ''): string => View::url($p);
 .quiz-progress-label { font-size: 12px; color: var(--text-muted); text-align: right; margin-bottom: 20px; }
 
 /* Questions */
-.quiz-questions { display: flex; flex-direction: column; gap: 16px; }
+.quiz-questions { display: flex; flex-direction: column; gap: 16px; padding-bottom: 100px; }
 
 .quiz-q-card {
   background: var(--card-bg); border: 1.5px solid var(--border-color);

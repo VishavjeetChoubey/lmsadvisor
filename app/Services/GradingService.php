@@ -63,6 +63,36 @@ class GradingService
                     );
                     $correct = in_array(strtolower(trim((string)$answer)), $correctTexts, true);
                     break;
+
+                case 'short_answer':
+                    // Compare against acceptable_answers JSON array (case-insensitive)
+                    $acceptable = json_decode($q['acceptable_answers'] ?? '[]', true) ?: [];
+                    $acceptable = array_map(fn($a) => strtolower(trim($a)), $acceptable);
+                    $correct = in_array(strtolower(trim((string)$answer)), $acceptable, true);
+                    break;
+
+                case 'ordering':
+                    // Answer is JSON array of item strings; must match order_items exactly
+                    $correctOrder = json_decode($q['order_items'] ?? '[]', true) ?: [];
+                    $submitted_order = is_string($answer) ? json_decode($answer, true) : $answer;
+                    if (is_array($submitted_order) && is_array($correctOrder)) {
+                        $correct = array_values($submitted_order) === array_values($correctOrder);
+                    }
+                    break;
+
+                case 'matching':
+                    // Answer is array [pairIndex => selectedRight]
+                    // Compare each against the correct right value for that pair index
+                    $pairs = json_decode($q['match_pairs'] ?? '[]', true) ?: [];
+                    if (is_array($answer) && count($answer) === count($pairs)) {
+                        $correct = true;
+                        foreach ($pairs as $pi => $pair) {
+                            $given   = strtolower(trim((string)($answer[$pi] ?? '')));
+                            $expected = strtolower(trim($pair['right']));
+                            if ($given !== $expected) { $correct = false; break; }
+                        }
+                    }
+                    break;
             }
 
             if ($correct) {
