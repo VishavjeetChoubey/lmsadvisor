@@ -16,6 +16,7 @@ $tabIcons = [
     'webinar'     => 'bi-camera-video',
     'ai'          => 'bi-stars',
     'reviews'     => 'bi-star',
+    'lesson'      => 'bi-play-circle',
     'custom_code' => 'bi-code-slash',
 ];
 ?>
@@ -512,6 +513,81 @@ $tabIcons = [
                   Public Leaderboard
                 </label>
                 <div class="form-text">When enabled, all enrolled students can see each other's rankings.</div>
+              </div>
+            </div>
+          </div>
+
+          <?php elseif ($activeTab === 'lesson'): ?>
+          <!-- ── Lesson Player Settings ──────────────────────────────────── -->
+
+          <div class="col-12">
+            <div class="settings-section-label">
+              <i class="bi bi-stars me-1"></i> AI Tutor
+            </div>
+          </div>
+          <div class="col-12">
+            <div class="form-check form-switch mb-3">
+              <input class="form-check-input" type="checkbox" role="switch"
+                     name="lesson_show_ai_tutor" id="lesson_show_ai_tutor" value="1"
+                     <?= $bool('lesson_show_ai_tutor') ? 'checked' : '' ?>>
+              <label class="form-check-label fw-semibold" for="lesson_show_ai_tutor">
+                Show AI Tutor button on lesson pages
+              </label>
+              <div class="text-muted" style="font-size:12.5px;margin-top:3px">
+                Displays the ✦ floating button that opens the AI Tutor panel. Students can ask questions, get summaries, translate content, and use voice input.
+              </div>
+            </div>
+          </div>
+
+          <div class="col-12"><hr class="my-1"></div>
+
+          <div class="col-12">
+            <div class="settings-section-label">
+              <i class="bi bi-journal-text me-1"></i> Notes & Comments Panel
+            </div>
+          </div>
+          <div class="col-12">
+            <div class="form-check form-switch mb-3">
+              <input class="form-check-input" type="checkbox" role="switch"
+                     name="lesson_show_notes" id="lesson_show_notes" value="1"
+                     <?= $bool('lesson_show_notes') ? 'checked' : '' ?>>
+              <label class="form-check-label fw-semibold" for="lesson_show_notes">
+                Show Notes & Comments panel
+              </label>
+              <div class="text-muted" style="font-size:12.5px;margin-top:3px">
+                Displays the right-side Notes and Comments sidebar inside the course player. Students can take private notes and post comments on lessons.
+              </div>
+            </div>
+            <div class="form-check form-switch mb-3">
+              <input class="form-check-input" type="checkbox" role="switch"
+                     name="lesson_show_collab_fab" id="lesson_show_collab_fab" value="1"
+                     <?= $bool('lesson_show_collab_fab') ? 'checked' : '' ?>>
+              <label class="form-check-label fw-semibold" for="lesson_show_collab_fab">
+                Show Notes floating toggle button
+              </label>
+              <div class="text-muted" style="font-size:12.5px;margin-top:3px">
+                Shows the 📓 floating button that opens/closes the Notes panel. Only relevant if the Notes panel is enabled above.
+              </div>
+            </div>
+          </div>
+
+          <div class="col-12"><hr class="my-1"></div>
+
+          <div class="col-12">
+            <div class="settings-section-label">
+              <i class="bi bi-moon-stars me-1"></i> Display
+            </div>
+          </div>
+          <div class="col-12">
+            <div class="form-check form-switch mb-3">
+              <input class="form-check-input" type="checkbox" role="switch"
+                     name="lesson_allow_dark_mode" id="lesson_allow_dark_mode" value="1"
+                     <?= $bool('lesson_allow_dark_mode') ? 'checked' : '' ?>>
+              <label class="form-check-label fw-semibold" for="lesson_allow_dark_mode">
+                Allow students to toggle dark mode
+              </label>
+              <div class="text-muted" style="font-size:12.5px;margin-top:3px">
+                Shows the dark/light mode toggle button in the student navigation bar.
               </div>
             </div>
           </div>

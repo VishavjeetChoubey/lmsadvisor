@@ -333,6 +333,10 @@ class DashboardController extends Controller
             'enrollment'     => $enrollment,
             'instructor'     => $instructor,
             'csrf_token'     => \App\Middleware\CsrfMiddleware::token(),
+            // Lesson player feature toggles (from Admin → Settings → Lesson Player)
+            'featureAiTutor'   => (bool)(int)(\App\Models\Setting::get('lesson_show_ai_tutor',   '1') ?? '1'),
+            'featureNotes'     => (bool)(int)(\App\Models\Setting::get('lesson_show_notes',       '1') ?? '1'),
+            'featureCollabFab' => (bool)(int)(\App\Models\Setting::get('lesson_show_collab_fab',  '1') ?? '1'),
         ], 'student');
     }
 

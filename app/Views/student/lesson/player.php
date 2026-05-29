@@ -533,7 +533,8 @@ $typeColors  = ['text'=>'rgba(255,255,255,.5)','video'=>'#f87171','document'=>'#
 
 
           <!-- ── Notes & Comments panel ─────────────── -->
-          <div class="lp-collab-panel" id="lpCollabPanel">
+          <div class="lp-collab-panel" id="lpCollabPanel"
+               <?= !($featureNotes ?? true) ? 'style="display:none!important;width:0;min-width:0;overflow:hidden"' : '' ?>>
             <div class="lp-collab-tabs">
               <button class="lp-collab-tab active" data-panel="notes"><i class="bi bi-journal-text"></i><span>Notes</span></button>
               <button class="lp-collab-tab" data-panel="comments"><i class="bi bi-chat-dots"></i><span>Comments</span></button>
@@ -668,15 +669,22 @@ $typeColors  = ['text'=>'rgba(255,255,255,.5)','video'=>'#f87171','document'=>'#
     <button id="aiDoTranslateBtn"><i class="bi bi-check2"></i> Translate</button>
   </div>
 
+<?php if ($featureAiTutor ?? true): ?>
 </div><!-- /.lp-ai-panel -->
 
-<!-- FAB button -->
+<!-- AI Tutor FAB -->
 <button class="lp-ai-fab" id="aiTutorFab" title="AI Tutor">
   <i class="bi bi-stars"></i>
 </button>
+<?php else: ?>
+</div><!-- /.lp-ai-panel (hidden by setting) -->
+<?php endif; ?>
+
+<?php if ($featureCollabFab ?? true): ?>
 <button class="lp-collab-fab" id="collabOpenBtn" title="Notes & Comments" style="display:none">
   <i class="bi bi-journal-text"></i>
 </button>
+<?php endif; ?>
 
 <style>
 /* ═══════════════════════════════════════════════════════
@@ -1014,8 +1022,19 @@ body:not(.collab-panel-hidden) .lp-ai-panel {
   height: 100vh !important;
   max-height: 100vh !important;
   border-radius: 0;
+  /* Force the page theme — browsers reset color-scheme in fullscreen */
+  background: var(--page-bg, #f1f5f9) !important;
+  color: var(--text-primary, #0f172a) !important;
+  color-scheme: light !important;
 }
-#lpFsIcon.exit { /* icon swapped by JS */ }
+/* Keep dark mode working if user had it on before going fullscreen */
+[data-theme="dark"] .lp-shell:fullscreen,
+[data-theme="dark"] .lp-shell:-webkit-full-screen,
+[data-theme="dark"] .lp-shell:-moz-full-screen {
+  background: var(--page-bg, #0f172a) !important;
+  color: var(--text-primary, #f1f5f9) !important;
+  color-scheme: dark !important;
+}
 </style>
 
 <style>
@@ -1744,6 +1763,9 @@ function toggleSection(idx) {
     if (shell) {
       shell.classList.toggle('fullscreen', isFs);
     }
+    // Re-stamp data-theme on <html> — browsers can reset color-scheme in fullscreen
+    var currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
+    document.documentElement.setAttribute('data-theme', currentTheme);
   }
   document.addEventListener('fullscreenchange',       onFsChange);
   document.addEventListener('webkitfullscreenchange', onFsChange);

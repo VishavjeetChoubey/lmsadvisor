@@ -22,6 +22,7 @@ class SettingsService
             'webinar'     => 'Webinar',
             'ai'          => 'AI Integration',
             'reviews'     => 'Reviews & Leaderboard',
+            'lesson'      => 'Lesson Player',
             'custom_code' => 'Custom Code',
         ];
     }
