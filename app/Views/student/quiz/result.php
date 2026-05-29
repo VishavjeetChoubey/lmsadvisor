@@ -97,7 +97,7 @@ $passPct = (int)$r['pass_pct'];
 
     <!-- Options with correct/wrong indicators -->
     <div class="qr-options">
-      <?php if ($q['type'] === 'fill_blank'): ?>
+      <?php if ($q['type'] === 'fill_blank' || $q['type'] === 'short_answer'): ?>
         <div class="qr-fill-answer">
           <div class="qr-your-answer <?= $isCorrect ? 'correct' : 'wrong' ?>">
             <span class="qr-answer-lbl">Your answer:</span>
@@ -107,13 +107,71 @@ $passPct = (int)$r['pass_pct'];
           <?php if (!$isCorrect): ?>
           <div class="qr-correct-answer">
             <span class="qr-answer-lbl">Correct answer:</span>
-            <?php $correctTexts = array_column(array_filter($q['options'], fn($o) => $o['is_correct']), 'option_text'); ?>
-            <span><?= $e(implode(', ', $correctTexts)) ?></span>
+            <?php if ($q['type'] === 'short_answer'): ?>
+              <?php $acceptable = json_decode($q['acceptable_answers'] ?? '[]', true) ?: []; ?>
+              <span><?= $e(implode(' or ', $acceptable)) ?></span>
+            <?php else: ?>
+              <?php $correctTexts = array_column(array_filter($q['options'], fn($o) => $o['is_correct']), 'option_text'); ?>
+              <span><?= $e(implode(', ', $correctTexts)) ?></span>
+            <?php endif; ?>
           </div>
           <?php endif; ?>
         </div>
 
-      <?php else: ?>
+      <?php elseif ($q['type'] === 'ordering'): ?>
+        <?php
+          $correctOrder  = json_decode($q['order_items'] ?? '[]', true) ?: [];
+          $submittedOrder = is_string($submitted) ? json_decode($submitted, true) : (array)$submitted;
+        ?>
+        <div class="qr-fill-answer">
+          <div class="qr-answer-lbl mb-2">Your order:</div>
+          <?php foreach ((array)$submittedOrder as $si => $item): ?>
+          <div class="d-flex align-items-center gap-2 mb-1">
+            <span class="badge bg-secondary"><?= $si+1 ?></span>
+            <span style="font-size:14px"><?= $e($item) ?></span>
+            <?php if (isset($correctOrder[$si]) && $correctOrder[$si] === $item): ?>
+              <i class="bi bi-check-circle-fill text-success"></i>
+            <?php else: ?>
+              <i class="bi bi-x-circle-fill text-danger"></i>
+            <?php endif; ?>
+          </div>
+          <?php endforeach; ?>
+          <?php if (!$isCorrect): ?>
+          <div class="qr-correct-answer mt-2">
+            <div class="qr-answer-lbl mb-1">Correct order:</div>
+            <?php foreach ($correctOrder as $ci => $item): ?>
+            <div class="d-flex align-items-center gap-2 mb-1">
+              <span class="badge bg-success"><?= $ci+1 ?></span>
+              <span style="font-size:14px"><?= $e($item) ?></span>
+            </div>
+            <?php endforeach; ?>
+          </div>
+          <?php endif; ?>
+        </div>
+
+      <?php elseif ($q['type'] === 'matching'): ?>
+        <?php $pairs = json_decode($q['match_pairs'] ?? '[]', true) ?: []; ?>
+        <div class="qr-fill-answer">
+          <?php foreach ($pairs as $pi => $pair):
+            $given   = strtolower(trim((string)($submitted[$pi] ?? '')));
+            $expected = strtolower(trim($pair['right']));
+            $pairOk  = $given === $expected;
+          ?>
+          <div class="d-flex align-items-center gap-2 mb-2 flex-wrap">
+            <span style="min-width:120px;font-weight:600;font-size:13.5px"><?= $e($pair['left']) ?></span>
+            <i class="bi bi-arrow-right text-muted"></i>
+            <span style="font-size:13.5px"><?= $e($submitted[$pi] ?? '(no answer)') ?></span>
+            <?php if ($pairOk): ?>
+              <i class="bi bi-check-circle-fill text-success"></i>
+            <?php else: ?>
+              <i class="bi bi-x-circle-fill text-danger"></i>
+              <span style="font-size:12px;color:#059669">→ <?= $e($pair['right']) ?></span>
+            <?php endif; ?>
+          </div>
+          <?php endforeach; ?>
+        </div>
+
+      <?php else: // single, multiple, true_false ?>
         <?php foreach ($q['options'] as $opt):
           $isCorrectOpt = in_array($opt['id'], $correctIds, false);
           $wasSelected  = is_array($submitted)
@@ -130,7 +188,7 @@ $passPct = (int)$r['pass_pct'];
             <?php elseif ($wasSelected): ?>
               <i class="bi bi-x-circle-fill" style="color:#e02424"></i>
             <?php else: ?>
-              <i class="bi bi-circle" style="color:var(--border-color)"></i>
+              <i class="bi bi-circle" style="color:var(--border)"></i>
             <?php endif; ?>
           </span>
           <span class="qr-opt-text"><?= $e($opt['option_text']) ?></span>
@@ -210,11 +268,11 @@ $passPct = (int)$r['pass_pct'];
 
 /* Review section */
 .qr-review-header { margin-bottom: 16px; }
-.qr-review-header h4 { font-weight: 700; color: var(--text-primary); margin-bottom: 4px; }
-.qr-review-header p  { font-size: 13.5px; color: var(--text-muted); }
+.qr-review-header h4 { font-weight: 700; color: var(--text-1); margin-bottom: 4px; }
+.qr-review-header p  { font-size: 13.5px; color: var(--text-2); }
 
 .qr-q-card {
-  background: var(--card-bg); border: 1.5px solid var(--border-color);
+  background: var(--card); border: 1.5px solid var(--border);
   border-radius: 14px; margin-bottom: 14px; overflow: hidden;
 }
 .qr-q-card.correct { border-color: #0e9f6e; }
@@ -228,14 +286,14 @@ $passPct = (int)$r['pass_pct'];
 }
 .qr-q-num.pass { background: #d1fae5; color: #0e9f6e; }
 .qr-q-num.fail { background: #fde8e8; color: #e02424; }
-.qr-q-text { font-size: 15px; font-weight: 600; color: var(--text-primary); }
-.qr-q-pts  { font-size: 12px; color: var(--text-muted); margin-top: 3px; }
+.qr-q-text { font-size: 15px; font-weight: 600; color: var(--text-1); }
+.qr-q-pts  { font-size: 12px; color: var(--text-2); margin-top: 3px; }
 
 .qr-options { padding: 8px 20px 16px; display: flex; flex-direction: column; gap: 8px; }
 .qr-option {
   display: flex; align-items: center; gap: 10px;
   padding: 10px 14px; border-radius: 8px; font-size: 14px;
-  color: var(--text-primary); border: 1px solid transparent;
+  color: var(--text-1); border: 1px solid transparent;
 }
 .qr-option.opt-correct { background: #d1fae5; border-color: #0e9f6e; }
 .qr-option.opt-wrong   { background: #fde8e8; border-color: #e02424; }
@@ -256,7 +314,7 @@ $passPct = (int)$r['pass_pct'];
 .qr-your-answer.correct { background: #d1fae5; }
 .qr-your-answer.wrong   { background: #fde8e8; }
 .qr-correct-answer { background: #d1fae5; }
-.qr-answer-lbl { font-weight: 600; color: var(--text-muted); white-space: nowrap; }
+.qr-answer-lbl { font-weight: 600; color: var(--text-2); white-space: nowrap; }
 
 /* Explanation */
 .qr-explanation {
@@ -281,6 +339,6 @@ $passPct = (int)$r['pass_pct'];
 }
 .qr-btn:hover { opacity: .9; transform: translateY(-1px); }
 .qr-btn-retry   { background: linear-gradient(135deg,#6366f1,#1a56db); color: #fff !important; box-shadow: 0 4px 14px rgba(99,102,241,.3); }
-.qr-btn-back    { background: var(--content-bg); color: var(--text-muted) !important; border: 1.5px solid var(--border-color); }
+.qr-btn-back    { background: var(--card); color: var(--text-2) !important; border: 1.5px solid var(--border); }
 .qr-btn-courses { background: linear-gradient(135deg,#0e9f6e,#059669); color: #fff !important; box-shadow: 0 4px 14px rgba(14,159,110,.25); }
 </style>

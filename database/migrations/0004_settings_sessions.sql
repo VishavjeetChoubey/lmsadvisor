@@ -66,3 +66,10 @@ INSERT IGNORE INTO settings (`key`, value, type, label, group_name) VALUES
 -- Leaderboard
 ('leaderboard_enabled',  '1',           'boolean', 'Enable Leaderboard',       'leaderboard'),
 ('leaderboard_public',   '1',           'boolean', 'Public Leaderboard',       'leaderboard');
+
+-- Lesson player feature toggles
+INSERT IGNORE INTO settings (`key`, value, type, label, group_name) VALUES
+('lesson_show_ai_tutor',   '1', 'boolean', 'Show AI Tutor on lesson pages',     'lesson'),
+('lesson_show_notes',      '1', 'boolean', 'Show Notes & Comments panel',        'lesson'),
+('lesson_show_collab_fab', '1', 'boolean', 'Show Notes floating button',         'lesson'),
+('lesson_allow_dark_mode', '1', 'boolean', 'Allow students to toggle dark mode', 'lesson');

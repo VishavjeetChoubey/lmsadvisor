@@ -76,6 +76,44 @@ if ($quiz['shuffle_questions']) shuffle($questions);
             <input type="text" class="form-control" name="answers[<?= $q['id'] ?>]"
                    placeholder="Type your answer…">
 
+          <?php elseif ($q['type'] === 'short_answer'): ?>
+            <textarea class="form-control" name="answers[<?= $q['id'] ?>]" rows="3"
+                      placeholder="Write your answer here…"></textarea>
+
+          <?php elseif ($q['type'] === 'ordering'): ?>
+            <?php $orderItems = json_decode($q['order_items'] ?? '[]', true) ?: []; shuffle($orderItems); ?>
+            <p class="text-muted small"><i class="bi bi-sort-numeric-down me-1"></i>Drag to reorder</p>
+            <div id="prev-order-<?= $q['id'] ?>" style="display:flex;flex-direction:column;gap:6px">
+              <?php foreach ($orderItems as $item): ?>
+              <div class="d-flex align-items-center gap-2 p-2 rounded border" style="cursor:grab;background:var(--bs-body-bg)"
+                   draggable="true">
+                <i class="bi bi-grip-vertical text-muted"></i>
+                <span><?= $e($item) ?></span>
+              </div>
+              <?php endforeach; ?>
+            </div>
+            <input type="hidden" name="answers[<?= $q['id'] ?>]" id="prev-order-val-<?= $q['id'] ?>">
+
+          <?php elseif ($q['type'] === 'matching'): ?>
+            <?php $pairs = json_decode($q['match_pairs'] ?? '[]', true) ?: []; ?>
+            <p class="text-muted small"><i class="bi bi-arrow-left-right me-1"></i>Match each term to its definition</p>
+            <?php
+            $rights = array_column($pairs, 'right'); shuffle($rights);
+            foreach ($pairs as $pi => $pair): ?>
+            <div class="d-flex align-items-center gap-2 mb-2 flex-wrap">
+              <div class="fw-semibold" style="min-width:130px;padding:8px 12px;background:var(--bs-secondary-bg);border-radius:8px;font-size:14px">
+                <?= $e($pair['left']) ?>
+              </div>
+              <i class="bi bi-arrow-right text-muted"></i>
+              <select name="answers[<?= $q['id'] ?>][<?= $pi ?>]" class="form-select" style="max-width:220px">
+                <option value="">— Select —</option>
+                <?php foreach ($rights as $r): ?>
+                <option value="<?= $e($r) ?>"><?= $e($r) ?></option>
+                <?php endforeach; ?>
+              </select>
+            </div>
+            <?php endforeach; ?>
+
           <?php elseif ($q['type'] === 'multiple'): ?>
             <?php foreach ($opts as $oi => $opt): ?>
             <div class="form-check mb-2">

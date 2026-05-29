@@ -22,6 +22,72 @@ $firstName = explode(' ', $authUser['name'] ?? 'Admin')[0];
   <div class="topbar-title"><?= $e($page_title ?? 'Dashboard') ?></div>
   <div class="flex-grow-1"></div>
 
+  <!-- Global search -->
+  <div class="topbar-search-wrap" style="position:relative;margin-right:8px">
+    <div style="position:relative">
+      <i class="bi bi-search" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text-muted);font-size:13px;pointer-events:none"></i>
+      <input type="text" id="globalSearch"
+             placeholder="Search courses, students…"
+             autocomplete="off"
+             style="background:var(--card-bg);border:1px solid var(--border-color);border-radius:20px;padding:7px 12px 7px 32px;font-size:13px;width:220px;color:var(--text-primary);outline:none;transition:width .2s,border-color .2s"
+             onfocus="this.style.width='280px';this.style.borderColor='#6366f1'"
+             onblur="this.style.width='220px';this.style.borderColor=''">
+    </div>
+    <!-- Dropdown results -->
+    <div id="searchDropdown" style="display:none;position:absolute;top:calc(100% + 6px);left:0;right:0;min-width:320px;background:var(--content-bg);border:1px solid var(--border-color);border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.12);z-index:9999;max-height:360px;overflow-y:auto">
+      <div id="searchResults" style="padding:6px 0"></div>
+    </div>
+  </div>
+
+  <script>
+  (function() {
+    var input  = document.getElementById('globalSearch');
+    var drop   = document.getElementById('searchDropdown');
+    var res    = document.getElementById('searchResults');
+    var timer;
+    var icons  = { course:'bi-journal-bookmark-fill', user:'bi-person-fill', enrollment:'bi-person-check-fill', lesson:'bi-play-circle-fill' };
+    var links  = { course:'/admin/courses/', user:'/admin/students/', enrollment:'/admin/courses/', lesson:'/admin/courses/' };
+    var BASE   = '<?= rtrim(APP_URL, '/') ?>';
+
+    input.addEventListener('input', function() {
+      clearTimeout(timer);
+      var q = this.value.trim();
+      if (q.length < 2) { drop.style.display='none'; return; }
+      timer = setTimeout(function() {
+        fetch(BASE + '/admin/search?q=' + encodeURIComponent(q))
+        .then(r => r.json())
+        .then(function(d) {
+          if (!d.results.length) {
+            res.innerHTML = '<div style="padding:16px 14px;font-size:13px;color:var(--text-muted);text-align:center">No results for "' + q + '"</div>';
+          } else {
+            res.innerHTML = d.results.map(function(r) {
+              var icon  = icons[r.type] || 'bi-search';
+              var url   = BASE + links[r.type] + (r.uuid||'');
+              return '<a href="' + url + '" style="display:flex;align-items:center;gap:10px;padding:9px 14px;text-decoration:none;border-bottom:1px solid var(--border-color);transition:background .1s" onmouseover="this.style.background=\'var(--card-bg)\'" onmouseout="this.style.background=\'\'">' +
+                '<i class="bi ' + icon + '" style="color:#6366f1;font-size:15px;flex-shrink:0"></i>' +
+                '<div style="min-width:0"><div style="font-size:13px;font-weight:600;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + r.title + '</div>' +
+                '<div style="font-size:11.5px;color:var(--text-muted)">' + r.meta + '</div></div>' +
+                '</a>';
+            }).join('');
+          }
+          res.innerHTML += '<a href="' + BASE + '/admin/search?q=' + encodeURIComponent(q) + '" style="display:block;padding:9px 14px;font-size:12.5px;color:#6366f1;text-align:center;font-weight:600;text-decoration:none">See all results →</a>';
+          drop.style.display = 'block';
+        }).catch(function(){});
+      }, 250);
+    });
+
+    document.addEventListener('click', function(e) {
+      if (!e.target.closest('.topbar-search-wrap')) drop.style.display='none';
+    });
+    input.addEventListener('keydown', function(e) {
+      if (e.key === 'Enter') {
+        window.location.href = BASE + '/admin/search?q=' + encodeURIComponent(this.value.trim());
+      }
+      if (e.key === 'Escape') { drop.style.display='none'; this.blur(); }
+    });
+  })();
+  </script>
+
   <!-- Notification bell with live unread count -->
   <div class="dropdown">
     <button class="topbar-icon-btn position-relative" id="notifBell" data-bs-toggle="dropdown" title="Notifications">

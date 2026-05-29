@@ -14,6 +14,7 @@ class AuthController extends Controller
     public function token(array $params): void
     {
         $this->setCorsHeaders();
+        \App\Middleware\RateLimitMiddleware::auth(); // 10 attempts per 5 min per IP
         $email    = Sanitizer::email($this->request->post('email', ''));
         $password = (string)$this->request->post('password', '');
         $name     = Sanitizer::string($this->request->post('token_name', 'API Token'), 120);
@@ -76,6 +77,9 @@ class AuthController extends Controller
     protected function apiAuth(?string $requiredScope = null): array
     {
         $this->setCorsHeaders();
+        // Note: rate limiting is NOT applied here — apiAuth() is also used by
+        // internal AJAX (AI Tutor, admin) which should never be rate-limited.
+        // External rate limiting is applied only in specific public endpoints.
         $token = $this->getBearerToken();
 
         if (!$token) {

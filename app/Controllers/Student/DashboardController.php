@@ -333,6 +333,10 @@ class DashboardController extends Controller
             'enrollment'     => $enrollment,
             'instructor'     => $instructor,
             'csrf_token'     => \App\Middleware\CsrfMiddleware::token(),
+            // Lesson player feature toggles (from Admin → Settings → Lesson Player)
+            'featureAiTutor'   => (bool)(int)(\App\Models\Setting::get('lesson_show_ai_tutor',   '1') ?? '1'),
+            'featureNotes'     => (bool)(int)(\App\Models\Setting::get('lesson_show_notes',       '1') ?? '1'),
+            'featureCollabFab' => (bool)(int)(\App\Models\Setting::get('lesson_show_collab_fab',  '1') ?? '1'),
         ], 'student');
     }
 
@@ -359,6 +363,39 @@ class DashboardController extends Controller
 
         $lessonId = (int)$this->request->post('lesson_id', 0);
         if ($lessonId) {
+
+            // ── Quiz gating: check if lesson has a required quiz not yet passed ──
+            $pdo = \App\Core\Database::getInstance();
+            $quizGateStmt = $pdo->prepare(
+                "SELECT q.id, q.title, q.pass_percentage
+                 FROM quizzes q
+                 JOIN lessons l ON l.id = q.lesson_id
+                 WHERE l.id = ? AND q.is_required = 1
+                 LIMIT 1"
+            );
+            $quizGateStmt->execute([$lessonId]);
+            $requiredQuiz = $quizGateStmt->fetch();
+
+            if ($requiredQuiz) {
+                // Check if student has a passing attempt
+                $passedStmt = $pdo->prepare(
+                    "SELECT COUNT(*) FROM quiz_attempts
+                     WHERE quiz_id = ? AND user_id = ? AND passed = 1
+                     AND completed_at IS NOT NULL"
+                );
+                $passedStmt->execute([$requiredQuiz['id'], (int)$user['id']]);
+                $hasPassed = (int)$passedStmt->fetchColumn() > 0;
+
+                if (!$hasPassed) {
+                    $this->json([
+                        'success' => false,
+                        'blocked' => true,
+                        'message' => 'You must pass the quiz "' . $requiredQuiz['title'] . '" before completing this lesson. Required score: ' . $requiredQuiz['pass_percentage'] . '%.',
+                    ]);
+                }
+            }
+            // ── End quiz gating ───────────────────────────────────────────────
+
             try {
                 $enrollModel->markLessonProgress((int)$enrollment['id'], $lessonId, 'completed', 100);
             } catch (\Throwable $e) {

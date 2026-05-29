@@ -346,3 +346,61 @@ $router->post('/api/v1/users',            'Api\UserApiController@create');
 $router->put('/api/v1/users/:uuid',       'Api\UserApiController@update');
 $router->post('/api/v1/auth/sso-token',   'Api\AuthApiController@ssoToken');
 $router->get('/sso/login',                'Auth\SsoController@handle');
+
+// Drop-out Predictor
+$router->get('/admin/dropout',              'Admin\DropoutController@index');
+$router->post('/admin/dropout/recalculate', 'Admin\DropoutController@recalculate');
+$router->post('/admin/dropout/alert',       'Admin\DropoutController@sendAlert');
+
+// Recommendations API
+$router->get('/api/v1/recommendations',     'Api\RecommendationApiController@index');
+$router->post('/api/v1/recommendations/:course_id/dismiss', 'Api\RecommendationApiController@dismiss');
+
+// Multi-tenant
+$router->get('/admin/tenants',                  'Admin\TenantController@index');
+$router->get('/admin/tenants/create',           'Admin\TenantController@create');
+$router->post('/admin/tenants',                 'Admin\TenantController@store');
+$router->get('/admin/tenants/:uuid/edit',       'Admin\TenantController@edit');
+$router->post('/admin/tenants/:uuid/update',    'Admin\TenantController@update');
+
+// Corporate Training
+$router->get('/admin/organisations',                    'Admin\OrganisationController@index');
+$router->post('/admin/organisations',                   'Admin\OrganisationController@store');
+$router->get('/admin/organisations/:uuid',              'Admin\OrganisationController@show');
+$router->post('/admin/organisations/:uuid/assign',      'Admin\OrganisationController@assignCourse');
+$router->get('/admin/organisations/:uuid/export',       'Admin\OrganisationController@exportReport');
+
+// API Marketplace
+$router->get('/admin/marketplace/api',                           'Admin\MarketplaceController@apiPortal');
+$router->get('/admin/marketplace/instructors',                   'Admin\MarketplaceController@instructors');
+$router->post('/admin/marketplace/instructors/:id/review',       'Admin\MarketplaceController@reviewApplication');
+
+// Executive Reporting
+$router->get('/admin/reporting',            'Admin\ReportingController@index');
+$router->get('/admin/reporting/chart-data', 'Admin\ReportingController@chartData');
+
+// Password reset
+$router->get('/forgot-password',         'Auth\PasswordResetController@forgot');
+$router->post('/forgot-password',        'Auth\PasswordResetController@sendReset');
+$router->get('/reset-password',          'Auth\PasswordResetController@resetForm');
+$router->post('/reset-password',         'Auth\PasswordResetController@doReset');
+
+// Student profile
+$router->get('/learn/profile',           'Student\ProfileController@show');
+$router->post('/learn/profile/update',   'Student\ProfileController@update');
+$router->post('/learn/profile/password', 'Student\ProfileController@changePassword');
+
+// Global admin search
+$router->get('/admin/search',            'Admin\SearchController@page');
+$router->get('/admin/search/api',        'Admin\SearchController@search');
+
+// Public Help Center (no auth required)
+$router->get('/help',                      'HelpController@index');
+$router->get('/help/search',               'HelpController@search');
+$router->get('/help/category/:slug',       'HelpController@category');
+$router->get('/help/article/:slug',        'HelpController@article');
+
+// Menu permissions settings (super_admin only)
+$router->get('/admin/menu-settings',       'Admin\MenuSettingsController@index');
+$router->post('/admin/menu-settings',      'Admin\MenuSettingsController@save');
+$router->post('/admin/menu-settings/reset','Admin\MenuSettingsController@reset');

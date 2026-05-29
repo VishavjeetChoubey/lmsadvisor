@@ -1,41 +1,17 @@
 <?php
 use App\Core\View;
 use App\Services\AuthService;
+use App\Services\MenuService;
 $url      = fn(string $p = ''): string => View::url($p);
 $e        = fn(mixed $v): string => View::e($v);
 $authUser = AuthService::user() ?? [];
-$role     = $authUser['role'] ?? 'admin';
+$role     = $authUser['role_name'] ?? $authUser['role'] ?? 'admin';
 $fullName = $authUser['name'] ?? 'Admin';
 $initials = strtoupper(substr($fullName, 0, 1));
 $path     = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
 $isActive = fn(string $seg): string => str_contains($path, $seg) ? 'active' : '';
 
-$navItems = [
-  // [label, icon, url, match-segment]
-  ['Dashboard',     'bi-speedometer2',      'admin/dashboard',     '/admin/dashboard'],
-  ['Analytics',    'bi-bar-chart-fill',    'admin/analytics',        '/admin/analytics'],
-  ['Learner Data', 'bi-person-lines-fill', 'admin/learner-analytics','/admin/learner-analytics'],
-  ['Courses',       'bi-book-fill',         'admin/courses',       '/admin/courses'],
-  ['Learning Paths','bi-signpost-2-fill',   'admin/learning-paths','/admin/learning-paths'],
-  ['Groups',        'bi-people-fill',       'admin/groups',        '/admin/groups'],
-  ['Assignments',   'bi-clipboard-check-fill','admin/courses',     '/admin/courses'],
-  ['Badges',        'bi-award-fill',        'admin/badges',        '/admin/badges'],
-  ['Email',         'bi-envelope-fill',     'admin/email',         '/admin/email'],
-  ['Enrollments',   'bi-person-check-fill', 'admin/enrollments',   '/admin/enrollments'],
-  ['Users',         'bi-person-lines-fill', 'admin/users',         '/admin/users'],
-  ['Categories',    'bi-grid-fill',         'admin/categories',    '/admin/categories'],
-  ['Quizzes',       'bi-patch-question-fill','admin/quizzes',      '/admin/quizzes'],
-  ['Forum',         'bi-chat-dots-fill',    'admin/forum',         '/admin/forum'],
-  ['Reviews',       'bi-star-fill',         'admin/reviews',       '/admin/reviews'],
-  ['Leaderboard',   'bi-trophy-fill',       'admin/leaderboard',   '/admin/leaderboard'],
-  ['Knowledge Base','bi-journals',          'admin/knowledge-base','/admin/knowledge-base'],
-  ['Webinars',      'bi-camera-video-fill', 'admin/webinars',      '/admin/webinars'],
-  ['Reports',       'bi-bar-chart-line-fill','admin/reports',      '/admin/reports'],
-  ['API',           'bi-braces-asterisk',   'admin/api',           '/admin/api'],
-  ['Webhooks',      'bi-plug-fill',          'admin/webhooks',      '/admin/webhooks'],
-  ['Settings',      'bi-gear-fill',         'admin/settings',      '/admin/settings'],
-  ['Database',      'bi-database-fill-gear','admin/database',      '/admin/database'],
-];
+$navItems = MenuService::forRole($role);
 ?>
 <aside class="adm-sidebar" id="adminSidebar">
 
@@ -102,6 +78,13 @@ $navItems = [
 
   <!-- User + logout at bottom -->
   <div class="adm-sidebar-bottom">
+    <!-- Version badge -->
+    <div style="padding:6px 12px 10px;text-align:center">
+      <span style="display:inline-flex;align-items:center;gap:5px;background:rgba(91,94,246,.12);color:#a5b4fc;border-radius:20px;padding:3px 10px;font-size:11px;font-weight:700;letter-spacing:.03em">
+        <i class="bi bi-stars" style="font-size:10px"></i>
+        LMSAdvisor v<?= defined('APP_VERSION') ? APP_VERSION : '3.0.0' ?>
+      </span>
+    </div>
     <div class="adm-user-row">
       <div class="adm-user-avatar"><?= $initials ?></div>
       <div class="adm-user-info">

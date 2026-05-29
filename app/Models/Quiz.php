@@ -70,7 +70,8 @@ class Quiz extends Model
         $this->execute(
             'UPDATE quizzes SET
                title=?, description=?, time_limit_sec=?, pass_percentage=?,
-               shuffle_questions=?, shuffle_options=?, show_answers_after=?, max_attempts=?
+               shuffle_questions=?, shuffle_options=?, show_answers_after=?, max_attempts=?,
+               is_required=?
              WHERE id=?',
             [
                 $d['title'],
@@ -81,6 +82,7 @@ class Quiz extends Model
                 (int)(bool)($d['shuffle_options'] ?? 0),
                 (int)(bool)($d['show_answers_after'] ?? 1),
                 (int)($d['max_attempts'] ?? 3),
+                (int)($d['is_required'] ?? 0),
                 $id,
             ]
         );
@@ -107,13 +109,17 @@ class Quiz extends Model
     public function updateQuestion(int $id, array $d): void
     {
         $this->execute(
-            'UPDATE questions SET question=?, explanation=?, type=?, points=?, sort_order=? WHERE id=?',
+            'UPDATE questions SET question=?, explanation=?, type=?, points=?, sort_order=?,
+             order_items=?, acceptable_answers=?, match_pairs=? WHERE id=?',
             [
                 $d['question'],
                 $d['explanation'] ?? null,
                 $d['type'] ?? 'single',
                 (int)($d['points'] ?? 1),
                 (int)($d['sort_order'] ?? 0),
+                $d['order_items']        ?? null,
+                $d['acceptable_answers'] ?? null,
+                $d['match_pairs']        ?? null,
                 $id,
             ]
         );
