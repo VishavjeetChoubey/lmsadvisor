@@ -68,6 +68,7 @@ class ProfileController extends Controller
         AuthMiddleware::handle();
         CsrfMiddleware::verify();
         $user = AuthService::user();
+        $uid  = (int)$user['id']; // FIX: was missing, caused undefined variable on photo delete
         $pdo  = Database::getInstance();
 
         $firstName = Sanitizer::string($this->request->post('first_name', ''), 80);
@@ -76,12 +77,13 @@ class ProfileController extends Controller
         $timezone  = Sanitizer::string($this->request->post('timezone', 'UTC'), 60);
         $phone     = Sanitizer::string($this->request->post('phone', ''), 30);
 
-        // Handle photo upload (from avatar click — separate mini-form)
+        // Handle photo upload
         $photoPath = null;
         if (!empty($_FILES['profile_photo']['tmp_name'])) {
             $result = $this->handlePhotoUpload($_FILES['profile_photo']);
             if ($result['success']) {
                 $photoPath = $result['path'];
+                // Delete old photo if one exists
                 $old = $pdo->prepare('SELECT profile_photo FROM users WHERE id=? LIMIT 1');
                 $old->execute([$uid]);
                 $oldPhoto = $old->fetchColumn();
@@ -151,23 +153,46 @@ class ProfileController extends Controller
         $maxBytes = 2 * 1024 * 1024; // 2MB
 
         if ($file['error'] !== UPLOAD_ERR_OK) {
-            return ['success'=>false,'error'=>'Upload failed. Please try again.'];
+            $errMap = [
+                UPLOAD_ERR_INI_SIZE   => 'File exceeds server upload limit.',
+                UPLOAD_ERR_FORM_SIZE  => 'File too large.',
+                UPLOAD_ERR_PARTIAL    => 'Upload was interrupted.',
+                UPLOAD_ERR_NO_FILE    => 'No file selected.',
+            ];
+            return ['success'=>false,'error'=>$errMap[$file['error']] ?? 'Upload failed. Please try again.'];
         }
-        if (!in_array($file['type'], $allowed, true)) {
-            return ['success'=>false,'error'=>'Only JPG, PNG, GIF, and WebP images allowed.'];
+
+        // Validate MIME from actual file content (not just extension)
+        $finfo = finfo_open(FILEINFO_MIME_TYPE);
+        $mime  = finfo_file($finfo, $file['tmp_name']);
+        finfo_close($finfo);
+
+        if (!in_array($mime, $allowed, true)) {
+            return ['success'=>false,'error'=>'Only JPG, PNG, GIF, and WebP images are allowed.'];
         }
         if ($file['size'] > $maxBytes) {
             return ['success'=>false,'error'=>'Image must be under 2MB.'];
         }
 
-        $ext    = pathinfo($file['name'], PATHINFO_EXTENSION);
-        $name   = 'avatars/' . bin2hex(random_bytes(8)) . '.' . strtolower($ext);
-        $dir    = BASE_PATH . '/public/storage/uploads/avatars/';
-        if (!is_dir($dir)) mkdir($dir, 0755, true);
+        $ext  = match($mime) {
+            'image/jpeg' => 'jpg',
+            'image/png'  => 'png',
+            'image/gif'  => 'gif',
+            'image/webp' => 'webp',
+            default      => 'jpg',
+        };
+        $filename = bin2hex(random_bytes(10)) . '.' . $ext;
+        $dir      = BASE_PATH . '/public/storage/uploads/avatars/';
 
-        if (!move_uploaded_file($file['tmp_name'], $dir . basename($name))) {
-            return ['success'=>false,'error'=>'Could not save the image.'];
+        // Create full path recursively — public/storage/uploads/avatars/
+        if (!is_dir($dir) && !mkdir($dir, 0755, true) && !is_dir($dir)) {
+            return ['success'=>false,'error'=>'Server error: could not create upload directory. Contact admin.'];
         }
-        return ['success'=>true,'path'=>$name];
+
+        if (!move_uploaded_file($file['tmp_name'], $dir . $filename)) {
+            return ['success'=>false,'error'=>'Could not save the image. Check server file permissions.'];
+        }
+
+        return ['success'=>true,'path'=>'avatars/' . $filename];
     }
 }

@@ -50,6 +50,11 @@ class SettingsService
         'reviews_auto_approve',
         'leaderboard_enabled',
         'leaderboard_public',
+        // Lesson player toggles
+        'lesson_show_ai_tutor',
+        'lesson_show_notes',
+        'lesson_show_collab_fab',
+        'lesson_allow_dark_mode',
     ];
 
     // ── Load ──────────────────────────────────────────────────────────────────
@@ -57,6 +62,7 @@ class SettingsService
     /** Map of tab → extra groups to also load */
     private static array $extraGroups = [
         'reviews' => ['leaderboard'],
+        'lesson'  => ['lesson'],
     ];
 
     /** Return all settings for a group, with encrypted values decrypted. */
