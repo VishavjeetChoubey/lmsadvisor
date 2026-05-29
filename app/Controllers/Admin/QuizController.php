@@ -135,6 +135,7 @@ class QuizController extends Controller
             'shuffle_options'    => $this->request->post('shuffle_options', 0),
             'show_answers_after' => $this->request->post('show_answers_after', 1),
             'max_attempts'       => $this->request->post('max_attempts', 3),
+            'is_required'        => (int)$this->request->post('is_required', 0),
         ]);
 
         AuditLog::write('quiz.update_settings', 'quiz', $quizId);
@@ -184,17 +185,44 @@ class QuizController extends Controller
 
         $type = Sanitizer::string($this->request->post('type', 'single'), 20);
 
+        // Extra JSON fields for new question types
+        $orderItems        = null;
+        $acceptableAnswers = null;
+        $matchPairs        = null;
+
+        if ($type === 'ordering') {
+            $raw = $this->request->post('order_items', '[]');
+            $orderItems = is_string($raw) ? $raw : json_encode([]);
+        } elseif ($type === 'short_answer') {
+            $raw = $this->request->post('acceptable_answers', '[]');
+            $acceptableAnswers = is_string($raw) ? $raw : json_encode([]);
+        } elseif ($type === 'matching') {
+            $raw = $this->request->post('match_pairs', '[]');
+            $matchPairs = is_string($raw) ? $raw : json_encode([]);
+        }
+
         $this->quiz->updateQuestion($questionId, [
-            'question'    => $questionText,
-            'explanation' => $this->request->post('explanation', null),
-            'type'        => $type,
-            'points'      => max(1, (int)$this->request->post('points', 1)),
-            'sort_order'  => (int)$this->request->post('sort_order', 0),
+            'question'           => $questionText,
+            'explanation'        => $this->request->post('explanation', null),
+            'type'               => $type,
+            'points'             => max(1, (int)$this->request->post('points', 1)),
+            'sort_order'         => (int)$this->request->post('sort_order', 0),
+            'order_items'        => $orderItems,
+            'acceptable_answers' => $acceptableAnswers,
+            'match_pairs'        => $matchPairs,
         ]);
 
         // Rebuild options
         $optionTexts    = $this->request->post('option_text', []);
         $correctFlags   = $this->request->post('is_correct', []);
+
+        // New types store data in JSON columns, not question_options
+        $newTypes = ['ordering', 'short_answer', 'matching'];
+        if (in_array($type, $newTypes, true)) {
+            // Delete any stale options from previous type
+            $this->quiz->setOptions($questionId, []);
+            $this->json(['success' => true]);
+        }
 
         if (!is_array($optionTexts)) {
             $this->json(['success' => false, 'message' => 'Invalid options data.']);

@@ -5,10 +5,13 @@ $e   = fn(mixed $v): string => View::e($v);
 $url = fn(string $p = ''): string => View::url($p);
 
 $typeLabels = [
-    'single'     => ['label'=>'Single Choice',   'icon'=>'bi-record-circle',   'color'=>'primary'],
-    'multiple'   => ['label'=>'Multiple Choice',  'icon'=>'bi-check2-square',   'color'=>'success'],
-    'true_false' => ['label'=>'True / False',     'icon'=>'bi-toggles',         'color'=>'warning'],
-    'fill_blank' => ['label'=>'Fill in the Blank','icon'=>'bi-input-cursor-text','color'=>'info'],
+    'single'       => ['label'=>'Single Choice',    'icon'=>'bi-record-circle',    'color'=>'primary'],
+    'multiple'     => ['label'=>'Multiple Choice',   'icon'=>'bi-check2-square',    'color'=>'success'],
+    'true_false'   => ['label'=>'True / False',      'icon'=>'bi-toggles',          'color'=>'warning'],
+    'fill_blank'   => ['label'=>'Fill in the Blank', 'icon'=>'bi-input-cursor-text','color'=>'info'],
+    'ordering'     => ['label'=>'Ordering',          'icon'=>'bi-sort-numeric-down', 'color'=>'purple'],
+    'short_answer' => ['label'=>'Short Answer',      'icon'=>'bi-pencil-square',    'color'=>'teal'],
+    'matching'     => ['label'=>'Matching',          'icon'=>'bi-arrow-left-right', 'color'=>'orange'],
 ];
 ?>
 
@@ -91,7 +94,7 @@ $typeLabels = [
             <label class="form-check-label fw-semibold" for="quizShuffleOpts">Shuffle Options</label>
           </div>
         </div>
-        <div class="mb-4">
+        <div class="mb-2">
           <div class="form-check form-switch">
             <input class="form-check-input" type="checkbox" id="quizShowAnswers"
                    <?= $quiz['show_answers_after'] ? 'checked' : '' ?>>
@@ -99,7 +102,24 @@ $typeLabels = [
           </div>
         </div>
 
-        <button class="btn btn-primary w-100" id="saveSettingsBtn">
+        <hr class="my-3">
+        <div class="mb-1" style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--bs-secondary-color)">
+          Completion Gating
+        </div>
+        <div class="mb-2">
+          <div class="form-check form-switch">
+            <input class="form-check-input" type="checkbox" id="quizIsRequired"
+                   <?= !empty($quiz['is_required']) ? 'checked' : '' ?>>
+            <label class="form-check-label fw-semibold" for="quizIsRequired">
+              Must Pass to Complete Lesson
+            </label>
+          </div>
+          <div class="text-muted" style="font-size:12px;margin-top:3px;padding-left:2.5rem">
+            Student must pass this quiz before they can mark the lesson and course as complete.
+          </div>
+        </div>
+
+        <button class="btn btn-primary w-100 mt-2" id="saveSettingsBtn">
           <i class="bi bi-check-circle me-1"></i> Save Settings
         </button>
 
@@ -206,6 +226,87 @@ $typeLabels = [
 
             <!-- Options builder -->
             <div class="options-builder mb-3" id="options-<?= $q['id'] ?>">
+              <?php
+              $isOrdering    = $q['type'] === 'ordering';
+              $isShortAnswer = $q['type'] === 'short_answer';
+              $isMatching    = $q['type'] === 'matching';
+              $isLegacy      = !$isOrdering && !$isShortAnswer && !$isMatching;
+              ?>
+
+              <?php if ($isOrdering): ?>
+              <!-- ── Ordering ──────────────────────────────────────── -->
+              <label class="form-label fw-semibold">Items in Correct Order <small class="text-muted fw-normal">(drag to reorder)</small></label>
+              <div id="order-list-<?= $q['id'] ?>" style="display:flex;flex-direction:column;gap:6px">
+                <?php
+                $items = json_decode($q['order_items'] ?? '[]', true) ?: ['Item 1','Item 2','Item 3'];
+                foreach ($items as $oi => $item): ?>
+                <div class="d-flex align-items-center gap-2 order-item-row">
+                  <i class="bi bi-grip-vertical text-muted" style="cursor:grab"></i>
+                  <span class="badge bg-secondary"><?= $oi+1 ?></span>
+                  <input type="text" class="form-control form-control-sm q-order-item"
+                         value="<?= $e($item) ?>" placeholder="Item <?= $oi+1 ?>">
+                  <button type="button" class="btn btn-xs btn-outline-danger" onclick="this.closest('.order-item-row').remove()">
+                    <i class="bi bi-x"></i>
+                  </button>
+                </div>
+                <?php endforeach; ?>
+              </div>
+              <button type="button" class="btn btn-sm btn-outline-secondary mt-2"
+                      onclick="addOrderItem(<?= $q['id'] ?>)">
+                <i class="bi bi-plus me-1"></i> Add Item
+              </button>
+
+              <?php elseif ($isShortAnswer): ?>
+              <!-- ── Short Answer ──────────────────────────────────── -->
+              <label class="form-label fw-semibold">Acceptable Answers <small class="text-muted fw-normal">(case-insensitive)</small></label>
+              <div id="sa-list-<?= $q['id'] ?>" style="display:flex;flex-direction:column;gap:6px">
+                <?php
+                $answers = json_decode($q['acceptable_answers'] ?? '[]', true) ?: [''];
+                foreach ($answers as $ai => $ans): ?>
+                <div class="d-flex align-items-center gap-2 sa-row">
+                  <input type="text" class="form-control form-control-sm q-sa-answer"
+                         value="<?= $e($ans) ?>" placeholder="Acceptable answer">
+                  <button type="button" class="btn btn-xs btn-outline-danger" onclick="this.closest('.sa-row').remove()">
+                    <i class="bi bi-x"></i>
+                  </button>
+                </div>
+                <?php endforeach; ?>
+              </div>
+              <button type="button" class="btn btn-sm btn-outline-secondary mt-2"
+                      onclick="addSaAnswer(<?= $q['id'] ?>)">
+                <i class="bi bi-plus me-1"></i> Add Answer
+              </button>
+
+              <?php elseif ($isMatching): ?>
+              <!-- ── Matching ──────────────────────────────────────── -->
+              <label class="form-label fw-semibold">Matching Pairs</label>
+              <div class="row g-1 mb-1">
+                <div class="col-6"><small class="text-muted fw-semibold">Left (Term)</small></div>
+                <div class="col-6"><small class="text-muted fw-semibold">Right (Definition)</small></div>
+              </div>
+              <div id="match-list-<?= $q['id'] ?>" style="display:flex;flex-direction:column;gap:6px">
+                <?php
+                $pairs = json_decode($q['match_pairs'] ?? '[]', true) ?: [['left'=>'','right'=>'']];
+                foreach ($pairs as $pi => $pair): ?>
+                <div class="d-flex align-items-center gap-2 match-row">
+                  <input type="text" class="form-control form-control-sm q-match-left"
+                         value="<?= $e($pair['left'] ?? '') ?>" placeholder="Term">
+                  <i class="bi bi-arrow-left-right text-muted"></i>
+                  <input type="text" class="form-control form-control-sm q-match-right"
+                         value="<?= $e($pair['right'] ?? '') ?>" placeholder="Definition">
+                  <button type="button" class="btn btn-xs btn-outline-danger" onclick="this.closest('.match-row').remove()">
+                    <i class="bi bi-x"></i>
+                  </button>
+                </div>
+                <?php endforeach; ?>
+              </div>
+              <button type="button" class="btn btn-sm btn-outline-secondary mt-2"
+                      onclick="addMatchPair(<?= $q['id'] ?>)">
+                <i class="bi bi-plus me-1"></i> Add Pair
+              </button>
+
+              <?php else: /* single, multiple, true_false, fill_blank */ ?>
+              <!-- ── Standard options ──────────────────────────────── -->
               <label class="form-label fw-semibold">
                 <?= $q['type'] === 'fill_blank' ? 'Accepted Answers' : 'Options' ?>
                 <?php if ($q['type'] === 'single' || $q['type'] === 'true_false'): ?>
@@ -214,7 +315,6 @@ $typeLabels = [
                   <small class="text-muted fw-normal">(check all correct)</small>
                 <?php endif; ?>
               </label>
-
               <div class="options-list" id="opt-list-<?= $q['id'] ?>">
                 <?php foreach ($q['options'] as $oi => $opt): ?>
                 <div class="option-row d-flex align-items-center gap-2 mb-2" data-opt-index="<?= $oi ?>">
@@ -244,13 +344,13 @@ $typeLabels = [
                 </div>
                 <?php endforeach; ?>
               </div>
-
               <?php if ($q['type'] !== 'true_false'): ?>
               <button type="button" class="btn btn-sm btn-outline-secondary mt-1 btn-add-option"
                       data-qid="<?= $q['id'] ?>" data-type="<?= $q['type'] ?>">
                 <i class="bi bi-plus me-1"></i>
                 <?= $q['type'] === 'fill_blank' ? 'Add Accepted Answer' : 'Add Option' ?>
               </button>
+              <?php endif; ?>
               <?php endif; ?>
             </div>
 
@@ -322,6 +422,7 @@ document.getElementById('saveSettingsBtn').addEventListener('click', function ()
     shuffle_questions:   document.getElementById('quizShuffle').checked ? '1' : '0',
     shuffle_options:     document.getElementById('quizShuffleOpts').checked ? '1' : '0',
     show_answers_after:  document.getElementById('quizShowAnswers').checked ? '1' : '0',
+    is_required:         document.getElementById('quizIsRequired').checked  ? '1' : '0',
   });
 
   fetch(BASE + '/admin/quizzes/' + QUIZ_ID + '/settings', {
@@ -367,28 +468,66 @@ document.querySelectorAll('.btn-save-question').forEach(btn => {
     const fd   = new FormData();
 
     fd.append('csrf_token',  CSRF);
-    fd.append('question',    document.getElementById('qtext-' + id).value);
+    fd.append('question',    document.getElementById('qtext-' + id).value.trim());
     fd.append('explanation', document.getElementById('qexpl-' + id).value);
     fd.append('type',        type);
     fd.append('points',      document.getElementById('qpts-' + id).value);
 
-    // Collect options
-    const optList = document.getElementById('opt-list-' + id);
-    const rows    = optList.querySelectorAll('.option-row');
+    if (type === 'ordering') {
+      // Collect ordered items
+      const items = [];
+      document.querySelectorAll('#order-list-' + id + ' .q-order-item').forEach(inp => {
+        if (inp.value.trim()) items.push(inp.value.trim());
+      });
+      if (items.length < 2) { LMS.toast('error', 'Add at least 2 items to order.'); return; }
+      fd.append('order_items', JSON.stringify(items));
+      // Dummy option so controller doesn't fail empty-options check
+      fd.append('option_text[0]', '__ordering__');
+      fd.append('is_correct[0]', '1');
 
-    rows.forEach((row, i) => {
-      const text = row.querySelector('.q-opt-text').value.trim();
-      if (!text) return;
-      fd.append('option_text[' + i + ']', text);
+    } else if (type === 'short_answer') {
+      // Collect acceptable answers
+      const answers = [];
+      document.querySelectorAll('#sa-list-' + id + ' .q-sa-answer').forEach(inp => {
+        if (inp.value.trim()) answers.push(inp.value.trim());
+      });
+      if (!answers.length) { LMS.toast('error', 'Add at least one acceptable answer.'); return; }
+      fd.append('acceptable_answers', JSON.stringify(answers));
+      // Dummy option
+      fd.append('option_text[0]', '__short_answer__');
+      fd.append('is_correct[0]', '1');
 
-      if (type === 'single' || type === 'true_false') {
-        const radio = optList.querySelector('.q-correct-radio:checked');
-        fd.append('is_correct[radio]', radio ? radio.value : '0');
-      } else {
-        const cb = row.querySelector('.q-correct-check');
-        if (cb && cb.checked) fd.append('is_correct[' + i + ']', '1');
-      }
-    });
+    } else if (type === 'matching') {
+      // Collect pairs
+      const pairs = [];
+      document.querySelectorAll('#match-list-' + id + ' .match-row').forEach(row => {
+        const left  = row.querySelector('.q-match-left').value.trim();
+        const right = row.querySelector('.q-match-right').value.trim();
+        if (left && right) pairs.push({ left, right });
+      });
+      if (pairs.length < 2) { LMS.toast('error', 'Add at least 2 matching pairs.'); return; }
+      fd.append('match_pairs', JSON.stringify(pairs));
+      // Dummy options
+      fd.append('option_text[0]', '__matching__');
+      fd.append('is_correct[0]', '1');
+
+    } else {
+      // Standard types: single, multiple, true_false, fill_blank
+      const optList = document.getElementById('opt-list-' + id);
+      const rows    = optList.querySelectorAll('.option-row');
+      rows.forEach((row, i) => {
+        const text = row.querySelector('.q-opt-text').value.trim();
+        if (!text) return;
+        fd.append('option_text[' + i + ']', text);
+        if (type === 'single' || type === 'true_false') {
+          const radio = optList.querySelector('.q-correct-radio:checked');
+          fd.append('is_correct[radio]', radio ? radio.value : '0');
+        } else {
+          const cb = row.querySelector('.q-correct-check');
+          if (cb && cb.checked) fd.append('is_correct[' + i + ']', '1');
+        }
+      });
+    }
 
     const saveBtn = this;
     saveBtn.disabled = true;
@@ -399,7 +538,6 @@ document.querySelectorAll('.btn-save-question').forEach(btn => {
     .then(d => {
       if (d.success) {
         LMS.toast('success', 'Question saved.');
-        // Update preview title
         const preview = document.querySelector('#qblock-' + id + ' .question-title-preview');
         if (preview) preview.textContent = document.getElementById('qtext-' + id).value;
       } else LMS.toast('error', d.message);
@@ -468,6 +606,38 @@ function removeOption(btn) {
   const list = row.closest('.options-list');
   if (list.querySelectorAll('.option-row').length <= 1) return;
   row.remove();
+}
+
+function addOrderItem(qid) {
+  const list = document.getElementById('order-list-' + qid);
+  const n    = list.querySelectorAll('.order-item-row').length + 1;
+  const row  = document.createElement('div');
+  row.className = 'd-flex align-items-center gap-2 order-item-row';
+  row.innerHTML = `<i class="bi bi-grip-vertical text-muted" style="cursor:grab"></i>
+    <span class="badge bg-secondary">${n}</span>
+    <input type="text" class="form-control form-control-sm q-order-item" placeholder="Item ${n}">
+    <button type="button" class="btn btn-xs btn-outline-danger" onclick="this.closest('.order-item-row').remove()"><i class="bi bi-x"></i></button>`;
+  list.appendChild(row);
+}
+
+function addSaAnswer(qid) {
+  const list = document.getElementById('sa-list-' + qid);
+  const row  = document.createElement('div');
+  row.className = 'd-flex align-items-center gap-2 sa-row';
+  row.innerHTML = `<input type="text" class="form-control form-control-sm q-sa-answer" placeholder="Acceptable answer">
+    <button type="button" class="btn btn-xs btn-outline-danger" onclick="this.closest('.sa-row').remove()"><i class="bi bi-x"></i></button>`;
+  list.appendChild(row);
+}
+
+function addMatchPair(qid) {
+  const list = document.getElementById('match-list-' + qid);
+  const row  = document.createElement('div');
+  row.className = 'd-flex align-items-center gap-2 match-row';
+  row.innerHTML = `<input type="text" class="form-control form-control-sm q-match-left" placeholder="Term">
+    <i class="bi bi-arrow-left-right text-muted"></i>
+    <input type="text" class="form-control form-control-sm q-match-right" placeholder="Definition">
+    <button type="button" class="btn btn-xs btn-outline-danger" onclick="this.closest('.match-row').remove()"><i class="bi bi-x"></i></button>`;
+  list.appendChild(row);
 }
 
 // ── Drag reorder questions ────────────────────────────────────────────────────
