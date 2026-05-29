@@ -78,6 +78,13 @@ $navItems = MenuService::forRole($role);
 
   <!-- User + logout at bottom -->
   <div class="adm-sidebar-bottom">
+    <!-- Version badge -->
+    <div style="padding:6px 12px 10px;text-align:center">
+      <span style="display:inline-flex;align-items:center;gap:5px;background:rgba(91,94,246,.12);color:#a5b4fc;border-radius:20px;padding:3px 10px;font-size:11px;font-weight:700;letter-spacing:.03em">
+        <i class="bi bi-stars" style="font-size:10px"></i>
+        LMSAdvisor v<?= defined('APP_VERSION') ? APP_VERSION : '3.0.0' ?>
+      </span>
+    </div>
     <div class="adm-user-row">
       <div class="adm-user-avatar"><?= $initials ?></div>
       <div class="adm-user-info">

@@ -46,11 +46,13 @@ function env(string $key, mixed $default = null): mixed
 }
 
 // ── Core constants ───────────────────────────────────────────────────────────
-define('BASE_PATH',  dirname(__DIR__));
-define('APP_PATH',   BASE_PATH . '/app');
-define('VIEW_PATH',  APP_PATH  . '/Views');
-define('STORE_PATH', BASE_PATH . '/storage');
-define('LOG_PATH',   STORE_PATH . '/logs');
+define('BASE_PATH',    dirname(__DIR__));
+define('APP_PATH',     BASE_PATH . '/app');
+define('VIEW_PATH',    APP_PATH  . '/Views');
+define('STORE_PATH',   BASE_PATH . '/storage');
+define('LOG_PATH',     STORE_PATH . '/logs');
+
+define('APP_VERSION',  '3.0.0');
 
 define('APP_URL',    rtrim((string)env('APP_URL', 'http://localhost/lmsadvisor-dev'), '/'));
 define('APP_DEBUG',  (bool)env('APP_DEBUG', false));

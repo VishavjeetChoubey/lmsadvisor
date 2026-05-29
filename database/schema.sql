@@ -1,15 +1,20 @@
--- ═══════════════════════════════════════════════════════════════════
--- LMSAdvisor — Master Schema (v3.0)
--- Single-file install: all tables, all columns, safe to re-run
--- Generated from 23 migration files
--- ═══════════════════════════════════════════════════════════════════
+-- ============================================================
+--  LMSAdvisor v3.0.0 — Complete Database Schema
+--  Generated: 2026-05-29
+--  Combines all migrations 0001–0028
+--
+--  Usage (fresh install):
+--    mysql -u root -p lmsadvisor < database/schema.sql
+--
+--  Usage (existing install — run pending migrations):
+--    Use Admin → Database → Run Pending Migrations
+-- ============================================================
 
 SET FOREIGN_KEY_CHECKS = 0;
 SET SQL_MODE = 'NO_AUTO_VALUE_ON_ZERO';
 
--- ────────────────────────────────────────────────────────────
--- 0001_roles_users.sql
--- ────────────────────────────────────────────────────────────
+-- ── Migration: 0001_roles_users.sql ─────────────────────────────────────────
+
 -- Migration 0001: Roles, Users, Social Accounts, Sessions, Audit Log
 -- Run this FIRST. All other migrations depend on these tables.
 
@@ -94,9 +99,9 @@ CREATE TABLE IF NOT EXISTS audit_logs (
 
 SET FOREIGN_KEY_CHECKS = 1;
 
--- ────────────────────────────────────────────────────────────
--- 0002_courses_sections_lessons.sql
--- ────────────────────────────────────────────────────────────
+
+-- ── Migration: 0002_courses_sections_lessons.sql ─────────────────────────────────────────
+
 -- Migration 0002: Categories, Courses, Sections, Lessons
 -- Requires 0001
 
@@ -216,9 +221,9 @@ CREATE TABLE IF NOT EXISTS lessons (
 
 SET FOREIGN_KEY_CHECKS = 1;
 
--- ────────────────────────────────────────────────────────────
--- 0003_quizzes_enrollments_progress.sql
--- ────────────────────────────────────────────────────────────
+
+-- ── Migration: 0003_quizzes_enrollments_progress.sql ─────────────────────────────────────────
+
 -- Migration 0003: Quizzes, Enrollments, Progress, Certificates
 SET NAMES utf8mb4;
 SET FOREIGN_KEY_CHECKS = 0;
@@ -318,9 +323,9 @@ CREATE TABLE IF NOT EXISTS certificates (
 
 SET FOREIGN_KEY_CHECKS = 1;
 
--- ────────────────────────────────────────────────────────────
--- 0004_settings_sessions.sql
--- ────────────────────────────────────────────────────────────
+
+-- ── Migration: 0004_settings_sessions.sql ─────────────────────────────────────────
+
 -- Migration 0004: Settings table + default seed data
 SET NAMES utf8mb4;
 
@@ -390,9 +395,16 @@ INSERT IGNORE INTO settings (`key`, value, type, label, group_name) VALUES
 ('leaderboard_enabled',  '1',           'boolean', 'Enable Leaderboard',       'leaderboard'),
 ('leaderboard_public',   '1',           'boolean', 'Public Leaderboard',       'leaderboard');
 
--- ────────────────────────────────────────────────────────────
--- 0005_forum_reviews_materials.sql
--- ────────────────────────────────────────────────────────────
+-- Lesson player feature toggles
+INSERT IGNORE INTO settings (`key`, value, type, label, group_name) VALUES
+('lesson_show_ai_tutor',   '1', 'boolean', 'Show AI Tutor on lesson pages',     'lesson'),
+('lesson_show_notes',      '1', 'boolean', 'Show Notes & Comments panel',        'lesson'),
+('lesson_show_collab_fab', '1', 'boolean', 'Show Notes floating button',         'lesson'),
+('lesson_allow_dark_mode', '1', 'boolean', 'Allow students to toggle dark mode', 'lesson');
+
+
+-- ── Migration: 0005_forum_reviews_materials.sql ─────────────────────────────────────────
+
 -- Migration 0005: Forum threads and replies
 SET NAMES utf8mb4;
 SET FOREIGN_KEY_CHECKS = 0;
@@ -425,9 +437,9 @@ CREATE TABLE IF NOT EXISTS forum_replies (
 
 SET FOREIGN_KEY_CHECKS = 1;
 
--- ────────────────────────────────────────────────────────────
--- 0006_calendar_leaderboard.sql
--- ────────────────────────────────────────────────────────────
+
+-- ── Migration: 0006_calendar_leaderboard.sql ─────────────────────────────────────────
+
 -- Migration 0006: Calendar Events, Grade Points
 SET NAMES utf8mb4;
 SET FOREIGN_KEY_CHECKS = 0;
@@ -460,9 +472,9 @@ CREATE TABLE IF NOT EXISTS grade_points (
 
 SET FOREIGN_KEY_CHECKS = 1;
 
--- ────────────────────────────────────────────────────────────
--- 0007_api_tokens_social_auth.sql
--- ────────────────────────────────────────────────────────────
+
+-- ── Migration: 0007_api_tokens_social_auth.sql ─────────────────────────────────────────
+
 -- Migration 0007: API Tokens, Notifications
 SET NAMES utf8mb4;
 SET FOREIGN_KEY_CHECKS = 0;
@@ -494,9 +506,9 @@ CREATE TABLE IF NOT EXISTS notifications (
 
 SET FOREIGN_KEY_CHECKS = 1;
 
--- ────────────────────────────────────────────────────────────
--- 0008_knowledge_base.sql
--- ────────────────────────────────────────────────────────────
+
+-- ── Migration: 0008_knowledge_base.sql ─────────────────────────────────────────
+
 -- Migration 0008: Knowledge Base
 SET NAMES utf8mb4;
 SET FOREIGN_KEY_CHECKS = 0;
@@ -527,9 +539,9 @@ CREATE TABLE IF NOT EXISTS kb_articles (
 
 SET FOREIGN_KEY_CHECKS = 1;
 
--- ────────────────────────────────────────────────────────────
--- 0009_webinar_sessions.sql
--- ────────────────────────────────────────────────────────────
+
+-- ── Migration: 0009_webinar_sessions.sql ─────────────────────────────────────────
+
 -- Migration 0009: Webinar Sessions
 SET NAMES utf8mb4;
 SET FOREIGN_KEY_CHECKS = 0;
@@ -555,9 +567,9 @@ CREATE TABLE IF NOT EXISTS webinar_sessions (
 
 SET FOREIGN_KEY_CHECKS = 1;
 
--- ────────────────────────────────────────────────────────────
--- 0010_scorm_packages.sql
--- ────────────────────────────────────────────────────────────
+
+-- ── Migration: 0010_scorm_packages.sql ─────────────────────────────────────────
+
 -- Migration 0010: Ensure scorm_data column exists in lesson_progress
 -- (was already in 0003 but this is a safety migration)
 ALTER TABLE lesson_progress
@@ -573,9 +585,9 @@ CREATE TABLE IF NOT EXISTS scorm_packages (
   FOREIGN KEY (lesson_id) REFERENCES lessons(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- ────────────────────────────────────────────────────────────
--- 0011_api_tokens_scopes.sql
--- ────────────────────────────────────────────────────────────
+
+-- ── Migration: 0011_api_tokens_scopes.sql ─────────────────────────────────────────
+
 -- Migration 0011: API token scopes + SOC2 audit columns
 
 ALTER TABLE api_tokens
@@ -602,9 +614,9 @@ CREATE TABLE IF NOT EXISTS security_events (
   INDEX idx_sec_ip (ip_address)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- ────────────────────────────────────────────────────────────
--- 0012_custom_code_settings.sql
--- ────────────────────────────────────────────────────────────
+
+-- ── Migration: 0012_custom_code_settings.sql ─────────────────────────────────────────
+
 -- Migration 0012: Custom Code settings keys
 INSERT IGNORE INTO settings (`key`, value, type, label, group_name) VALUES
 ('custom_css',       '', 'textarea', 'Custom CSS',        'custom_code'),
@@ -612,18 +624,18 @@ INSERT IGNORE INTO settings (`key`, value, type, label, group_name) VALUES
 ('custom_js_body',   '', 'textarea', 'Body JavaScript',   'custom_code'),
 ('custom_js_footer', '', 'textarea', 'Footer JavaScript', 'custom_code');
 
--- ────────────────────────────────────────────────────────────
--- 0013_leaderboard_group_fix.sql
--- ────────────────────────────────────────────────────────────
+
+-- ── Migration: 0013_leaderboard_group_fix.sql ─────────────────────────────────────────
+
 -- Migration 0013: Move leaderboard settings to 'reviews' group
 -- They display on the same Settings tab as Reviews, so must share the group name
 UPDATE settings SET group_name = 'reviews' 
 WHERE `key` IN ('leaderboard_enabled', 'leaderboard_public')
   AND group_name = 'leaderboard';
 
--- ────────────────────────────────────────────────────────────
--- 0014_analytics.sql
--- ────────────────────────────────────────────────────────────
+
+-- ── Migration: 0014_analytics.sql ─────────────────────────────────────────
+
 -- Migration 0014: LMS Analytics (SOC2-compliant)
 -- All data is anonymised: IP is hashed (SHA-256), no raw PII stored
 
@@ -668,9 +680,9 @@ INSERT IGNORE INTO settings (`key`, value, type, label, group_name) VALUES
 ('analytics_retention_days','90', 'text',    'Data Retention (days)',           'general'),
 ('analytics_anonymize_ip',  '1',  'boolean', 'Anonymize IPs (SOC2 required)',   'general');
 
--- ────────────────────────────────────────────────────────────
--- 0015_email_system.sql
--- ────────────────────────────────────────────────────────────
+
+-- ── Migration: 0015_email_system.sql ─────────────────────────────────────────
+
 -- Migration 0015: Email notification system
 
 CREATE TABLE IF NOT EXISTS email_queue (
@@ -750,9 +762,9 @@ INSERT IGNORE INTO email_templates (slug, name, subject, body_html, variables) V
   '["student_name","course_title","certificate_url","site_name","unsubscribe_url"]'
 );
 
--- ────────────────────────────────────────────────────────────
--- 0016_learning_paths.sql
--- ────────────────────────────────────────────────────────────
+
+-- ── Migration: 0016_learning_paths.sql ─────────────────────────────────────────
+
 -- Phase 21: Learning Paths & Prerequisites
 CREATE TABLE IF NOT EXISTS learning_paths (
   id           INT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
@@ -801,9 +813,9 @@ CREATE TABLE IF NOT EXISTS course_prerequisites (
   FOREIGN KEY (prerequisite_course_id) REFERENCES courses(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- ────────────────────────────────────────────────────────────
--- 0017_groups_cohorts.sql
--- ────────────────────────────────────────────────────────────
+
+-- ── Migration: 0017_groups_cohorts.sql ─────────────────────────────────────────
+
 -- Phase 22: Groups & Cohorts
 CREATE TABLE IF NOT EXISTS user_groups (
   id          INT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
@@ -835,9 +847,9 @@ CREATE TABLE IF NOT EXISTS user_group_courses (
   FOREIGN KEY (course_id) REFERENCES courses(id)     ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- ────────────────────────────────────────────────────────────
--- 0018_gamification.sql
--- ────────────────────────────────────────────────────────────
+
+-- ── Migration: 0018_gamification.sql ─────────────────────────────────────────
+
 -- Phase 24: Gamification Engine
 CREATE TABLE IF NOT EXISTS badges (
   id          INT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
@@ -889,9 +901,9 @@ INSERT IGNORE INTO badges (uuid, name, description, icon, color, rule_type, rule
 (UUID(), 'Point Collector','Earn 1000 grade points',                'bi-gem',              '#7c3aed', 'grade_points',      1000),
 (UUID(), 'Elite Learner',  'Earn 5000 grade points',               'bi-award-fill',       '#b45309', 'grade_points',      5000);
 
--- ────────────────────────────────────────────────────────────
--- 0019_assignments.sql
--- ────────────────────────────────────────────────────────────
+
+-- ── Migration: 0019_assignments.sql ─────────────────────────────────────────
+
 -- Phase 25: Assignments & Submissions
 CREATE TABLE IF NOT EXISTS assignments (
   id             INT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
@@ -929,9 +941,9 @@ CREATE TABLE IF NOT EXISTS assignment_submissions (
   FOREIGN KEY (user_id)       REFERENCES users(id)       ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
--- ────────────────────────────────────────────────────────────
--- 0020_collaboration_notes.sql
--- ────────────────────────────────────────────────────────────
+
+-- ── Migration: 0020_collaboration_notes.sql ─────────────────────────────────────────
+
 -- Phase 23: Live Collaboration & Q&A
 
 CREATE TABLE IF NOT EXISTS lesson_notes (
@@ -994,9 +1006,9 @@ CREATE TABLE IF NOT EXISTS grade_book (
 -- Add lesson_id to forum_threads for "Ask a question" linking
 ALTER TABLE forum_threads ADD COLUMN IF NOT EXISTS lesson_id INT UNSIGNED NULL AFTER course_id;
 
--- ────────────────────────────────────────────────────────────
--- 0021_ai_tutor.sql
--- ────────────────────────────────────────────────────────────
+
+-- ── Migration: 0021_ai_tutor.sql ─────────────────────────────────────────
+
 -- Phase 29: AI Tutor & Personalization
 
 CREATE TABLE IF NOT EXISTS ai_chat_sessions (
@@ -1059,33 +1071,22 @@ INSERT IGNORE INTO settings (`key`, value, type, label, group_name) VALUES
 ('slack_webhook_url',    '', 'text',    'Slack Webhook URL',    'general'),
 ('slack_notifications',  '0','boolean', 'Slack Notifications',  'general');
 
--- ────────────────────────────────────────────────────────────
--- 0022_enrollment_uuid.sql
--- ────────────────────────────────────────────────────────────
+
+-- ── Migration: 0022_enrollment_uuid.sql ─────────────────────────────────────────
+
 -- Migration 0022: Add uuid to enrollments for WooCommerce plugin
 
--- Add column only if not exists
 ALTER TABLE enrollments ADD COLUMN IF NOT EXISTS uuid CHAR(36) NULL AFTER id;
 
--- Back-fill existing enrollments with UUIDs
-UPDATE enrollments SET uuid = UUID() WHERE uuid IS NULL;
+UPDATE enrollments SET uuid = UUID() WHERE uuid IS NULL OR uuid = '';
 
--- Make not null
 ALTER TABLE enrollments MODIFY COLUMN uuid CHAR(36) NOT NULL DEFAULT '';
 
--- Add unique key only if it doesn't exist
-SET @exist := (SELECT COUNT(*) FROM information_schema.statistics
-    WHERE table_schema = DATABASE() AND table_name = 'enrollments' AND index_name = 'uq_enrollment_uuid');
-SET @sql := IF(@exist = 0,
-    'ALTER TABLE enrollments ADD UNIQUE KEY uq_enrollment_uuid (uuid)',
-    'SELECT ''Key already exists, skipping''');
-PREPARE stmt FROM @sql;
-EXECUTE stmt;
-DEALLOCATE PREPARE stmt;
+ALTER TABLE enrollments ADD UNIQUE KEY uq_enrollment_uuid (uuid);
 
--- ────────────────────────────────────────────────────────────
--- 0023_sso_tokens.sql
--- ────────────────────────────────────────────────────────────
+
+-- ── Migration: 0023_sso_tokens.sql ─────────────────────────────────────────
+
 -- Migration 0023: SSO tokens for WooCommerce → LMS auto-login
 
 CREATE TABLE IF NOT EXISTS sso_tokens (
@@ -1101,6 +1102,328 @@ CREATE TABLE IF NOT EXISTS sso_tokens (
     KEY idx_user    (user_id),
     CONSTRAINT fk_sso_user FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+
+-- ── Migration: 0024_adaptive_recommendations.sql ─────────────────────────────────────────
+
+-- Migration 0024: Adaptive quizzes + recommendations + drop-out predictor
+
+-- Add difficulty to questions (1=easy, 2=medium, 3=hard)
+ALTER TABLE questions ADD COLUMN IF NOT EXISTS difficulty TINYINT UNSIGNED DEFAULT 2 AFTER sort_order;
+ALTER TABLE questions ADD COLUMN IF NOT EXISTS times_shown INT UNSIGNED DEFAULT 0 AFTER difficulty;
+ALTER TABLE questions ADD COLUMN IF NOT EXISTS times_correct INT UNSIGNED DEFAULT 0 AFTER times_shown;
+
+-- Track per-question performance per student
+CREATE TABLE IF NOT EXISTS question_responses (
+    id          BIGINT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+    attempt_id  INT UNSIGNED NOT NULL,
+    question_id INT UNSIGNED NOT NULL,
+    user_id     INT UNSIGNED NOT NULL,
+    is_correct  TINYINT(1)   NOT NULL DEFAULT 0,
+    time_sec    SMALLINT UNSIGNED DEFAULT 0,
+    answered_at TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    KEY idx_qr_user    (user_id),
+    KEY idx_qr_question(question_id),
+    FOREIGN KEY (attempt_id)  REFERENCES quiz_attempts(id) ON DELETE CASCADE,
+    FOREIGN KEY (question_id) REFERENCES questions(id)     ON DELETE CASCADE,
+    FOREIGN KEY (user_id)     REFERENCES users(id)         ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Enable adaptive mode per quiz
+ALTER TABLE quizzes ADD COLUMN IF NOT EXISTS adaptive_mode TINYINT(1) DEFAULT 0 AFTER max_attempts;
+ALTER TABLE quizzes ADD COLUMN IF NOT EXISTS adaptive_start_difficulty TINYINT UNSIGNED DEFAULT 2 AFTER adaptive_mode;
+
+-- Course recommendations
+CREATE TABLE IF NOT EXISTS course_recommendations (
+    id           INT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+    user_id      INT UNSIGNED NOT NULL,
+    course_id    INT UNSIGNED NOT NULL,
+    score        DECIMAL(5,2) NOT NULL DEFAULT 0,
+    reason       VARCHAR(200),
+    generated_at TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    dismissed    TINYINT(1)   DEFAULT 0,
+    UNIQUE KEY uq_rec (user_id, course_id),
+    KEY idx_rec_user  (user_id),
+    KEY idx_rec_score (score),
+    FOREIGN KEY (user_id)   REFERENCES users(id)    ON DELETE CASCADE,
+    FOREIGN KEY (course_id) REFERENCES courses(id)  ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Drop-out risk scores
+CREATE TABLE IF NOT EXISTS dropout_risk (
+    id           INT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+    user_id      INT UNSIGNED NOT NULL,
+    enrollment_id INT UNSIGNED NOT NULL,
+    risk_score   DECIMAL(5,2) NOT NULL DEFAULT 0,
+    risk_level   ENUM('low','medium','high','critical') DEFAULT 'low',
+    factors      JSON,
+    alert_sent   TINYINT(1)   DEFAULT 0,
+    calculated_at TIMESTAMP   NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY uq_dropout (enrollment_id),
+    KEY idx_dropout_risk  (risk_level),
+    KEY idx_dropout_user  (user_id),
+    FOREIGN KEY (user_id)      REFERENCES users(id)       ON DELETE CASCADE,
+    FOREIGN KEY (enrollment_id) REFERENCES enrollments(id) ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+
+-- ── Migration: 0025_multi_tenant.sql ─────────────────────────────────────────
+
+-- Migration 0025: Multi-tenant / White-label + Corporate Training + API Marketplace
+
+-- ── Tenants (white-label clients) ────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS tenants (
+    id             INT UNSIGNED    PRIMARY KEY AUTO_INCREMENT,
+    uuid           CHAR(36)        NOT NULL UNIQUE,
+    name           VARCHAR(120)    NOT NULL,
+    slug           VARCHAR(80)     NOT NULL UNIQUE,   -- used in subdomain
+    custom_domain  VARCHAR(255),                      -- e.g. learn.client.com
+    status         ENUM('active','suspended','trial') DEFAULT 'trial',
+    plan           ENUM('trial','starter','pro','enterprise') DEFAULT 'trial',
+    logo_url       VARCHAR(500),
+    favicon_url    VARCHAR(500),
+    primary_color  CHAR(7)         DEFAULT '#5b5ef6',
+    accent_color   CHAR(7)         DEFAULT '#3b82f6',
+    email_from     VARCHAR(255),
+    email_name     VARCHAR(120),
+    custom_css     TEXT,
+    custom_js      TEXT,
+    seat_limit     SMALLINT UNSIGNED DEFAULT 100,
+    storage_gb     SMALLINT UNSIGNED DEFAULT 5,
+    trial_ends_at  TIMESTAMP       NULL,
+    created_at     TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at     TIMESTAMP       NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    KEY idx_slug   (slug),
+    KEY idx_domain (custom_domain)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Link users to tenants
+ALTER TABLE users ADD COLUMN IF NOT EXISTS tenant_id INT UNSIGNED NULL AFTER id;
+ALTER TABLE users ADD KEY IF NOT EXISTS idx_user_tenant (tenant_id);
+
+-- Link courses to tenants
+ALTER TABLE courses ADD COLUMN IF NOT EXISTS tenant_id INT UNSIGNED NULL AFTER id;
+ALTER TABLE courses ADD KEY IF NOT EXISTS idx_course_tenant (tenant_id);
+
+-- Tenant admin users
+CREATE TABLE IF NOT EXISTS tenant_admins (
+    id         INT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+    tenant_id  INT UNSIGNED NOT NULL,
+    user_id    INT UNSIGNED NOT NULL,
+    role       ENUM('owner','admin') DEFAULT 'admin',
+    created_at TIMESTAMP   DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uq_ta (tenant_id, user_id),
+    FOREIGN KEY (tenant_id) REFERENCES tenants(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id)   REFERENCES users(id)   ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ── Corporate Training ────────────────────────────────────────────────────────
+CREATE TABLE IF NOT EXISTS organisations (
+    id            INT UNSIGNED    PRIMARY KEY AUTO_INCREMENT,
+    uuid          CHAR(36)        NOT NULL UNIQUE,
+    name          VARCHAR(120)    NOT NULL,
+    domain        VARCHAR(255),
+    seat_limit    SMALLINT UNSIGNED DEFAULT 50,
+    seats_used    SMALLINT UNSIGNED DEFAULT 0,
+    billing_email VARCHAR(255),
+    status        ENUM('active','suspended') DEFAULT 'active',
+    created_at    TIMESTAMP       DEFAULT CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS organisation_members (
+    id              INT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+    organisation_id INT UNSIGNED NOT NULL,
+    user_id         INT UNSIGNED NOT NULL,
+    role            ENUM('manager','employee') DEFAULT 'employee',
+    department      VARCHAR(120),
+    joined_at       TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uq_om (organisation_id, user_id),
+    FOREIGN KEY (organisation_id) REFERENCES organisations(id) ON DELETE CASCADE,
+    FOREIGN KEY (user_id)         REFERENCES users(id)         ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Mandatory course assignments by manager
+CREATE TABLE IF NOT EXISTS course_assignments (
+    id              INT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+    organisation_id INT UNSIGNED NOT NULL,
+    course_id       INT UNSIGNED NOT NULL,
+    assigned_by     INT UNSIGNED NOT NULL,
+    due_date        DATE         NULL,
+    is_mandatory    TINYINT(1)   DEFAULT 1,
+    created_at      TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
+    UNIQUE KEY uq_ca (organisation_id, course_id),
+    FOREIGN KEY (organisation_id) REFERENCES organisations(id) ON DELETE CASCADE,
+    FOREIGN KEY (course_id)       REFERENCES courses(id)       ON DELETE CASCADE,
+    FOREIGN KEY (assigned_by)     REFERENCES users(id)         ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- ── API Marketplace ──────────────────────────────────────────────────────────
+-- Enhance api_tokens with marketplace fields (from migration 0007)
+
+ALTER TABLE api_tokens ADD COLUMN IF NOT EXISTS app_name    VARCHAR(120) NULL AFTER name;
+ALTER TABLE api_tokens ADD COLUMN IF NOT EXISTS app_url     VARCHAR(500) NULL AFTER app_name;
+ALTER TABLE api_tokens ADD COLUMN IF NOT EXISTS app_desc    TEXT         NULL AFTER app_url;
+ALTER TABLE api_tokens ADD COLUMN IF NOT EXISTS is_public   TINYINT(1)   DEFAULT 0 AFTER app_desc;
+ALTER TABLE api_tokens ADD COLUMN IF NOT EXISTS rate_limit  SMALLINT UNSIGNED DEFAULT 1000 AFTER is_public;
+ALTER TABLE api_tokens ADD COLUMN IF NOT EXISTS calls_today INT UNSIGNED  DEFAULT 0 AFTER rate_limit;
+ALTER TABLE api_tokens ADD COLUMN IF NOT EXISTS calls_total BIGINT UNSIGNED DEFAULT 0 AFTER calls_today;
+ALTER TABLE api_tokens ADD COLUMN IF NOT EXISTS last_used_at TIMESTAMP    NULL AFTER calls_total;
+
+-- Webhook event log
+CREATE TABLE IF NOT EXISTS webhook_deliveries (
+    id          BIGINT UNSIGNED  PRIMARY KEY AUTO_INCREMENT,
+    webhook_id  INT UNSIGNED     NOT NULL,
+    event       VARCHAR(60)      NOT NULL,
+    payload     JSON,
+    status      ENUM('pending','delivered','failed') DEFAULT 'pending',
+    http_code   SMALLINT UNSIGNED,
+    attempts    TINYINT UNSIGNED DEFAULT 0,
+    delivered_at TIMESTAMP       NULL,
+    created_at  TIMESTAMP        DEFAULT CURRENT_TIMESTAMP,
+    KEY idx_wd_webhook (webhook_id),
+    KEY idx_wd_status  (status)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Instructor marketplace applications
+CREATE TABLE IF NOT EXISTS instructor_applications (
+    id           INT UNSIGNED PRIMARY KEY AUTO_INCREMENT,
+    user_id      INT UNSIGNED NOT NULL UNIQUE,
+    bio          TEXT,
+    expertise    VARCHAR(500),
+    portfolio_url VARCHAR(500),
+    status       ENUM('pending','approved','rejected') DEFAULT 'pending',
+    revenue_pct  TINYINT UNSIGNED DEFAULT 70,   -- instructor gets 70%
+    applied_at   TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
+    reviewed_at  TIMESTAMP    NULL,
+    reviewed_by  INT UNSIGNED NULL,
+    FOREIGN KEY (user_id)     REFERENCES users(id) ON DELETE CASCADE,
+    FOREIGN KEY (reviewed_by) REFERENCES users(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+
+-- ── Migration: 0026_profile_enhancements.sql ─────────────────────────────────────────
+
+-- Migration 0026: Profile photos, password reset, email verification, lesson gating
+
+-- Profile photo on users
+ALTER TABLE users ADD COLUMN IF NOT EXISTS profile_photo    VARCHAR(500) NULL AFTER last_name;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS bio              TEXT         NULL AFTER profile_photo;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS phone            VARCHAR(30)  NULL AFTER bio;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS timezone         VARCHAR(60)  DEFAULT 'UTC' AFTER phone;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS email_verified   TINYINT(1)   DEFAULT 0 AFTER timezone;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS last_login_at    TIMESTAMP    NULL AFTER email_verified;
+
+-- Password reset tokens
+CREATE TABLE IF NOT EXISTS password_resets (
+    id         INT UNSIGNED    PRIMARY KEY AUTO_INCREMENT,
+    email      VARCHAR(255)    NOT NULL,
+    token      CHAR(64)        NOT NULL UNIQUE,
+    expires_at TIMESTAMP       NOT NULL,
+    used       TINYINT(1)      DEFAULT 0,
+    created_at TIMESTAMP       DEFAULT CURRENT_TIMESTAMP,
+    KEY idx_pr_email (email),
+    KEY idx_pr_token (token)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Email verification tokens
+CREATE TABLE IF NOT EXISTS email_verifications (
+    id         INT UNSIGNED    PRIMARY KEY AUTO_INCREMENT,
+    user_id    INT UNSIGNED    NOT NULL,
+    token      CHAR(64)        NOT NULL UNIQUE,
+    expires_at TIMESTAMP       NOT NULL,
+    created_at TIMESTAMP       DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+    KEY idx_ev_token (token)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Lesson gating rules
+ALTER TABLE lessons ADD COLUMN IF NOT EXISTS is_locked          TINYINT(1)   DEFAULT 0 AFTER is_mandatory;
+ALTER TABLE lessons ADD COLUMN IF NOT EXISTS unlock_after_lesson INT UNSIGNED NULL AFTER is_locked;
+ALTER TABLE lessons ADD COLUMN IF NOT EXISTS min_time_sec       INT UNSIGNED DEFAULT 0 AFTER unlock_after_lesson;
+ALTER TABLE lessons ADD COLUMN IF NOT EXISTS available_from     TIMESTAMP    NULL AFTER min_time_sec;
+
+-- Drip schedule (days after enrollment before lesson unlocks)
+ALTER TABLE lessons ADD COLUMN IF NOT EXISTS drip_days INT UNSIGNED DEFAULT 0 AFTER available_from;
+
+-- Search index hints
+ALTER TABLE courses  ADD FULLTEXT INDEX IF NOT EXISTS ft_courses  (title, short_description);
+ALTER TABLE users    ADD FULLTEXT INDEX IF NOT EXISTS ft_users    (first_name, last_name, email);
+ALTER TABLE lessons  ADD FULLTEXT INDEX IF NOT EXISTS ft_lessons  (title);
+
+
+-- ── Migration: 0027_menu_permissions.sql ─────────────────────────────────────────
+
+-- Migration 0027: Role-based menu visibility settings
+
+CREATE TABLE IF NOT EXISTS menu_permissions (
+    id         INT UNSIGNED    PRIMARY KEY AUTO_INCREMENT,
+    menu_key   VARCHAR(80)     NOT NULL UNIQUE,  -- e.g. 'courses', 'users'
+    label      VARCHAR(80)     NOT NULL,
+    roles      JSON            NOT NULL,          -- ["super_admin","admin","manager"]
+    sort_order SMALLINT        DEFAULT 0,
+    updated_at TIMESTAMP       DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- Default permissions: super_admin sees everything
+INSERT INTO menu_permissions (menu_key, label, roles, sort_order) VALUES
+('dashboard',      'Dashboard',      '["super_admin","admin","manager","instructor"]', 1),
+('analytics',      'Analytics',      '["super_admin","admin"]',                        2),
+('learner_data',   'Learner Data',   '["super_admin","admin"]',                        3),
+('at_risk',        'At-Risk',        '["super_admin","admin"]',                        4),
+('courses',        'Courses',        '["super_admin","admin","manager","instructor"]', 5),
+('learning_paths', 'Learning Paths', '["super_admin","admin","manager"]',              6),
+('groups',         'Groups',         '["super_admin","admin","manager"]',              7),
+('assignments',    'Assignments',    '["super_admin","admin","manager","instructor"]', 8),
+('badges',         'Badges',         '["super_admin","admin"]',                        9),
+('email',          'Email',          '["super_admin","admin"]',                       10),
+('enrollments',    'Enrollments',    '["super_admin","admin","manager"]',             11),
+('users',          'Users',          '["super_admin","admin"]',                       12),
+('categories',     'Categories',     '["super_admin","admin"]',                       13),
+('quizzes',        'Quizzes',        '["super_admin","admin","manager","instructor"]',14),
+('forum',          'Forum',          '["super_admin","admin","manager"]',             15),
+('reviews',        'Reviews',        '["super_admin","admin"]',                       16),
+('leaderboard',    'Leaderboard',    '["super_admin","admin","manager"]',             17),
+('knowledge_base', 'Knowledge Base', '["super_admin","admin","manager"]',             18),
+('webinars',       'Webinars',       '["super_admin","admin","manager","instructor"]',19),
+('reports',        'Reports',        '["super_admin","admin"]',                       20),
+('api',            'API Tokens',     '["super_admin","admin"]',                       21),
+('webhooks',       'Webhooks',       '["super_admin"]',                               22),
+('settings',       'Settings',       '["super_admin","admin"]',                       23),
+('database',       'Database',       '["super_admin"]',                               24),
+('tenants',        'Tenants',        '["super_admin"]',                               25),
+('corporate',      'Corporate',      '["super_admin","admin"]',                       26),
+('marketplace',    'Marketplace',    '["super_admin","admin"]',                       27),
+('reporting',      'Reporting',      '["super_admin","admin"]',                       28),
+('help_center',    'Help Center',    '["super_admin","admin","manager","instructor"]',29)
+ON DUPLICATE KEY UPDATE label=VALUES(label), sort_order=VALUES(sort_order);
+
+-- Menu Settings item (super_admin only)
+INSERT INTO menu_permissions (menu_key, label, roles, sort_order) VALUES
+('menu_settings', 'Menu Permissions', '["super_admin"]', 30)
+ON DUPLICATE KEY UPDATE label=VALUES(label), sort_order=VALUES(sort_order);
+
+
+-- ── Migration: 0028_quiz_enhancements.sql ─────────────────────────────────────────
+
+-- Migration 0028: New question types + quiz gating
+
+-- Add new question types
+ALTER TABLE questions MODIFY COLUMN type
+  ENUM('single','multiple','true_false','fill_blank','ordering','short_answer','matching')
+  DEFAULT 'single';
+
+-- Matching pairs (stored as JSON: [{"left":"term","right":"definition"}])
+ALTER TABLE questions ADD COLUMN IF NOT EXISTS match_pairs JSON NULL AFTER explanation;
+
+-- Ordering items (stored as JSON: ["step1","step2","step3"])
+ALTER TABLE questions ADD COLUMN IF NOT EXISTS order_items JSON NULL AFTER match_pairs;
+
+-- Short answer: acceptable answers as JSON array
+ALTER TABLE questions ADD COLUMN IF NOT EXISTS acceptable_answers JSON NULL AFTER order_items;
+
+-- Quiz gating: block lesson completion if quiz not passed
+ALTER TABLE quizzes ADD COLUMN IF NOT EXISTS is_required     TINYINT(1) DEFAULT 0 AFTER adaptive_start_difficulty;
+ALTER TABLE quizzes ADD COLUMN IF NOT EXISTS blocks_progress TINYINT(1) DEFAULT 1 AFTER is_required;
 
 
 SET FOREIGN_KEY_CHECKS = 1;
