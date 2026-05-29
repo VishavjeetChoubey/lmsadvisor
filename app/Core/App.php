@@ -36,9 +36,6 @@ class App
         $router = $this->router;
         require BASE_PATH . '/config/routes.php';
 
-        // Apply rate limiting (login + API routes)
-        \App\Middleware\RateLimitMiddleware::api();
-
         // Track page view (SOC2-compliant: hashed IPs, no PII)
         \App\Services\AnalyticsService::track(
             $this->request->path,
