@@ -16,7 +16,8 @@ class MenuSettingsController extends Controller
         $user = AuthService::user();
 
         // Only super_admin can manage menu permissions
-        if (($user['role_name'] ?? '') !== 'super_admin') {
+        $userRole = $user['role_name'] ?? $user['role'] ?? '';
+        if ($userRole !== 'super_admin') {
             $this->flash('error', 'Only Super Admins can manage menu permissions.');
             $this->redirect('/admin/dashboard');
         }
@@ -41,7 +42,7 @@ class MenuSettingsController extends Controller
         CsrfMiddleware::verify();
 
         $user = AuthService::user();
-        if (($user['role_name'] ?? '') !== 'super_admin') {
+        if (($user['role_name'] ?? $user['role'] ?? '') !== 'super_admin') {
             $this->json(['success' => false, 'message' => 'Permission denied.'], 403);
         }
 
@@ -78,7 +79,7 @@ class MenuSettingsController extends Controller
         CsrfMiddleware::verify();
 
         $user = AuthService::user();
-        if (($user['role_name'] ?? '') !== 'super_admin') {
+        if (($user['role_name'] ?? $user['role'] ?? '') !== 'super_admin') {
             $this->json(['success' => false, 'message' => 'Permission denied.'], 403);
         }
 
