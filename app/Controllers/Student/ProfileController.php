@@ -88,7 +88,7 @@ class ProfileController extends Controller
                 $old->execute([$uid]);
                 $oldPhoto = $old->fetchColumn();
                 if ($oldPhoto) {
-                    $oldFile = BASE_PATH . '/public/storage/uploads/' . $oldPhoto;
+                    $oldFile = STORE_PATH . '/uploads/' . $oldPhoto;
                     if (file_exists($oldFile)) @unlink($oldFile);
                 }
             } else {
@@ -161,21 +161,21 @@ class ProfileController extends Controller
 
         if ($file['error'] !== UPLOAD_ERR_OK) {
             $errMap = [
-                UPLOAD_ERR_INI_SIZE   => 'File exceeds server upload limit.',
-                UPLOAD_ERR_FORM_SIZE  => 'File too large.',
-                UPLOAD_ERR_PARTIAL    => 'Upload was interrupted.',
-                UPLOAD_ERR_NO_FILE    => 'No file selected.',
+                UPLOAD_ERR_INI_SIZE  => 'File exceeds server upload limit.',
+                UPLOAD_ERR_FORM_SIZE => 'File too large.',
+                UPLOAD_ERR_PARTIAL   => 'Upload was interrupted.',
+                UPLOAD_ERR_NO_FILE   => 'No file selected.',
             ];
-            return ['success'=>false,'error'=>$errMap[$file['error']] ?? 'Upload failed. Please try again.'];
+            return ['success'=>false,'error'=>$errMap[$file['error']] ?? 'Upload failed.'];
         }
 
-        // Validate MIME from actual file content (not just extension)
+        // Validate MIME from actual file content
         $finfo = finfo_open(FILEINFO_MIME_TYPE);
         $mime  = finfo_file($finfo, $file['tmp_name']);
         finfo_close($finfo);
 
         if (!in_array($mime, $allowed, true)) {
-            return ['success'=>false,'error'=>'Only JPG, PNG, GIF, and WebP images are allowed.'];
+            return ['success'=>false,'error'=>'Only JPG, PNG, GIF and WebP images are allowed.'];
         }
         if ($file['size'] > $maxBytes) {
             return ['success'=>false,'error'=>'Image must be under 2MB.'];
@@ -188,18 +188,23 @@ class ProfileController extends Controller
             'image/webp' => 'webp',
             default      => 'jpg',
         };
-        $filename = bin2hex(random_bytes(10)) . '.' . $ext;
-        $dir      = BASE_PATH . '/public/storage/uploads/avatars/';
 
-        // Create full path recursively — public/storage/uploads/avatars/
+        // Use STORE_PATH — same as existing avatar upload in DashboardController
+        // Files go to: BASE_PATH/storage/uploads/avatars/
+        // Served at:   APP_URL/storage/uploads/avatars/
+        $userId   = \App\Services\AuthService::user()['id'] ?? 0;
+        $filename = 'avatar_' . $userId . '_' . time() . '.' . $ext;
+        $dir      = STORE_PATH . '/uploads/avatars/';
+
         if (!is_dir($dir) && !mkdir($dir, 0755, true) && !is_dir($dir)) {
-            return ['success'=>false,'error'=>'Server error: could not create upload directory. Contact admin.'];
+            return ['success'=>false,'error'=>'Server error: could not create upload directory.'];
         }
 
         if (!move_uploaded_file($file['tmp_name'], $dir . $filename)) {
-            return ['success'=>false,'error'=>'Could not save the image. Check server file permissions.'];
+            return ['success'=>false,'error'=>'Could not save image. Check server file permissions.'];
         }
 
+        // Store relative path — rendered as: APP_URL/storage/uploads/ . this value
         return ['success'=>true,'path'=>'avatars/' . $filename];
     }
 }
