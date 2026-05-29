@@ -1,46 +1,17 @@
 <?php
 use App\Core\View;
 use App\Services\AuthService;
+use App\Services\MenuService;
 $url      = fn(string $p = ''): string => View::url($p);
 $e        = fn(mixed $v): string => View::e($v);
 $authUser = AuthService::user() ?? [];
-$role     = $authUser['role'] ?? 'admin';
+$role     = $authUser['role_name'] ?? $authUser['role'] ?? 'admin';
 $fullName = $authUser['name'] ?? 'Admin';
 $initials = strtoupper(substr($fullName, 0, 1));
 $path     = parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_PATH);
 $isActive = fn(string $seg): string => str_contains($path, $seg) ? 'active' : '';
 
-$navItems = [
-  // [label, icon, url, match-segment]
-  ['Dashboard',     'bi-speedometer2',      'admin/dashboard',     '/admin/dashboard'],
-  ['Analytics',    'bi-bar-chart-fill',    'admin/analytics',        '/admin/analytics'],
-  ['Learner Data', 'bi-person-lines-fill', 'admin/learner-analytics','/admin/learner-analytics'],
-  ['At-Risk',      'bi-exclamation-triangle-fill','admin/dropout','/admin/dropout'],
-  ['Courses',       'bi-book-fill',         'admin/courses',       '/admin/courses'],
-  ['Learning Paths','bi-signpost-2-fill',   'admin/learning-paths','/admin/learning-paths'],
-  ['Groups',        'bi-people-fill',       'admin/groups',        '/admin/groups'],
-  ['Assignments',   'bi-clipboard-check-fill','admin/courses',     '/admin/courses'],
-  ['Badges',        'bi-award-fill',        'admin/badges',        '/admin/badges'],
-  ['Email',         'bi-envelope-fill',     'admin/email',         '/admin/email'],
-  ['Enrollments',   'bi-person-check-fill', 'admin/enrollments',   '/admin/enrollments'],
-  ['Users',         'bi-person-lines-fill', 'admin/users',         '/admin/users'],
-  ['Categories',    'bi-grid-fill',         'admin/categories',    '/admin/categories'],
-  ['Quizzes',       'bi-patch-question-fill','admin/quizzes',      '/admin/quizzes'],
-  ['Forum',         'bi-chat-dots-fill',    'admin/forum',         '/admin/forum'],
-  ['Reviews',       'bi-star-fill',         'admin/reviews',       '/admin/reviews'],
-  ['Leaderboard',   'bi-trophy-fill',       'admin/leaderboard',   '/admin/leaderboard'],
-  ['Knowledge Base','bi-journals',          'admin/knowledge-base','/admin/knowledge-base'],
-  ['Webinars',      'bi-camera-video-fill', 'admin/webinars',      '/admin/webinars'],
-  ['Reports',       'bi-bar-chart-line-fill','admin/reports',      '/admin/reports'],
-  ['API',           'bi-braces-asterisk',   'admin/api',           '/admin/api'],
-  ['Webhooks',      'bi-plug-fill',          'admin/webhooks',      '/admin/webhooks'],
-  ['Settings',      'bi-gear-fill',         'admin/settings',      '/admin/settings'],
-  ['Database',      'bi-database-fill-gear','admin/database',      '/admin/database'],
-  ['Tenants',      'bi-building-fill',     'admin/tenants',       '/admin/tenants'],
-  ['Corporate',    'bi-briefcase-fill',    'admin/organisations', '/admin/organisations'],
-  ['Marketplace',  'bi-shop',              'admin/marketplace/api', '/admin/marketplace'],
-  ['Reporting',    'bi-bar-chart-fill',    'admin/reporting',     '/admin/reporting'],
-];
+$navItems = MenuService::forRole($role);
 ?>
 <aside class="adm-sidebar" id="adminSidebar">
 

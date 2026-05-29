@@ -399,3 +399,8 @@ $router->get('/help',                      'HelpController@index');
 $router->get('/help/search',               'HelpController@search');
 $router->get('/help/category/:slug',       'HelpController@category');
 $router->get('/help/article/:slug',        'HelpController@article');
+
+// Menu permissions settings (super_admin only)
+$router->get('/admin/menu-settings',       'Admin\MenuSettingsController@index');
+$router->post('/admin/menu-settings',      'Admin\MenuSettingsController@save');
+$router->post('/admin/menu-settings/reset','Admin\MenuSettingsController@reset');

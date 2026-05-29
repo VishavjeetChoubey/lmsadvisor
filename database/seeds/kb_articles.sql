@@ -14,7 +14,8 @@ INSERT INTO kb_categories (name, slug, sort_order) VALUES
 ('Troubleshooting',       'troubleshooting',      9)
 ON DUPLICATE KEY UPDATE sort_order=VALUES(sort_order);
 
-SET @admin_id = (SELECT id FROM users WHERE role_id=(SELECT id FROM roles WHERE name IN ('admin','super_admin') LIMIT 1) LIMIT 1);
+SET @admin_id = (SELECT u.id FROM users u JOIN roles r ON r.id=u.role_id WHERE r.name IN ('super_admin','admin') ORDER BY u.id LIMIT 1);
+SET @admin_id = COALESCE(@admin_id, (SELECT id FROM users ORDER BY id LIMIT 1));
 SET @cat_start   = (SELECT id FROM kb_categories WHERE slug='getting-started');
 SET @cat_course  = (SELECT id FROM kb_categories WHERE slug='course-management');
 SET @cat_student = (SELECT id FROM kb_categories WHERE slug='student-experience');
