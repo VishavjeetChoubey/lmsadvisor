@@ -105,8 +105,15 @@ class ProfileController extends Controller
             $params[] = $photoPath;
         }
         $sql    .= ' WHERE id=?';
-        $params[] = (int)$user['id'];
-        $pdo->prepare($sql)->execute($params);
+        $params[] = $uid;
+
+        try {
+            $pdo->prepare($sql)->execute($params);
+        } catch (\Throwable $e) {
+            error_log('[Profile Update] ' . $e->getMessage());
+            $this->flash('error', 'Could not save profile: ' . $e->getMessage());
+            $this->redirect('/learn/profile');
+        }
 
         $this->flash('success', 'Profile updated successfully.');
         $this->redirect('/learn/profile');

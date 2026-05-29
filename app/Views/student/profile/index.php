@@ -81,11 +81,27 @@ select.pf-inp{cursor:pointer;appearance:auto}
 .pf-flash{padding:13px 18px;border-radius:12px;margin-bottom:0;font-size:14px;font-weight:600;display:flex;align-items:center;gap:10px}
 </style>
 
-<?php if(!empty($flash)): ?>
+<?php
+// Flash format from Controller::getFlash() is ['error'=>'msg'] or ['success'=>'msg']
+// Extract type and message
+$flashType = '';
+$flashMsg  = '';
+if (!empty($flash)) {
+    if (isset($flash['success'])) { $flashType='success'; $flashMsg=$flash['success']; }
+    elseif (isset($flash['error']))   { $flashType='error';   $flashMsg=$flash['error']; }
+    elseif (isset($flash['info']))    { $flashType='info';    $flashMsg=$flash['info']; }
+    else { // fallback: take first key
+        $flashType = array_key_first($flash);
+        $flashMsg  = reset($flash);
+    }
+}
+?>
+
+<?php if ($flashMsg): ?>
 <div style="max-width:1040px;margin:24px auto 0;padding:0 20px">
-  <div class="pf-flash" style="background:<?=$flash['type']==='success'?'#ecfdf5':'#fef2f2'?>;color:<?=$flash['type']==='success'?'#065f46':'#991b1b'?>;border:1px solid <?=$flash['type']==='success'?'#a7f3d0':'#fca5a5'?>">
-    <i class="bi bi-<?=$flash['type']==='success'?'check-circle-fill':'exclamation-circle-fill'?>"></i>
-    <?=$e($flash['message'])?>
+  <div class="pf-flash" style="background:<?=$flashType==='success'?'#ecfdf5':'#fef2f2'?>;color:<?=$flashType==='success'?'#065f46':'#991b1b'?>;border:1px solid <?=$flashType==='success'?'#a7f3d0':'#fca5a5'?>">
+    <i class="bi bi-<?=$flashType==='success'?'check-circle-fill':'exclamation-circle-fill'?>" style="flex-shrink:0"></i>
+    <?=$e($flashMsg)?>
   </div>
 </div>
 <?php endif; ?>
@@ -152,7 +168,7 @@ select.pf-inp{cursor:pointer;appearance:auto}
           <input type="file" id="pf-photo-inp" name="profile_photo"
                  accept="image/jpeg,image/png,image/webp,image/gif"
                  style="display:none" onchange="pfPhotoPreview(this)">
-          <div id="pf-photo-notice" style="display:none;background:#fffbeb;border:1px solid #fde68a;border-radius:9px;padding:10px 14px;margin-bottom:16px;font-size:13px;color:#92400e;display:flex;align-items:center;gap:8px">
+          <div id="pf-photo-notice" style="display:none;background:#fffbeb;border:1px solid #fde68a;border-radius:9px;padding:10px 14px;margin-bottom:16px;font-size:13px;color:#92400e;align-items:center;gap:8px">
             <i class="bi bi-image-fill" style="flex-shrink:0"></i>
             <span>New photo selected — click <strong>Save Changes</strong> below to upload it.</span>
           </div>
@@ -325,7 +341,6 @@ function pfPhotoPreview(inp){
     // Show notice to click Save Changes
     var notice=document.getElementById('pf-photo-notice');
     if(notice)notice.style.display='flex';
-  };
   reader.readAsDataURL(inp.files[0]);
 }
 
