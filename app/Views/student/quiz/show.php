@@ -122,7 +122,15 @@ $url = fn(string $p = ''): string => View::url($p);
           <div class="flex-grow-1">
             <div class="quiz-q-text"><?= $e($q['question']) ?></div>
             <div class="quiz-q-meta">
-              <?php $typeLabels = ['single'=>'Single choice','multiple'=>'Multiple choice','true_false'=>'True / False','fill_blank'=>'Fill in the blank']; ?>
+              <?php $typeLabels = [
+                'single'       => 'Single choice',
+                'multiple'     => 'Multiple choice',
+                'true_false'   => 'True / False',
+                'fill_blank'   => 'Fill in the blank',
+                'ordering'     => 'Ordering',
+                'short_answer' => 'Short answer',
+                'matching'     => 'Matching',
+              ]; ?>
               <span><?= $typeLabels[$q['type']] ?? $q['type'] ?></span>
               <span>·</span>
               <span><?= $q['points'] ?> pt<?= $q['points'] != 1 ? 's' : '' ?></span>
@@ -140,6 +148,65 @@ $url = fn(string $p = ''): string => View::url($p);
                    placeholder="Type your answer…"
                    autocomplete="off"
                    onchange="updateProgress()">
+
+          <?php elseif ($q['type'] === 'short_answer'): ?>
+            <p class="quiz-hint"><i class="bi bi-pencil-square me-1"></i>Write your answer below</p>
+            <textarea class="quiz-fill-input"
+                      name="answers[<?= $q['id'] ?>]"
+                      rows="3"
+                      placeholder="Type your answer here…"
+                      style="resize:vertical;width:100%;padding:12px;border-radius:10px;border:1.5px solid var(--border-color);font-size:14px;font-family:inherit;background:var(--content-bg);color:var(--text-primary)"
+                      onchange="updateProgress()"></textarea>
+
+          <?php elseif ($q['type'] === 'ordering'): ?>
+            <?php $orderItems = json_decode($q['order_items'] ?? '[]', true) ?: []; ?>
+            <?php if ($orderItems): ?>
+            <p class="quiz-hint"><i class="bi bi-sort-numeric-down me-1"></i>Drag items into the correct order</p>
+            <div class="ordering-list" id="order-<?= $q['id'] ?>" style="display:flex;flex-direction:column;gap:8px">
+              <?php
+              $shuffled = $orderItems;
+              shuffle($shuffled);
+              foreach ($shuffled as $item): ?>
+              <div class="ordering-item d-flex align-items-center gap-3"
+                   style="background:var(--card-bg);border:1.5px solid var(--border-color);border-radius:10px;padding:11px 14px;cursor:grab;user-select:none">
+                <i class="bi bi-grip-vertical" style="color:var(--text-muted);font-size:16px;flex-shrink:0"></i>
+                <span style="font-size:14px"><?= $e($item) ?></span>
+              </div>
+              <?php endforeach; ?>
+            </div>
+            <input type="hidden" name="answers[<?= $q['id'] ?>]" id="order-val-<?= $q['id'] ?>" value="">
+            <?php else: ?>
+            <p class="text-muted">No items added yet.</p>
+            <?php endif; ?>
+
+          <?php elseif ($q['type'] === 'matching'): ?>
+            <?php $pairs = json_decode($q['match_pairs'] ?? '[]', true) ?: []; ?>
+            <?php if ($pairs): ?>
+            <p class="quiz-hint"><i class="bi bi-arrow-left-right me-1"></i>Match each item on the left to the correct item on the right</p>
+            <div style="display:flex;flex-direction:column;gap:10px">
+              <?php foreach ($pairs as $pi => $pair): ?>
+              <div class="d-flex align-items-center gap-3 flex-wrap">
+                <div style="flex:1;min-width:140px;background:var(--card-bg);border:1.5px solid var(--border-color);border-radius:10px;padding:10px 14px;font-size:14px;font-weight:600">
+                  <?= $e($pair['left']) ?>
+                </div>
+                <i class="bi bi-arrow-right" style="color:var(--text-muted)"></i>
+                <select name="answers[<?= $q['id'] ?>][<?= $pi ?>]"
+                        style="flex:1;min-width:140px;padding:10px 12px;border:1.5px solid var(--border-color);border-radius:10px;font-size:14px;background:var(--content-bg);color:var(--text-primary);cursor:pointer"
+                        onchange="updateProgress()">
+                  <option value="">— Select —</option>
+                  <?php
+                  $rights = array_column($pairs, 'right');
+                  shuffle($rights);
+                  foreach ($rights as $right): ?>
+                  <option value="<?= $e($right) ?>"><?= $e($right) ?></option>
+                  <?php endforeach; ?>
+                </select>
+              </div>
+              <?php endforeach; ?>
+            </div>
+            <?php else: ?>
+            <p class="text-muted">No pairs added yet.</p>
+            <?php endif; ?>
 
           <?php elseif ($q['type'] === 'multiple'): ?>
             <p class="quiz-hint"><i class="bi bi-info-circle me-1"></i>Select all correct answers</p>
@@ -423,4 +490,46 @@ document.getElementById('quizForm')?.addEventListener('submit', function () {
 
 // Init
 updateProgress();
+
+// ── Ordering questions: drag to reorder ──────────────────────────────────────
+(function() {
+  document.querySelectorAll('.ordering-list').forEach(function(list) {
+    var qid = list.id.replace('order-', '');
+    var valInput = document.getElementById('order-val-' + qid);
+
+    function updateOrderValue() {
+      var items = list.querySelectorAll('.ordering-item span');
+      var vals  = Array.from(items).map(function(s) { return s.textContent.trim(); });
+      if (valInput) valInput.value = JSON.stringify(vals);
+      updateProgress();
+    }
+
+    // Simple drag-and-drop without Sortable library
+    var dragging = null;
+    list.querySelectorAll('.ordering-item').forEach(function(item) {
+      item.setAttribute('draggable', 'true');
+      item.addEventListener('dragstart', function() {
+        dragging = this;
+        setTimeout(function() { dragging.style.opacity = '0.4'; }, 0);
+      });
+      item.addEventListener('dragend', function() {
+        this.style.opacity = '1';
+        dragging = null;
+        updateOrderValue();
+      });
+      item.addEventListener('dragover', function(e) {
+        e.preventDefault();
+        var rect = this.getBoundingClientRect();
+        var mid  = rect.top + rect.height / 2;
+        if (dragging && dragging !== this) {
+          if (e.clientY < mid) list.insertBefore(dragging, this);
+          else list.insertBefore(dragging, this.nextSibling);
+        }
+      });
+    });
+
+    // Set initial value
+    updateOrderValue();
+  });
+})();
 </script>
