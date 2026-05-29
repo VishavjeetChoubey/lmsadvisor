@@ -95,30 +95,18 @@ select.pf-inp{cursor:pointer;appearance:auto}
   <!-- ── Left sidebar ─────────────────────────────────────────────────────── -->
   <div class="pf-sidebar">
 
-    <!-- Photo upload (mini form) -->
-    <form method="POST" action="<?=$url('learn/profile/update')?>"
-          enctype="multipart/form-data" id="pf-photo-form">
-      <input type="hidden" name="csrf_token"  value="<?=$e($csrf_token)?>">
-      <input type="hidden" name="first_name"   value="<?=$e($u['first_name']??'')?>">
-      <input type="hidden" name="last_name"    value="<?=$e($u['last_name']??'')?>">
-      <input type="hidden" name="bio"          value="<?=$e($u['bio']??'')?>">
-      <input type="hidden" name="phone"        value="<?=$e($u['phone']??'')?>">
-      <input type="hidden" name="timezone"     value="<?=$e($u['timezone']??'UTC')?>">
-      <div class="pf-av-outer">
-        <?php if(!empty($u['profile_photo'])): ?>
-          <img src="<?=$e(APP_URL.'/storage/uploads/'.$u['profile_photo'])?>"
-               alt="Profile" class="pf-av" id="pf-av-el">
-        <?php else: ?>
-          <div class="pf-av-init" id="pf-av-el"><?=$e($initials)?></div>
-        <?php endif; ?>
-        <label class="pf-av-cam" for="pf-photo-inp" title="Change photo">
-          <i class="bi bi-camera-fill"></i>
-        </label>
-      </div>
-      <input type="file" id="pf-photo-inp" name="profile_photo"
-             accept="image/jpeg,image/png,image/webp,image/gif"
-             style="display:none" onchange="pfPhoto(this)">
-    </form>
+    <!-- Avatar preview — file input is inside the main form below -->
+    <div class="pf-av-outer" style="display:inline-block;position:relative;margin-bottom:14px">
+      <?php if(!empty($u['profile_photo'])): ?>
+        <img src="<?=$e(APP_URL.'/storage/uploads/'.$u['profile_photo'])?>"
+             alt="Profile" class="pf-av" id="pf-av-el">
+      <?php else: ?>
+        <div class="pf-av-init" id="pf-av-el"><?=$e($initials)?></div>
+      <?php endif; ?>
+      <label class="pf-av-cam" for="pf-photo-inp" title="Change photo — click Save Changes to upload">
+        <i class="bi bi-camera-fill"></i>
+      </label>
+    </div>
 
     <h2 class="pf-sid-name"><?=$e($fullName)?></h2>
     <p class="pf-sid-email"><?=$e($u['email']??'')?></p>
@@ -157,8 +145,18 @@ select.pf-inp{cursor:pointer;appearance:auto}
         <h3 class="pf-card-title">Edit Profile</h3>
       </div>
       <div class="pf-card-body">
-        <form method="POST" action="<?=$url('learn/profile/update')?>" enctype="multipart/form-data">
+        <form method="POST" action="<?=$url('learn/profile/update')?>" enctype="multipart/form-data" id="pf-main-form">
           <input type="hidden" name="csrf_token" value="<?=$e($csrf_token)?>">
+
+          <!-- Profile photo (hidden input — triggered by camera label in sidebar) -->
+          <input type="file" id="pf-photo-inp" name="profile_photo"
+                 accept="image/jpeg,image/png,image/webp,image/gif"
+                 style="display:none" onchange="pfPhotoPreview(this)">
+          <div id="pf-photo-notice" style="display:none;background:#fffbeb;border:1px solid #fde68a;border-radius:9px;padding:10px 14px;margin-bottom:16px;font-size:13px;color:#92400e;display:flex;align-items:center;gap:8px">
+            <i class="bi bi-image-fill" style="flex-shrink:0"></i>
+            <span>New photo selected — click <strong>Save Changes</strong> below to upload it.</span>
+          </div>
+
           <div class="pf-grid" style="margin-bottom:18px">
             <div class="pf-fg">
               <label class="pf-lbl" for="pf-fn">First Name <span class="pf-req">*</span></label>
@@ -312,22 +310,23 @@ select.pf-inp{cursor:pointer;appearance:auto}
 </div><!-- /.pf-wrap -->
 
 <script>
-function pfPhoto(inp){
+function pfPhotoPreview(inp){
   if(!inp.files||!inp.files[0])return;
-  var r=new FileReader();
-  r.onload=function(e){
+  var reader=new FileReader();
+  reader.onload=function(e){
     var el=document.getElementById('pf-av-el');
     if(!el)return;
     if(el.tagName==='IMG'){el.src=e.target.result;}
     else{
       var img=document.createElement('img');
       img.className='pf-av';img.id='pf-av-el';
-      img.style.cssText='width:100%;height:100%;object-fit:cover;display:block';
       img.src=e.target.result;el.replaceWith(img);
     }
+    // Show notice to click Save Changes
+    var notice=document.getElementById('pf-photo-notice');
+    if(notice)notice.style.display='flex';
   };
-  r.readAsDataURL(inp.files[0]);
-  document.getElementById('pf-photo-form').submit();
+  reader.readAsDataURL(inp.files[0]);
 }
 
 function pfEye(id,btn){
