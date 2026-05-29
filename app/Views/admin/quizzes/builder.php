@@ -9,9 +9,9 @@ $typeLabels = [
     'multiple'     => ['label'=>'Multiple Choice',   'icon'=>'bi-check2-square',    'color'=>'success'],
     'true_false'   => ['label'=>'True / False',      'icon'=>'bi-toggles',          'color'=>'warning'],
     'fill_blank'   => ['label'=>'Fill in the Blank', 'icon'=>'bi-input-cursor-text','color'=>'info'],
-    'ordering'     => ['label'=>'Ordering',          'icon'=>'bi-sort-numeric-down', 'color'=>'purple'],
-    'short_answer' => ['label'=>'Short Answer',      'icon'=>'bi-pencil-square',    'color'=>'teal'],
-    'matching'     => ['label'=>'Matching',          'icon'=>'bi-arrow-left-right', 'color'=>'orange'],
+    'ordering'     => ['label'=>'Ordering',          'icon'=>'bi-sort-numeric-down', 'color'=>'secondary', 'hex'=>'#7c3aed'],
+    'short_answer' => ['label'=>'Short Answer',      'icon'=>'bi-pencil-square',    'color'=>'secondary', 'hex'=>'#0891b2'],
+    'matching'     => ['label'=>'Matching',          'icon'=>'bi-arrow-left-right', 'color'=>'secondary', 'hex'=>'#d97706'],
 ];
 ?>
 
@@ -133,9 +133,14 @@ $typeLabels = [
       </div>
       <div class="card-body p-3">
         <div class="d-grid gap-2">
-          <?php foreach ($typeLabels as $type => $meta): ?>
-          <button class="btn btn-outline-<?= $meta['color'] ?> text-start btn-add-question"
-                  data-type="<?= $type ?>">
+          <?php foreach ($typeLabels as $type => $meta):
+            $hex = $meta['hex'] ?? null;
+          ?>
+          <button class="btn text-start btn-add-question <?= $hex ? '' : 'btn-outline-'.$meta['color'] ?>"
+                  data-type="<?= $type ?>"
+                  <?= $hex ? "style=\"border:1px solid {$hex};color:{$hex};background:transparent\"
+                    onmouseover=\"this.style.background='{$hex}';this.style.color='#fff'\"
+                    onmouseout=\"this.style.background='transparent';this.style.color='{$hex}'\"" : '' ?>>
             <i class="bi <?= $meta['icon'] ?> me-2"></i><?= $meta['label'] ?>
           </button>
           <?php endforeach; ?>
@@ -186,7 +191,9 @@ $typeLabels = [
             <span class="drag-handle q-drag-handle" title="Drag to reorder">
               <i class="bi bi-grip-vertical text-muted"></i>
             </span>
-            <span class="badge bg-<?= $tmeta['color'] ?>-subtle text-<?= $tmeta['color'] ?>">
+            <?php $badgeHex = $tmeta['hex'] ?? null; ?>
+            <span class="badge <?= $badgeHex ? '' : 'bg-'.$tmeta['color'].'-subtle text-'.$tmeta['color'] ?>"
+                  <?= $badgeHex ? "style=\"background:".htmlspecialchars($badgeHex)."22;color:".htmlspecialchars($badgeHex)."\"" : '' ?>>
               <i class="bi <?= $tmeta['icon'] ?> me-1"></i><?= $tmeta['label'] ?>
             </span>
             <span class="fw-semibold flex-grow-1 question-title-preview" style="font-size:13.5px">
