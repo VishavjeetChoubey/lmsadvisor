@@ -155,7 +155,7 @@ $url = fn(string $p = ''): string => View::url($p);
                       name="answers[<?= $q['id'] ?>]"
                       rows="3"
                       placeholder="Type your answer here…"
-                      style="resize:vertical;width:100%;padding:12px;border-radius:10px;border:1.5px solid var(--border-color);font-size:14px;font-family:inherit;background:var(--content-bg);color:var(--text-primary)"
+                      style="resize:vertical;width:100%;padding:12px;border-radius:10px;border:1.5px solid var(--border);font-size:14px;font-family:inherit;background:var(--card);color:var(--text-1)"
                       onchange="updateProgress()"></textarea>
 
           <?php elseif ($q['type'] === 'ordering'): ?>
@@ -168,8 +168,8 @@ $url = fn(string $p = ''): string => View::url($p);
               shuffle($shuffled);
               foreach ($shuffled as $item): ?>
               <div class="ordering-item d-flex align-items-center gap-3"
-                   style="background:var(--card-bg);border:1.5px solid var(--border-color);border-radius:10px;padding:11px 14px;cursor:grab;user-select:none">
-                <i class="bi bi-grip-vertical" style="color:var(--text-muted);font-size:16px;flex-shrink:0"></i>
+                   style="background:var(--card);border:1.5px solid var(--border);border-radius:10px;padding:11px 14px;cursor:grab;user-select:none">
+                <i class="bi bi-grip-vertical" style="color:var(--text-2);font-size:16px;flex-shrink:0"></i>
                 <span style="font-size:14px"><?= $e($item) ?></span>
               </div>
               <?php endforeach; ?>
@@ -186,12 +186,12 @@ $url = fn(string $p = ''): string => View::url($p);
             <div style="display:flex;flex-direction:column;gap:10px">
               <?php foreach ($pairs as $pi => $pair): ?>
               <div class="d-flex align-items-center gap-3 flex-wrap">
-                <div style="flex:1;min-width:140px;background:var(--card-bg);border:1.5px solid var(--border-color);border-radius:10px;padding:10px 14px;font-size:14px;font-weight:600">
+                <div style="flex:1;min-width:140px;background:var(--card);border:1.5px solid var(--border);border-radius:10px;padding:10px 14px;font-size:14px;font-weight:600">
                   <?= $e($pair['left']) ?>
                 </div>
-                <i class="bi bi-arrow-right" style="color:var(--text-muted)"></i>
+                <i class="bi bi-arrow-right" style="color:var(--text-2)"></i>
                 <select name="answers[<?= $q['id'] ?>][<?= $pi ?>]"
-                        style="flex:1;min-width:140px;padding:10px 12px;border:1.5px solid var(--border-color);border-radius:10px;font-size:14px;background:var(--content-bg);color:var(--text-primary);cursor:pointer"
+                        style="flex:1;min-width:140px;padding:10px 12px;border:1.5px solid var(--border);border-radius:10px;font-size:14px;background:var(--card);color:var(--text-1);cursor:pointer"
                         onchange="updateProgress()">
                   <option value="">— Select —</option>
                   <?php
@@ -271,8 +271,8 @@ $url = fn(string $p = ''): string => View::url($p);
 
 /* Header card */
 .quiz-header-card {
-  background: var(--card-bg);
-  border: 1px solid var(--border-color);
+  background: var(--card);
+  border: 1px solid var(--border);
   border-radius: 16px;
   padding: 28px 28px 24px;
   margin-bottom: 20px;
@@ -286,30 +286,30 @@ $url = fn(string $p = ''): string => View::url($p);
   box-shadow: 0 6px 20px rgba(99,102,241,.3);
 }
 .quiz-breadcrumb a {
-  font-size: 12.5px; color: var(--text-muted);
+  font-size: 12.5px; color: var(--text-2);
   text-decoration: none; margin-bottom: 6px; display: inline-block;
 }
 .quiz-breadcrumb a:hover { color: #6366f1; }
-.quiz-title { font-size: 22px; font-weight: 800; color: var(--text-primary); margin: 4px 0 6px; }
-.quiz-desc  { font-size: 14px; color: var(--text-muted); margin-bottom: 12px; }
+.quiz-title { font-size: 22px; font-weight: 800; color: var(--text-1); margin: 4px 0 6px; }
+.quiz-desc  { font-size: 14px; color: var(--text-2); margin-bottom: 12px; }
 .quiz-meta-pills { display: flex; flex-wrap: wrap; gap: 8px; }
 .quiz-pill {
   display: inline-flex; align-items: center;
-  background: var(--content-bg); border: 1px solid var(--border-color);
-  border-radius: 20px; padding: 4px 12px; font-size: 12.5px; color: var(--text-muted);
+  background: var(--card); border: 1px solid var(--border);
+  border-radius: 20px; padding: 4px 12px; font-size: 12.5px; color: var(--text-2);
 }
 .quiz-pill-warn { background: #fef9c3; border-color: #e3a008; color: #92400e; }
 .quiz-pill-success { background: #d1fae5; border-color: #0e9f6e; color: #065f46; }
 
 /* Locked / empty */
 .quiz-locked-card {
-  background: var(--card-bg); border: 1px solid var(--border-color);
+  background: var(--card); border: 1px solid var(--border);
   border-radius: 16px; padding: 60px 32px; text-align: center;
 }
-.quiz-locked-icon { font-size: 4rem; color: var(--text-muted); opacity: .3; display: block; margin-bottom: 16px; }
-.quiz-locked-card h4 { font-weight: 700; color: var(--text-primary); margin-bottom: 8px; }
-.quiz-locked-card p  { color: var(--text-muted); }
-.quiz-best-score { font-size: 15px; color: var(--text-muted); margin-top: 12px; }
+.quiz-locked-icon { font-size: 4rem; color: var(--text-2); opacity: .3; display: block; margin-bottom: 16px; }
+.quiz-locked-card h4 { font-weight: 700; color: var(--text-1); margin-bottom: 8px; }
+.quiz-locked-card p  { color: var(--text-2); }
+.quiz-best-score { font-size: 15px; color: var(--text-2); margin-top: 12px; }
 
 /* Timer */
 .quiz-timer-bar {
@@ -324,16 +324,16 @@ $url = fn(string $p = ''): string => View::url($p);
 
 /* Progress indicator */
 .quiz-progress-bar-wrap {
-  height: 4px; background: var(--border-color); border-radius: 2px; margin-bottom: 6px; overflow: hidden;
+  height: 4px; background: var(--border); border-radius: 2px; margin-bottom: 6px; overflow: hidden;
 }
 .quiz-progress-bar-fill { height: 100%; background: #6366f1; border-radius: 2px; transition: width .3s ease; }
-.quiz-progress-label { font-size: 12px; color: var(--text-muted); text-align: right; margin-bottom: 20px; }
+.quiz-progress-label { font-size: 12px; color: var(--text-2); text-align: right; margin-bottom: 20px; }
 
 /* Questions */
 .quiz-questions { display: flex; flex-direction: column; gap: 16px; padding-bottom: 100px; }
 
 .quiz-q-card {
-  background: var(--card-bg); border: 1.5px solid var(--border-color);
+  background: var(--card); border: 1.5px solid var(--border);
   border-radius: 14px; overflow: hidden; transition: border-color .2s, box-shadow .2s;
 }
 .quiz-q-card.answered { border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99,102,241,.08); }
@@ -345,9 +345,9 @@ $url = fn(string $p = ''): string => View::url($p);
   font-weight: 700; font-size: 14px; display: flex; align-items: center; justify-content: center;
   flex-shrink: 0;
 }
-.quiz-q-text { font-size: 15.5px; font-weight: 600; color: var(--text-primary); line-height: 1.45; }
-.quiz-q-meta { font-size: 12px; color: var(--text-muted); margin-top: 4px; display: flex; gap: 6px; }
-.quiz-hint   { font-size: 12px; color: var(--text-muted); margin: 0 20px 8px; font-style: italic; }
+.quiz-q-text { font-size: 15.5px; font-weight: 600; color: var(--text-1); line-height: 1.45; }
+.quiz-q-meta { font-size: 12px; color: var(--text-2); margin-top: 4px; display: flex; gap: 6px; }
+.quiz-hint   { font-size: 12px; color: var(--text-2); margin: 0 20px 8px; font-style: italic; }
 
 .quiz-options { padding: 4px 20px 20px; display: flex; flex-direction: column; gap: 8px; }
 
@@ -357,8 +357,8 @@ $url = fn(string $p = ''): string => View::url($p);
 .quiz-option-box {
   display: flex; align-items: center; gap: 12px;
   padding: 12px 16px; border-radius: 10px;
-  border: 1.5px solid var(--border-color); background: var(--content-bg);
-  font-size: 14.5px; color: var(--text-primary);
+  border: 1.5px solid var(--border); background: var(--card);
+  font-size: 14.5px; color: var(--text-1);
   transition: border-color .15s, background .15s;
 }
 .quiz-option:hover .quiz-option-box { border-color: #6366f1; background: #ebf2ff; }
@@ -366,8 +366,8 @@ $url = fn(string $p = ''): string => View::url($p);
   border-color: #6366f1; background: #ebf2ff; font-weight: 600;
 }
 .quiz-option-letter {
-  width: 26px; height: 26px; border-radius: 50%; background: var(--border-color);
-  font-size: 12px; font-weight: 700; color: var(--text-muted);
+  width: 26px; height: 26px; border-radius: 50%; background: var(--border);
+  font-size: 12px; font-weight: 700; color: var(--text-2);
   display: flex; align-items: center; justify-content: center; flex-shrink: 0;
   transition: background .15s, color .15s;
 }
@@ -378,8 +378,8 @@ $url = fn(string $p = ''): string => View::url($p);
 /* Fill blank */
 .quiz-fill-input {
   width: 100%; padding: 12px 16px; border-radius: 10px;
-  border: 1.5px solid var(--border-color); background: var(--content-bg);
-  font-size: 14.5px; color: var(--text-primary);
+  border: 1.5px solid var(--border); background: var(--card);
+  font-size: 14.5px; color: var(--text-1);
   transition: border-color .15s; outline: none;
 }
 .quiz-fill-input:focus { border-color: #6366f1; box-shadow: 0 0 0 3px rgba(99,102,241,.12); }
@@ -387,12 +387,12 @@ $url = fn(string $p = ''): string => View::url($p);
 /* Submit bar */
 .quiz-submit-bar {
   display: flex; align-items: center; justify-content: space-between; gap: 12px;
-  background: var(--card-bg); border: 1px solid var(--border-color);
+  background: var(--card); border: 1px solid var(--border);
   border-radius: 14px; padding: 16px 24px; margin-top: 24px;
   position: sticky; bottom: 80px; /* above bottom nav */
   box-shadow: 0 -4px 24px rgba(0,0,0,.08);
 }
-.quiz-submit-info { font-size: 13px; color: var(--text-muted); flex: 1; text-align: center; }
+.quiz-submit-info { font-size: 13px; color: var(--text-2); flex: 1; text-align: center; }
 
 /* Buttons */
 .quiz-btn {
@@ -402,7 +402,7 @@ $url = fn(string $p = ''): string => View::url($p);
   transition: opacity .15s, transform .1s;
 }
 .quiz-btn:hover { opacity: .9; transform: translateY(-1px); }
-.quiz-btn-back   { background: var(--content-bg); color: var(--text-muted) !important; border: 1.5px solid var(--border-color); }
+.quiz-btn-back   { background: var(--card); color: var(--text-2) !important; border: 1.5px solid var(--border); }
 .quiz-btn-submit { background: linear-gradient(135deg,#6366f1,#1a56db); color: #fff !important; box-shadow: 0 4px 14px rgba(99,102,241,.35); }
 .quiz-btn-submit:disabled { opacity: .5; cursor: not-allowed; transform: none; }
 </style>
