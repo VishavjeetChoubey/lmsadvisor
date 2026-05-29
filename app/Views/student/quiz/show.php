@@ -361,9 +361,9 @@ $url = fn(string $p = ''): string => View::url($p);
   font-size: 14.5px; color: var(--text-1);
   transition: border-color .15s, background .15s;
 }
-.quiz-option:hover .quiz-option-box { border-color: #6366f1; background: #ebf2ff; }
+.quiz-option:hover .quiz-option-box { border-color: #6366f1; background: rgba(99,102,241,.12); }
 .quiz-option input:checked ~ .quiz-option-box {
-  border-color: #6366f1; background: #ebf2ff; font-weight: 600;
+  border-color: #6366f1; background: rgba(99,102,241,.15); font-weight: 600;
 }
 .quiz-option-letter {
   width: 26px; height: 26px; border-radius: 50%; background: var(--border);
