@@ -164,6 +164,27 @@ class QuizController extends Controller
         $defaults = $this->defaultOptions($type);
         $this->quiz->setOptions($questionId, $defaults);
 
+        // For new JSON-based types, seed default data so UI shows immediately
+        if ($type === 'ordering') {
+            $this->quiz->updateQuestion($questionId, [
+                'question' => 'New Question', 'type' => $type, 'points' => 1, 'sort_order' => $count,
+                'order_items' => json_encode(['Item 1', 'Item 2', 'Item 3']),
+                'acceptable_answers' => null, 'match_pairs' => null,
+            ]);
+        } elseif ($type === 'short_answer') {
+            $this->quiz->updateQuestion($questionId, [
+                'question' => 'New Question', 'type' => $type, 'points' => 1, 'sort_order' => $count,
+                'acceptable_answers' => json_encode(['Correct answer']),
+                'order_items' => null, 'match_pairs' => null,
+            ]);
+        } elseif ($type === 'matching') {
+            $this->quiz->updateQuestion($questionId, [
+                'question' => 'New Question', 'type' => $type, 'points' => 1, 'sort_order' => $count,
+                'match_pairs' => json_encode([['left' => 'Term 1', 'right' => 'Definition 1'], ['left' => 'Term 2', 'right' => 'Definition 2']]),
+                'order_items' => null, 'acceptable_answers' => null,
+            ]);
+        }
+
         $this->json([
             'success'     => true,
             'question_id' => $questionId,
@@ -318,6 +339,9 @@ class QuizController extends Controller
             'fill_blank' => [
                 ['text' => 'Correct Answer', 'is_correct' => true],
             ],
+            // New types store data in JSON columns, not question_options
+            // Return empty array — data seeded directly on the question row
+            'ordering', 'short_answer', 'matching' => [],
             default => [ // single, multiple
                 ['text' => 'Option A', 'is_correct' => true],
                 ['text' => 'Option B', 'is_correct' => false],

@@ -511,7 +511,7 @@ $typeColors  = ['text'=>'rgba(255,255,255,.5)','video'=>'#f87171','document'=>'#
               <i class="bi bi-check-circle me-2"></i> Mark as Complete
             </button>
           </form>
-          <div id="lpQuizGateMsg" style="display:none;background:#fef9c3;border:1px solid #fde047;border-radius:10px;padding:12px 16px;margin-top:10px;font-size:13.5px;color:#713f12;display:flex;align-items:flex-start;gap:10px">
+          <div id="lpQuizGateMsg" style="display:none;background:#fef9c3;border:1px solid #fde047;border-radius:10px;padding:12px 16px;margin-top:10px;font-size:13.5px;color:#713f12;align-items:flex-start;gap:10px">
             <i class="bi bi-shield-lock-fill" style="flex-shrink:0;margin-top:2px;font-size:15px"></i>
             <span id="lpQuizGateTxt"></span>
           </div>
