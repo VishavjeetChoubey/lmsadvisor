@@ -15,11 +15,17 @@ class ProfileController extends Controller
     {
         AuthMiddleware::handle();
         $user = AuthService::user();
+        $uid  = (int)$user['id'];
         $pdo  = Database::getInstance();
 
-        // Load full user data
-        $stmt = $pdo->prepare('SELECT * FROM users WHERE id=? LIMIT 1');
-        $stmt->execute([(int)$user['id']]);
+        // Load full user data including role name
+        $stmt = $pdo->prepare(
+            'SELECT u.*, r.name AS role_name, r.display_name AS role_display
+             FROM users u
+             LEFT JOIN roles r ON r.id = u.role_id
+             WHERE u.id=? LIMIT 1'
+        );
+        $stmt->execute([$uid]);
         $full = $stmt->fetch();
 
         // Recent activity
@@ -30,14 +36,20 @@ class ProfileController extends Controller
              JOIN courses c ON c.id=l.course_id
              WHERE lp.user_id=? ORDER BY lp.last_accessed DESC LIMIT 5'
         );
-        $activity->execute([(int)$user['id']]);
+        $activity->execute([$uid]);
 
-        // Stats
+        // Stats — clean prepared statements
+        $s1 = $pdo->prepare("SELECT COUNT(*) FROM enrollments WHERE user_id=?");
+        $s1->execute([$uid]);
+        $s2 = $pdo->prepare("SELECT COUNT(*) FROM enrollments WHERE user_id=? AND status='completed'");
+        $s2->execute([$uid]);
+        $s3 = $pdo->prepare("SELECT COUNT(*) FROM certificates WHERE user_id=?");
+        $s3->execute([$uid]);
+
         $stats = [
-            'enrollments' => (int)$pdo->prepare('SELECT COUNT(*) FROM enrollments WHERE user_id=?')
-                ->execute([(int)$user['id']]) ? (int)$pdo->query("SELECT COUNT(*) FROM enrollments WHERE user_id={$user['id']}")->fetchColumn() : 0,
-            'completions' => (int)$pdo->query("SELECT COUNT(*) FROM enrollments WHERE user_id={$user['id']} AND status='completed'")->fetchColumn(),
-            'certificates'=> (int)$pdo->query("SELECT COUNT(*) FROM certificates WHERE user_id={$user['id']}")->fetchColumn(),
+            'enrollments'  => (int)$s1->fetchColumn(),
+            'completions'  => (int)$s2->fetchColumn(),
+            'certificates' => (int)$s3->fetchColumn(),
         ];
 
         $this->view('student.profile.index', [
@@ -64,15 +76,14 @@ class ProfileController extends Controller
         $timezone  = Sanitizer::string($this->request->post('timezone', 'UTC'), 60);
         $phone     = Sanitizer::string($this->request->post('phone', ''), 30);
 
-        // Handle photo upload
+        // Handle photo upload (from avatar click — separate mini-form)
         $photoPath = null;
         if (!empty($_FILES['profile_photo']['tmp_name'])) {
             $result = $this->handlePhotoUpload($_FILES['profile_photo']);
             if ($result['success']) {
                 $photoPath = $result['path'];
-                // Delete old photo
                 $old = $pdo->prepare('SELECT profile_photo FROM users WHERE id=? LIMIT 1');
-                $old->execute([(int)$user['id']]);
+                $old->execute([$uid]);
                 $oldPhoto = $old->fetchColumn();
                 if ($oldPhoto) {
                     $oldFile = BASE_PATH . '/public/storage/uploads/' . $oldPhoto;
