@@ -187,11 +187,11 @@ if (!empty($flash)) {
           </div>
           <div class="pf-grid single" style="margin-bottom:18px">
             <div class="pf-fg">
-              <label class="pf-lbl" for="pf-email">Email Address <span class="pf-req">*</span></label>
-              <input id="pf-email" type="email" class="pf-inp"
-                     value="<?=$e($u['email']??'')?>" disabled
-                     style="background:#f9fafb;color:#6b7280;cursor:not-allowed"
-                     title="Email cannot be changed">
+              <label class="pf-lbl">Email Address</label>
+              <div class="pf-inp" style="background:#f9fafb;color:#6b7280;cursor:not-allowed;user-select:none">
+                <?=$e($u['email']??'')?>
+              </div>
+              <span style="font-size:12px;color:#9ca3af">Email cannot be changed</span>
             </div>
           </div>
           <div class="pf-grid single" style="margin-bottom:18px">
