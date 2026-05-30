@@ -128,11 +128,10 @@ $firstName = explode(' ', $authUser['name'] ?? 'Admin')[0];
       <span id="admLoadMs">—</span>
     </span>
 
-    <!-- WiFi / connectivity -->
-    <span id="admNetWrap" title="Network status"
-          style="display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:600">
+    <!-- WiFi / connectivity — label hidden, shown on hover via title -->
+    <span title="" id="admNetWrap"
+          style="display:inline-flex;align-items:center;cursor:default">
       <i class="bi bi-wifi" id="admWifiIcon" style="font-size:15px;color:#9ca3af"></i>
-      <span id="admNetLabel" style="color:#9ca3af">—</span>
     </span>
 
   </div>
@@ -141,33 +140,34 @@ $firstName = explode(' ', $authUser['name'] ?? 'Admin')[0];
 
   <script>
   (function(){
-    // Page load time — Navigation Timing API (browser built-in, no external calls)
+    // Page load time — show in seconds e.g. 0.8s
     window.addEventListener('load', function(){
       var el = document.getElementById('admLoadMs');
       if(!el || !window.performance) return;
       setTimeout(function(){
         var nav = performance.getEntriesByType('navigation')[0];
         var ms  = nav ? Math.round(nav.duration) : Math.round(performance.now());
-        el.textContent = ms + 'ms';
+        var sec = (ms / 1000).toFixed(1) + 's';
+        el.textContent = sec;
         el.style.color = ms < 800 ? '#059669' : ms < 2000 ? '#d97706' : '#dc2626';
       }, 100);
     });
 
-    // Network status — Network Information API (browser built-in, no external calls)
+    // Network status — color only on icon, speed shown in title on hover
     function updateNet(){
-      var icon  = document.getElementById('admWifiIcon');
-      var label = document.getElementById('admNetLabel');
-      if(!icon || !label) return;
+      var icon = document.getElementById('admWifiIcon');
+      var wrap = document.getElementById('admNetWrap');
+      if(!icon) return;
       if(!navigator.onLine){
-        icon.style.color = label.style.color = '#dc2626';
-        label.textContent = 'Offline'; return;
+        icon.style.color = '#dc2626';
+        if(wrap) wrap.title = 'Offline'; return;
       }
       var conn  = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
       var speed = conn ? conn.downlink : null;
       var color = speed === null ? '#6366f1' : speed >= 5 ? '#059669' : speed >= 1 ? '#d97706' : '#dc2626';
-      var text  = speed === null ? 'Online'  : speed >= 5 ? speed.toFixed(0)+' Mbps' : speed >= 1 ? speed.toFixed(1)+' Mbps' : 'Slow';
-      icon.style.color = label.style.color = color;
-      label.textContent = text;
+      var tip   = speed === null ? 'Online' : speed >= 5 ? speed.toFixed(0)+' Mbps' : speed >= 1 ? speed.toFixed(1)+' Mbps' : 'Slow connection';
+      icon.style.color = color;
+      if(wrap) wrap.title = tip;
     }
     updateNet();
     window.addEventListener('online',  updateNet);

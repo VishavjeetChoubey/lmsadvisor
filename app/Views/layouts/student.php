@@ -195,11 +195,10 @@ if (!empty($authUser['id'])) {
           <span id="stuLoadMs">—</span>
         </span>
 
-        <!-- WiFi / connectivity -->
-        <span title="Network status"
-              style="display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:600">
+        <!-- WiFi / connectivity — speed on hover only -->
+        <span title="" id="stuNetWrap"
+              style="display:inline-flex;align-items:center;cursor:default">
           <i class="bi bi-wifi" id="stuWifiIcon" style="font-size:15px;color:#9ca3af"></i>
-          <span id="stuNetLabel" style="color:#9ca3af">—</span>
         </span>
 
       </div>
@@ -298,25 +297,25 @@ if ('serviceWorker' in navigator) navigator.serviceWorker.register('<?= APP_URL 
     setTimeout(function(){
       var nav = performance.getEntriesByType('navigation')[0];
       var ms  = nav ? Math.round(nav.duration) : Math.round(performance.now());
-      el.textContent = ms + 'ms';
+      el.textContent = (ms / 1000).toFixed(1) + 's';
       el.style.color = ms < 800 ? '#059669' : ms < 2000 ? '#d97706' : '#dc2626';
     }, 100);
   });
   // WiFi status
   function updateNet(){
-    var icon  = document.getElementById('stuWifiIcon');
-    var label = document.getElementById('stuNetLabel');
-    if(!icon || !label) return;
+    var icon = document.getElementById('stuWifiIcon');
+    var wrap = document.getElementById('stuNetWrap');
+    if(!icon) return;
     if(!navigator.onLine){
-      icon.style.color = label.style.color = '#dc2626';
-      label.textContent = 'Offline'; return;
+      icon.style.color = '#dc2626';
+      if(wrap) wrap.title = 'Offline'; return;
     }
     var conn  = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
     var speed = conn ? conn.downlink : null;
     var color = speed === null ? '#6366f1' : speed >= 5 ? '#059669' : speed >= 1 ? '#d97706' : '#dc2626';
-    var text  = speed === null ? 'Online'  : speed >= 5 ? speed.toFixed(0)+' Mbps' : speed >= 1 ? speed.toFixed(1)+' Mbps' : 'Slow';
-    icon.style.color = label.style.color = color;
-    label.textContent = text;
+    var tip   = speed === null ? 'Online' : speed >= 5 ? speed.toFixed(0)+' Mbps' : speed >= 1 ? speed.toFixed(1)+' Mbps' : 'Slow connection';
+    icon.style.color = color;
+    if(wrap) wrap.title = tip;
   }
   updateNet();
   window.addEventListener('online',  updateNet);
