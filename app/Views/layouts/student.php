@@ -176,33 +176,33 @@ if (!empty($authUser['id'])) {
 
     <div class="stu-topbar-right">
 
-      <!-- ── Admin-only tools (desktop) ─────────────────────────────────── -->
-      <?php if(in_array($authUser['role'] ?? '', ['super_admin','admin','manager'], true)): ?>
+      <!-- ── Tools for ALL users (desktop) ─────────────────────────────────── -->
       <div class="d-none d-lg-flex align-items-center gap-2 me-1">
 
-        <!-- Admin View -->
+        <!-- Admin View — admin roles only -->
+        <?php if(in_array($authUser['role'] ?? '', ['super_admin','admin','manager'], true)): ?>
         <a href="<?= $url('admin/dashboard') ?>"
            style="display:inline-flex;align-items:center;gap:6px;padding:5px 14px;border-radius:20px;border:1px solid var(--nav-active);color:var(--nav-active);background:transparent;font-size:12px;font-weight:600;text-decoration:none;white-space:nowrap;transition:all .15s"
            onmouseover="this.style.background='var(--nav-active)';this.style.color='#fff'"
            onmouseout="this.style.background='transparent';this.style.color='var(--nav-active)'">
           <i class="bi bi-shield-fill" style="font-size:12px"></i> Admin View
         </a>
+        <?php endif; ?>
 
-        <!-- Page load speed -->
+        <!-- Page load speed — all users -->
         <span title="Page load time"
               style="display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:600;color:var(--text-2)">
           <i class="bi bi-lightning-charge-fill" style="color:#f59e0b;font-size:13px"></i>
           <span id="stuLoadMs">—</span>
         </span>
 
-        <!-- WiFi / connectivity — speed on hover only -->
+        <!-- WiFi — all users -->
         <span title="" id="stuNetWrap"
               style="display:inline-flex;align-items:center;cursor:default">
           <i class="bi bi-wifi" id="stuWifiIcon" style="font-size:15px;color:#9ca3af"></i>
         </span>
 
       </div>
-      <?php endif; ?>
 
       <!-- Notification bell with live count -->
       <div class="dropdown">
