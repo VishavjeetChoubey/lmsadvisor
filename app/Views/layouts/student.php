@@ -175,6 +175,44 @@ if (!empty($authUser['id'])) {
     <div class="stu-topbar-title"><?= $e($page_title ?? '') ?></div>
 
     <div class="stu-topbar-right">
+
+      <!-- ── Desktop-only tools (SOC2: browser APIs only, no PII) ── -->
+      <div class="d-none d-lg-flex align-items-center gap-2 me-1" style="font-size:12px">
+
+        <?php if (in_array($authUser['role'] ?? '', ['super_admin','admin','manager'], true)): ?>
+        <!-- Admin View button — only for admins viewing learner portal -->
+        <a href="<?= $url('admin/dashboard') ?>"
+           title="Back to Admin Panel"
+           style="display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:20px;border:1px solid #6366f1;color:#6366f1;background:transparent;font-size:12px;font-weight:600;text-decoration:none;transition:all .15s;white-space:nowrap"
+           onmouseover="this.style.background='#6366f1';this.style.color='#fff'"
+           onmouseout="this.style.background='transparent';this.style.color='#6366f1'">
+          <i class="bi bi-shield-fill" style="font-size:12px"></i>
+          Admin View
+        </a>
+        <div style="width:1px;height:18px;background:var(--border);opacity:.5"></div>
+        <?php endif; ?>
+
+        <!-- Page load speed -->
+        <div title="Page load time" style="display:inline-flex;align-items:center;gap:4px;cursor:default">
+          <i class="bi bi-lightning-charge-fill" style="font-size:13px;color:#f59e0b"></i>
+          <span id="stuLoadTime" style="font-weight:600;color:var(--text-1);font-size:12px">—</span>
+        </div>
+
+        <!-- Network status -->
+        <div id="stuNetWrap" title="Network status" style="display:inline-flex;align-items:center;gap:4px;cursor:default">
+          <i class="bi bi-wifi" id="stuWifiIcon" style="font-size:15px;color:#9ca3af"></i>
+          <span id="stuNetLabel" style="font-weight:600;color:var(--text-2);font-size:11.5px">—</span>
+        </div>
+
+        <!-- Local time -->
+        <div title="Your local time" style="display:inline-flex;align-items:center;gap:4px">
+          <i class="bi bi-clock-fill" style="font-size:13px;color:#6366f1"></i>
+          <span id="stuLocalTime" style="font-weight:600;color:var(--text-1);font-size:12px;font-variant-numeric:tabular-nums">—</span>
+        </div>
+
+        <div style="width:1px;height:18px;background:var(--border);opacity:.5"></div>
+      </div>
+
       <!-- Notification bell with live count -->
       <div class="dropdown">
         <button class="stu-topbar-btn position-relative" id="stuNotifBell" title="Notifications" data-bs-toggle="dropdown">
@@ -258,6 +296,60 @@ if (!empty($authUser['id'])) {
 <?php if ($customJsFooter): ?><script id="custom-js-footer"><?= $customJsFooter ?></script><?php endif; ?>
 <script>
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('<?= APP_URL ?>/sw.js');
+</script>
+
+<!-- ── Desktop tools JS (SOC2: browser-native APIs only, no PII) ─────────── -->
+<script>
+(function() {
+  // Page load time — Navigation Timing API (browser built-in, no external calls)
+  window.addEventListener('load', function() {
+    var el = document.getElementById('stuLoadTime');
+    if (!el || !window.performance) return;
+    setTimeout(function() {
+      var nav = performance.getEntriesByType('navigation')[0];
+      var ms  = nav ? Math.round(nav.duration) : Math.round(performance.now());
+      var color = ms < 800 ? '#059669' : ms < 2000 ? '#d97706' : '#dc2626';
+      el.textContent = ms + 'ms';
+      el.style.color = color;
+    }, 100);
+  });
+
+  // Network status — Network Information API (browser built-in, no external calls)
+  function updateNet() {
+    var icon  = document.getElementById('stuWifiIcon');
+    var label = document.getElementById('stuNetLabel');
+    if (!icon || !label) return;
+    if (!navigator.onLine) {
+      icon.style.color  = '#dc2626';
+      label.textContent = 'Offline';
+      label.style.color = '#dc2626';
+      return;
+    }
+    var conn  = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+    var speed = conn ? conn.downlink : null;
+    var color, text;
+    if (speed === null)  { color = '#6366f1'; text = 'Online'; }
+    else if (speed >= 5) { color = '#059669'; text = speed.toFixed(0) + ' Mbps'; }
+    else if (speed >= 1) { color = '#d97706'; text = speed.toFixed(1) + ' Mbps'; }
+    else                 { color = '#dc2626'; text = 'Slow'; }
+    icon.style.color  = color;
+    label.textContent = text;
+    label.style.color = color;
+  }
+  updateNet();
+  window.addEventListener('online',  updateNet);
+  window.addEventListener('offline', updateNet);
+  if (navigator.connection) navigator.connection.addEventListener('change', updateNet);
+
+  // Local clock — browser Date (no external calls, no PII)
+  function tick() {
+    var el = document.getElementById('stuLocalTime');
+    if (!el) return;
+    el.textContent = new Date().toLocaleTimeString([], { hour:'2-digit', minute:'2-digit', second:'2-digit' });
+  }
+  tick();
+  setInterval(tick, 1000);
+})();
 </script>
 </body>
 </html>
