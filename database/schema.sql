@@ -1427,3 +1427,9 @@ ALTER TABLE quizzes ADD COLUMN IF NOT EXISTS blocks_progress TINYINT(1) DEFAULT 
 
 
 SET FOREIGN_KEY_CHECKS = 1;
+
+-- ── Migration: 0029_lesson_type_assignment.sql ──────────────────────────────────────────────
+
+-- Migration 0029: Add 'assignment' to lessons.type ENUM
+ALTER TABLE lessons MODIFY COLUMN type
+  ENUM('text','video','document','scorm','quiz','assignment') NOT NULL;
