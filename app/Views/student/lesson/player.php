@@ -495,6 +495,90 @@ $typeColors  = ['text'=>'rgba(255,255,255,.5)','video'=>'#f87171','document'=>'#
             <?php endif; ?>
           </div>
           <?php endif; ?>
+        <?php elseif ($type === 'assignment'): ?>
+          <?php
+            // Load assignment config for this lesson
+            $pdo = \App\Core\Database::getInstance();
+            $assignStmt = $pdo->prepare('SELECT * FROM assignments WHERE lesson_id=? LIMIT 1');
+            $assignStmt->execute([(int)$currentLesson['id']]);
+            $assignment = $assignStmt->fetch();
+
+            // Check if student already submitted
+            $submissionStmt = $pdo->prepare(
+              'SELECT s.* FROM assignment_submissions s
+               JOIN assignments a ON a.id=s.assignment_id
+               WHERE a.lesson_id=? AND s.user_id=?
+               ORDER BY s.submitted_at DESC LIMIT 1'
+            );
+            $submissionStmt->execute([(int)$currentLesson['id'], (int)($authUser['id'] ?? 0)]);
+            $submission = $submissionStmt->fetch();
+          ?>
+          <div class="lp-doc-wrap" style="text-align:left;max-width:720px;margin:0 auto">
+            <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px">
+              <div style="width:48px;height:48px;border-radius:14px;background:#ededff;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+                <i class="bi bi-clipboard-check-fill" style="font-size:22px;color:#6366f1"></i>
+              </div>
+              <div>
+                <h4 style="margin:0;font-size:18px;font-weight:700"><?= $e($currentLesson['title']) ?></h4>
+                <?php if ($assignment): ?>
+                <div style="font-size:13px;color:var(--text-2);margin-top:3px">
+                  <?php if ($assignment['deadline']): ?>
+                    <i class="bi bi-calendar-event me-1"></i>Due: <?= date('d M Y H:i', strtotime($assignment['deadline'])) ?> &nbsp;·&nbsp;
+                  <?php endif; ?>
+                  <i class="bi bi-award me-1"></i>Pass: <?= (int)$assignment['pass_score'] ?>/<?= (int)$assignment['max_score'] ?> pts
+                </div>
+                <?php endif; ?>
+              </div>
+            </div>
+
+            <?php if ($assignment && $assignment['brief']): ?>
+            <div style="background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px 20px;margin-bottom:20px;font-size:14.5px;line-height:1.7">
+              <?= $assignment['brief'] ?>
+            </div>
+            <?php endif; ?>
+
+            <?php if ($assignment && $assignment['rubric']): ?>
+            <div style="background:#f8fafc;border-left:3px solid #6366f1;padding:12px 16px;border-radius:0 8px 8px 0;margin-bottom:20px;font-size:13.5px">
+              <div style="font-weight:700;margin-bottom:6px"><i class="bi bi-list-check me-1"></i>Grading Rubric</div>
+              <?= nl2br($e($assignment['rubric'])) ?>
+            </div>
+            <?php endif; ?>
+
+            <?php if ($submission): ?>
+              <!-- Already submitted -->
+              <div style="background:<?= $submission['status']==='graded'?'#ecfdf5':'#fffbeb' ?>;border:1px solid <?= $submission['status']==='graded'?'#a7f3d0':'#fde68a' ?>;border-radius:12px;padding:16px 20px;margin-bottom:20px">
+                <div style="font-weight:700;font-size:15px;margin-bottom:6px">
+                  <?php if ($submission['status'] === 'graded'): ?>
+                    <i class="bi bi-check-circle-fill text-success me-2"></i>Graded — <?= (int)$submission['score'] ?> pts
+                  <?php else: ?>
+                    <i class="bi bi-hourglass-split text-warning me-2"></i>Submitted — Awaiting review
+                  <?php endif; ?>
+                </div>
+                <div style="font-size:13px;color:var(--text-2)">Submitted: <?= date('d M Y H:i', strtotime($submission['submitted_at'])) ?></div>
+                <?php if ($submission['feedback']): ?>
+                <div style="margin-top:10px;font-size:13.5px"><strong>Feedback:</strong> <?= $e($submission['feedback']) ?></div>
+                <?php endif; ?>
+              </div>
+
+              <a href="<?= $url('learn/courses/'.$course['uuid'].'/assignments/'.$currentLesson['id']) ?>"
+                 class="lp-cta-btn" style="background:#6b7280">
+                <i class="bi bi-eye me-2"></i> View Submission
+              </a>
+            <?php else: ?>
+              <!-- Not yet submitted -->
+              <?php if ($assignment): ?>
+              <div style="font-size:13.5px;color:var(--text-2);margin-bottom:16px">
+                <i class="bi bi-info-circle me-1"></i>
+                Allowed file types: <strong><?= $e($assignment['allowed_types'] ?? 'pdf,doc,docx,zip') ?></strong>
+                · Max size: <strong><?= (int)($assignment['max_file_mb'] ?? 20) ?>MB</strong>
+              </div>
+              <?php endif; ?>
+              <a href="<?= $url('learn/courses/'.$course['uuid'].'/assignments/'.$currentLesson['id']) ?>"
+                 class="lp-cta-btn">
+                <i class="bi bi-upload me-2"></i> Submit Assignment
+              </a>
+            <?php endif; ?>
+          </div>
         <?php endif; ?>
 
         <!-- ── Actions bar ── -->
