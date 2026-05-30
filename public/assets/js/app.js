@@ -258,17 +258,20 @@ $(function () {
     fetch(BASE + '/api/notifications/read-all', { method: 'POST' }).then(function() { loadNotifs(); }).catch(function(){});
   });
 
-  // Load count on page load
-  fetch(BASE + '/api/notifications/count')
-    .then(function(r) { return r.json(); })
-    .then(function(d) { updateBadge(d.count || 0); })
-    .catch(function() {});
+  // Load count on page load — guard against non-JSON responses (e.g. redirects)
+  function fetchNotifCount() {
+    fetch(BASE + '/api/notifications/count')
+      .then(function(r) {
+        if (r.status === 401) return null; // Not logged in — stop silently
+        if (!r.ok) return null;
+        return r.json();
+      })
+      .then(function(d) { if (d) updateBadge(d.count || 0); })
+      .catch(function() {});
+  }
+
+  fetchNotifCount();
 
   // Poll every 60s
-  setInterval(function() {
-    fetch(BASE + '/api/notifications/count')
-      .then(function(r) { return r.json(); })
-      .then(function(d) { updateBadge(d.count || 0); })
-      .catch(function() {});
-  }, 60000);
+  setInterval(fetchNotifCount, 60000);
 })();

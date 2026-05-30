@@ -12,7 +12,13 @@ class NotificationApiController extends Controller
 {
     private function guard(): array
     {
-        AuthMiddleware::handle('/login');
+        // API endpoints must never redirect — return 401 JSON so fetch() handles it gracefully
+        if (!AuthService::check()) {
+            http_response_code(401);
+            header('Content-Type: application/json');
+            echo json_encode(['error' => 'Unauthenticated', 'count' => 0]);
+            exit;
+        }
         return AuthService::user();
     }
 
