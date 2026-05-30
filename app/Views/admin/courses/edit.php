@@ -401,12 +401,13 @@ $statusColors     = ['draft'=>'secondary','published'=>'success','archived'=>'wa
           </div>
           <div class="col-md-4">
             <label class="form-label fw-semibold">Type</label>
-            <select class="form-select" id="editLesType" disabled>
-              <option value="text">Text</option>
-              <option value="video">Video</option>
-              <option value="document">Document</option>
-              <option value="scorm">SCORM</option>
+            <select class="form-select" id="editLesType">
+              <option value="text">Text / Article</option>
+              <option value="video">Video Lesson</option>
+              <option value="document">PDF Document</option>
+              <option value="scorm">SCORM Package</option>
               <option value="quiz">Quiz</option>
+              <option value="assignment">Assignment</option>
             </select>
           </div>
           <!-- Video source -->
