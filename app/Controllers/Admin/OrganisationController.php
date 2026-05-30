@@ -104,7 +104,6 @@ class OrganisationController extends Controller
         fclose($out);
         exit;
     }
-}
 
     public function addMember(array $p): void
     {
@@ -126,3 +125,4 @@ class OrganisationController extends Controller
             $this->json(['success'=>false,'message'=>$e->getMessage()]);
         }
     }
+}
