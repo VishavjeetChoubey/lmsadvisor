@@ -4,8 +4,8 @@ $e    = fn(mixed $v): string => View::e($v);
 $url  = fn(string $p = ''): string => View::url($p);
 $asset= fn(string $p): string => View::asset($p);
 
-$lessonTypeIcons  = ['text'=>'bi-file-text','video'=>'bi-play-circle-fill','document'=>'bi-file-pdf','scorm'=>'bi-box-seam','quiz'=>'bi-patch-question-fill'];
-$lessonTypeColors = ['text'=>'secondary','video'=>'danger','document'=>'warning','scorm'=>'info','quiz'=>'success'];
+$lessonTypeIcons  = ['text'=>'bi-file-text','video'=>'bi-play-circle-fill','document'=>'bi-file-pdf','scorm'=>'bi-box-seam','quiz'=>'bi-patch-question-fill','assignment'=>'bi-clipboard-check-fill'];
+$lessonTypeColors = ['text'=>'secondary','video'=>'danger','document'=>'warning','scorm'=>'info','quiz'=>'success','assignment'=>'primary'];
 $statusColors     = ['draft'=>'secondary','published'=>'success','archived'=>'warning'];
 ?>
 
@@ -364,11 +364,12 @@ $statusColors     = ['draft'=>'secondary','published'=>'success','archived'=>'wa
         <p class="text-muted small mb-3">Select a lesson type:</p>
         <div class="row g-2">
           <?php foreach ([
-            ['text','Text / Article','bi-file-text','secondary'],
-            ['video','Video Lesson','bi-play-circle-fill','danger'],
-            ['document','PDF Document','bi-file-pdf','warning'],
-            ['scorm','SCORM Package','bi-box-seam','info'],
-            ['quiz','Quiz','bi-patch-question-fill','success'],
+            ['text',       'Text / Article',  'bi-file-text',           'secondary'],
+            ['video',      'Video Lesson',     'bi-play-circle-fill',    'danger'],
+            ['document',   'PDF Document',     'bi-file-pdf',            'warning'],
+            ['scorm',      'SCORM Package',    'bi-box-seam',            'info'],
+            ['quiz',       'Quiz',             'bi-patch-question-fill', 'success'],
+            ['assignment', 'Assignment',       'bi-clipboard-check-fill','primary'],
           ] as [$type, $label, $icon, $color]): ?>
           <div class="col-6">
             <button class="lesson-type-picker btn-pick-type w-100" data-type="<?= $type ?>">
