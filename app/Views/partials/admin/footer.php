@@ -1,6 +1,7 @@
 <footer class="admin-footer">
   <div>
-    &copy; <?= date('Y') ?> <strong>LMSAdvisor</strong> &mdash; Proudly developed by LMS Advisor
+    <strong>LMSAdvisor v<?= defined('APP_VERSION') ? APP_VERSION : '3.0.0' ?></strong>
+    &nbsp;|&nbsp; &copy; <?= date('Y') ?> LMS Advisor &mdash; Proudly developed by LMS Advisor
   </div>
   <div class="d-flex gap-3">
     <a href="<?= \App\Core\View::url('admin/settings') ?>">Settings</a>
