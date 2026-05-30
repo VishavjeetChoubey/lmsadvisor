@@ -108,8 +108,14 @@ class LoginController extends Controller
             }
             $intended = '/' . ltrim($intended, '/');
 
-            // Only redirect to internal paths that look safe
-            if (strlen($intended) > 1 && str_starts_with($intended, '/')) {
+            // Safety: never redirect to API endpoints, login page, or non-page URLs
+            $blocked = str_starts_with($intended, '/api/')
+                    || str_starts_with($intended, '/login')
+                    || str_starts_with($intended, '/logout')
+                    || str_contains($intended, '.')  // e.g. .json, .js files
+                    || strlen($intended) <= 1;
+
+            if (!$blocked) {
                 $this->redirect($intended);
             }
         }

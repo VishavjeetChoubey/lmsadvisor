@@ -15,8 +15,28 @@ class AuthMiddleware
     public static function handle(string $redirectTo = '/login'): void
     {
         if (!AuthService::check()) {
+            $uri    = $_SERVER['REQUEST_URI'] ?? '/';
+            $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
+
+            // Only save intended URL for GET page requests — not API calls, not POSTs.
+            // API routes (/api/...) firing from JS fetch() would redirect back to a JSON
+            // endpoint after login, breaking the user experience.
+            $isApiRequest  = str_contains($uri, '/api/');
+            $isPageRequest = $method === 'GET' && !$isApiRequest;
+
+            if ($isPageRequest) {
+                $_SESSION['intended'] = $uri;
+            }
+
+            // API calls get JSON 401 instead of redirect
+            if ($isApiRequest) {
+                http_response_code(401);
+                header('Content-Type: application/json');
+                echo json_encode(['error' => 'Unauthenticated']);
+                exit;
+            }
+
             $_SESSION['flash']['warning'] = 'Please sign in to continue.';
-            $_SESSION['intended'] = $_SERVER['REQUEST_URI'] ?? '/';
             header('Location: ' . APP_URL . $redirectTo);
             exit;
         }
