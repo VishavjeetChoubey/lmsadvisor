@@ -29,13 +29,13 @@ class AssignmentsOverviewController extends Controller
             } else {
                 $courses = $pdo->query(
                     "SELECT c.uuid, c.title, c.status,
-                            COUNT(DISTINCT l.id)  AS assignment_count,
+                            COUNT(DISTINCT a.id)  AS assignment_count,
                             COUNT(DISTINCT s.id)  AS submission_count,
-                            COUNT(DISTINCT CASE WHEN s.status='pending' THEN s.id END) AS pending_count
+                            COUNT(DISTINCT CASE WHEN s.status='submitted' THEN s.id END) AS pending_count
                      FROM courses c
-                     INNER JOIN lessons l ON l.course_id = c.id
-                     LEFT JOIN assignment_submissions s ON s.lesson_id = l.id
-                     WHERE l.type = 'assignment'
+                     INNER JOIN lessons l ON l.course_id = c.id AND l.type = 'assignment'
+                     INNER JOIN assignments a ON a.lesson_id = l.id
+                     LEFT JOIN assignment_submissions s ON s.assignment_id = a.id
                      GROUP BY c.id, c.uuid, c.title, c.status
                      ORDER BY pending_count DESC, c.title"
                 )->fetchAll();
