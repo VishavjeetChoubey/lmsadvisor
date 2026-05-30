@@ -110,7 +110,6 @@ class MenuSettingsController extends Controller
             'webhooks'       => ['super_admin'],
             'settings'       => ['super_admin','admin'],
             'database'       => ['super_admin'],
-            'tenants'        => ['super_admin'],
             'corporate'      => ['super_admin','admin'],
             'marketplace'    => ['super_admin','admin'],
             'reporting'      => ['super_admin','admin'],

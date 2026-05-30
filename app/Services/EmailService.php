@@ -98,97 +98,137 @@ class EmailService
         return ['sent' => $sent, 'failed' => $failed];
     }
 
-    /** Send via PHP's built-in mail() using SMTP settings. */
+    /** Send email via SMTP — clean pure-PHP implementation */
     private static function sendSmtp(
         string $toEmail,
         string $toName,
         string $subject,
         string $bodyHtml
     ): bool {
-        $host     = Setting::get('smtp_host', '');
-        $port     = (int)Setting::get('smtp_port', '587');
-        $user     = Setting::get('smtp_user', '');
-        $pass     = \App\Helpers\Encryption::decryptIfNeeded(Setting::get('smtp_pass', ''));
-        $fromName = Setting::get('smtp_from_name', Setting::get('site_name', 'LMSAdvisor'));
-        $fromEmail= Setting::get('smtp_from_email', $user);
+        $host      = Setting::get('smtp_host', '');
+        $port      = (int)Setting::get('smtp_port', '587');
+        $user      = Setting::get('smtp_user', '');
+        $pass      = \App\Helpers\Encryption::decryptIfNeeded(Setting::get('smtp_pass', ''));
+        $fromName  = Setting::get('smtp_from_name', Setting::get('site_name', 'LMSAdvisor'));
+        $fromEmail = Setting::get('smtp_from_email', $user);
+        $encryption= Setting::get('smtp_encryption', 'tls'); // tls | ssl | none
 
         if (!$host || !$fromEmail) {
-            throw new \RuntimeException('SMTP not configured');
+            throw new \RuntimeException('SMTP not configured. Set host and from email in Settings → Email.');
         }
 
-        // Use PHPMailer-style manual SMTP (pure PHP, no Composer)
-        $socket = fsockopen(
-            ($port === 465 ? 'ssl://' : '') . $host,
-            $port, $errno, $errstr, 10
-        );
+        // Connection prefix
+        $prefix = ($encryption === 'ssl' || $port === 465) ? 'ssl://' : '';
+
+        $socket = @fsockopen($prefix . $host, $port, $errno, $errstr, 15);
         if (!$socket) {
-            throw new \RuntimeException("SMTP connect failed: $errstr ($errno)");
+            throw new \RuntimeException("SMTP connection to {$host}:{$port} failed: {$errstr} ({$errno})");
         }
 
+        stream_set_timeout($socket, 15);
+
+        // Helper: read one full SMTP response
         $read = function() use ($socket): string {
-            $r = '';
-            while ($line = fgets($socket, 515)) {
-                $r .= $line;
-                if (substr($line, 3, 1) === ' ') break;
+            $response = '';
+            while ($line = fgets($socket, 1024)) {
+                $response .= $line;
+                if (strlen($line) >= 4 && $line[3] === ' ') break; // End of multi-line response
             }
-            return $r;
+            return $response;
         };
-        $cmd = function(string $c) use ($socket, $read): string {
-            fwrite($socket, $c . "\r\n");
+
+        // Helper: send command and return response
+        $cmd = function(string $command) use ($socket, $read): string {
+            fwrite($socket, $command . "\r\n");
             return $read();
         };
 
-        $read(); // banner
-        $cmd("EHLO {$host}");
+        $myHost = gethostname() ?: 'localhost';
 
-        // STARTTLS for port 587
-        if ($port === 587) {
-            $cmd("STARTTLS");
-            stream_socket_enable_crypto($socket, true, STREAM_CRYPTO_METHOD_TLS_CLIENT);
-            $cmd("EHLO {$host}");
+        $read(); // Server banner
+
+        // EHLO
+        $ehloResp = $cmd("EHLO {$myHost}");
+        if (!str_starts_with($ehloResp, '2')) {
+            $cmd("HELO {$myHost}"); // fallback
         }
 
-        $cmd("AUTH LOGIN");
-        $cmd(base64_encode($user));
-        $r = $cmd(base64_encode($pass));
-        if (!str_starts_with($r, '235')) {
-            fclose($socket);
-            throw new \RuntimeException("SMTP auth failed: $r");
+        // STARTTLS for port 587 / tls encryption
+        if ($encryption === 'tls' && $port !== 465) {
+            $tlsResp = $cmd("STARTTLS");
+            if (!str_starts_with($tlsResp, '220')) {
+                fclose($socket);
+                throw new \RuntimeException("STARTTLS failed: {$tlsResp}");
+            }
+            if (!stream_socket_enable_crypto($socket, true, STREAM_CRYPTO_METHOD_TLS_CLIENT)) {
+                fclose($socket);
+                throw new \RuntimeException("TLS negotiation failed.");
+            }
+            $cmd("EHLO {$myHost}"); // re-introduce after TLS
         }
 
+        // Authenticate
+        if ($user && $pass) {
+            $authResp = $cmd("AUTH LOGIN");
+            if (!str_starts_with($authResp, '334')) {
+                fclose($socket);
+                throw new \RuntimeException("SMTP AUTH LOGIN not accepted: {$authResp}");
+            }
+            $cmd(base64_encode($user));
+            $authResult = $cmd(base64_encode($pass));
+            if (!str_starts_with($authResult, '235')) {
+                fclose($socket);
+                throw new \RuntimeException("SMTP authentication failed. Check username/password.");
+            }
+        }
+
+        // Envelope
         $cmd("MAIL FROM:<{$fromEmail}>");
-        $cmd("RCPT TO:<{$toEmail}>");
-        $cmd("DATA");
+        $rcptResp = $cmd("RCPT TO:<{$toEmail}>");
+        if (!str_starts_with($rcptResp, '250') && !str_starts_with($rcptResp, '251')) {
+            fclose($socket);
+            throw new \RuntimeException("RCPT TO rejected: {$rcptResp}");
+        }
 
-        $boundary = md5(uniqid());
-        $headers  = implode("\r\n", [
-            "From: {$fromName} <{$fromEmail}>",
-            "To: {$toName} <{$toEmail}>",
+        // Build message
+        $boundary = 'LMS_' . bin2hex(random_bytes(8));
+        $bodyText = strip_tags(str_replace(['<br>','<br/>','</p>','<p>'], "\n", $bodyHtml));
+
+        $message = implode("\r\n", [
+            "From: =?UTF-8?B?" . base64_encode($fromName) . "?= <{$fromEmail}>",
+            "To: =?UTF-8?B?" . base64_encode($toName ?: $toEmail) . "?= <{$toEmail}>",
             "Subject: =?UTF-8?B?" . base64_encode($subject) . "?=",
             "MIME-Version: 1.0",
             "Content-Type: multipart/alternative; boundary=\"{$boundary}\"",
-            "X-Mailer: LMSAdvisor/2.0",
-        ]);
-
-        $body = implode("\r\n", [
+            "X-Mailer: LMSAdvisor/" . (defined('APP_VERSION') ? APP_VERSION : '3.0'),
+            "Date: " . date('r'),
+            "",
             "--{$boundary}",
             "Content-Type: text/plain; charset=UTF-8",
+            "Content-Transfer-Encoding: base64",
             "",
-            strip_tags(str_replace(['<br>','<br/>','</p>'], "\n", $bodyHtml)),
-            "",
+            chunk_split(base64_encode($bodyText)),
             "--{$boundary}",
             "Content-Type: text/html; charset=UTF-8",
+            "Content-Transfer-Encoding: base64",
             "",
-            $bodyHtml,
-            "",
+            chunk_split(base64_encode($bodyHtml)),
             "--{$boundary}--",
         ]);
 
-        $r = $cmd("{$headers}\r\n\r\n{$body}\r\n.");
+        // Send DATA
+        $cmd("DATA");
+        fwrite($socket, $message . "\r\n.\r\n");
+        $dataResp = $read();
+
         $cmd("QUIT");
         fclose($socket);
 
-        return str_starts_with(trim($r), '250');
+        if (!str_starts_with(trim($dataResp), '250')) {
+            throw new \RuntimeException("Message rejected by server: {$dataResp}");
+        }
+
+        return true;
     }
 
     /** Replace {{variable}} placeholders in template. */

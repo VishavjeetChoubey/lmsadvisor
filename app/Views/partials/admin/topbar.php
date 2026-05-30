@@ -46,7 +46,8 @@ $firstName = explode(' ', $authUser['name'] ?? 'Admin')[0];
     var res    = document.getElementById('searchResults');
     var timer;
     var icons  = { course:'bi-journal-bookmark-fill', user:'bi-person-fill', enrollment:'bi-person-check-fill', lesson:'bi-play-circle-fill' };
-    var links  = { course:'/admin/courses/', user:'/admin/students/', enrollment:'/admin/courses/', lesson:'/admin/courses/' };
+    var links  = { course:'/admin/courses/', user:'/admin/users/', enrollment:'/admin/courses/', lesson:'/admin/courses/' };
+    var suffix = { course:'/edit', user:'/edit', enrollment:'/edit', lesson:'/edit' };
     var BASE   = '<?= rtrim(APP_URL, '/') ?>';
 
     input.addEventListener('input', function() {
@@ -62,7 +63,7 @@ $firstName = explode(' ', $authUser['name'] ?? 'Admin')[0];
           } else {
             res.innerHTML = d.results.map(function(r) {
               var icon  = icons[r.type] || 'bi-search';
-              var url   = BASE + links[r.type] + (r.uuid||'');
+              var url   = BASE + links[r.type] + (r.uuid||'') + (suffix[r.type]||'');
               return '<a href="' + url + '" style="display:flex;align-items:center;gap:10px;padding:9px 14px;text-decoration:none;border-bottom:1px solid var(--border-color);transition:background .1s" onmouseover="this.style.background=\'var(--card-bg)\'" onmouseout="this.style.background=\'\'">' +
                 '<i class="bi ' + icon + '" style="color:#6366f1;font-size:15px;flex-shrink:0"></i>' +
                 '<div style="min-width:0"><div style="font-size:13px;font-weight:600;color:var(--text-primary);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + r.title + '</div>' +

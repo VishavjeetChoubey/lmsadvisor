@@ -8,6 +8,7 @@ $typeIcons    = ['course'=>'bi-journal-bookmark-fill','user'=>'bi-person-fill','
 $typeLabels   = ['course'=>'Course','user'=>'Student','enrollment'=>'Enrollment','lesson'=>'Lesson'];
 $typeLinks    = ['course'=>'admin/courses/','user'=>'admin/users/','enrollment'=>'admin/courses/','lesson'=>'admin/courses/'];
 $typeColors   = ['course'=>'#6366f1','user'=>'#059669','enrollment'=>'#0891b2','lesson'=>'#d97706'];
+$typeSuffix   = ['course'=>'/edit','user'=>'/edit','enrollment'=>'/edit','lesson'=>'/edit'];
 ?>
 
 <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-3">
@@ -129,7 +130,7 @@ $typeColors   = ['course'=>'#6366f1','user'=>'#059669','enrollment'=>'#0891b2','
       </div>
       <div class="card-body p-0">
         <?php foreach ($items as $r):
-          $rowLink = $url($link . ($r['uuid'] ?? ''));
+          $rowLink = $url($typeLinks[$firstType] . ($r['uuid'] ?? '') . ($typeSuffix[$firstType] ?? ''));
           if ($firstType === 'user') $rowLink = $url('admin/users/' . ($r['uuid'] ?? '') . '/edit');
         ?>
         <a href="<?= $e($rowLink) ?>"

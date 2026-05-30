@@ -54,9 +54,37 @@
     </div>
   </div>
 
-  <!-- Sidebar: Assign course -->
+  <!-- Sidebar: Add member + Assign course -->
   <div class="col-lg-4">
+
+    <!-- Add Member -->
     <div class="card border-0 shadow-sm mb-4">
+      <div class="card-header bg-transparent fw-bold py-3"><i class="bi bi-person-plus-fill me-2"></i>Add Member</div>
+      <div class="card-body">
+        <div id="addMemberResult" class="mb-2"></div>
+        <div class="mb-2">
+          <label class="form-label fw-semibold" style="font-size:13px">Search User by Email</label>
+          <input type="text" class="form-control form-control-sm" id="memberEmailSearch"
+                 placeholder="email@example.com" autocomplete="off">
+          <div id="memberSearchDrop" style="display:none;border:1px solid var(--bs-border-color);border-radius:8px;margin-top:4px;background:var(--bs-body-bg);max-height:160px;overflow-y:auto;font-size:13px"></div>
+        </div>
+        <input type="hidden" id="selectedUserId" value="">
+        <div class="mb-2">
+          <label class="form-label fw-semibold" style="font-size:13px">Role</label>
+          <select class="form-select form-select-sm" id="memberRole">
+            <option value="employee">Employee</option>
+            <option value="manager">Manager</option>
+          </select>
+        </div>
+        <div class="mb-3">
+          <label class="form-label fw-semibold" style="font-size:13px">Department</label>
+          <input type="text" class="form-control form-control-sm" id="memberDept" placeholder="e.g. Engineering">
+        </div>
+        <button class="btn btn-primary btn-sm w-100" id="addMemberBtn">
+          <i class="bi bi-plus-circle me-1"></i> Add to Organisation
+        </button>
+      </div>
+    </div>
       <div class="card-header bg-transparent fw-bold py-3"><i class="bi bi-journal-plus me-2"></i>Assign Course</div>
       <div class="card-body">
         <div id="assignResult" class="mb-2"></div>
@@ -102,4 +130,65 @@ document.getElementById('assignBtn').addEventListener('click', function() {
     document.getElementById('assignBtn').disabled=false;
   });
 });
+</script>
+
+<script>
+(function(){
+  var searchInput = document.getElementById('memberEmailSearch');
+  var drop        = document.getElementById('memberSearchDrop');
+  var selectedId  = document.getElementById('selectedUserId');
+  var timer;
+  var BASE = '<?=rtrim(APP_URL,'/')?>';
+  var CSRF = '<?=htmlspecialchars(\App\Middleware\CsrfMiddleware::token())?>';
+
+  searchInput && searchInput.addEventListener('input', function(){
+    clearTimeout(timer);
+    var q = this.value.trim();
+    if(q.length < 2){ drop.style.display='none'; return; }
+    timer = setTimeout(function(){
+      fetch(BASE+'/admin/users/search?q='+encodeURIComponent(q))
+      .then(r=>r.json()).then(function(d){
+        if(!d.users || !d.users.length){ drop.style.display='none'; return; }
+        drop.innerHTML = d.users.map(function(u){ var name = (u.first_name||'') + ' ' + (u.last_name||'');
+          return '<div class="px-3 py-2" style="cursor:pointer;border-bottom:1px solid var(--bs-border-color)" '+
+            'onmouseover="this.style.background=\'var(--bs-tertiary-bg)\'" onmouseout="this.style.background=\'\'" '+
+            'onclick="selectMember('+u.id+',\''+u.name.replace(/'/g,"\\'") +'\',\''+u.email+'\')">'+
+            '<div style="font-weight:600">'+name+'</div>'+
+            '<div style="font-size:11.5px;color:var(--bs-secondary-color)">'+u.email+'</div></div>';
+        }).join('');
+        drop.style.display='block';
+      });
+    }, 250);
+  });
+
+  document.addEventListener('click', function(e){
+    if(!e.target.closest('#memberEmailSearch') && !e.target.closest('#memberSearchDrop'))
+      drop.style.display='none';
+  });
+
+  window.selectMember = function(id, name, email){
+    selectedId.value = id;
+    searchInput.value = name + ' <' + email + '>';
+    drop.style.display = 'none';
+  };
+
+  document.getElementById('addMemberBtn') && document.getElementById('addMemberBtn').addEventListener('click', function(){
+    var userId = selectedId.value;
+    var res    = document.getElementById('addMemberResult');
+    if(!userId){ res.innerHTML='<div class="alert alert-warning py-2 mb-0" style="font-size:13px">Please search and select a user first.</div>'; return; }
+    this.disabled = true;
+    var self = this;
+    fetch(BASE+'/admin/organisations/<?=$e($org['uuid'])?>/add-member', {
+      method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'},
+      body:'csrf_token='+encodeURIComponent(CSRF)+
+           '&user_id='+encodeURIComponent(userId)+
+           '&role='+encodeURIComponent(document.getElementById('memberRole').value)+
+           '&department='+encodeURIComponent(document.getElementById('memberDept').value)
+    }).then(r=>r.json()).then(function(d){
+      res.innerHTML='<div class="alert alert-'+(d.success?'success':'danger')+' py-2 mb-0" style="font-size:13px">'+d.message+'</div>';
+      if(d.success){ setTimeout(()=>location.reload(), 1000); }
+      self.disabled = false;
+    });
+  });
+})();
 </script>

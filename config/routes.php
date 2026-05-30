@@ -404,3 +404,7 @@ $router->get('/help/article/:slug',        'HelpController@article');
 $router->get('/admin/menu-settings',       'Admin\MenuSettingsController@index');
 $router->post('/admin/menu-settings',      'Admin\MenuSettingsController@save');
 $router->post('/admin/menu-settings/reset','Admin\MenuSettingsController@reset');
+
+// Assignments overview
+$router->get('/admin/assignments', 'Admin\AssignmentsOverviewController@index');
+$router->post('/admin/organisations/:uuid/add-member', 'Admin\OrganisationController@addMember');

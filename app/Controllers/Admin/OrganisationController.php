@@ -105,3 +105,24 @@ class OrganisationController extends Controller
         exit;
     }
 }
+
+    public function addMember(array $p): void
+    {
+        AuthMiddleware::handle();
+        \App\Middleware\CsrfMiddleware::verify();
+        $org    = OrganisationService::findByUuid($p['uuid'] ?? '');
+        if (!$org) { $this->json(['success'=>false,'message'=>'Organisation not found.']); }
+
+        $userId = (int)$this->request->post('user_id', 0);
+        $role   = in_array($this->request->post('role'), ['employee','manager']) ? $this->request->post('role') : 'employee';
+        $dept   = \App\Helpers\Sanitizer::string($this->request->post('department',''), 120);
+
+        if (!$userId) { $this->json(['success'=>false,'message'=>'Please select a user.']); }
+
+        try {
+            OrganisationService::addMember((int)$org['id'], $userId, $role, $dept);
+            $this->json(['success'=>true,'message'=>'Member added successfully.']);
+        } catch (\Throwable $e) {
+            $this->json(['success'=>false,'message'=>$e->getMessage()]);
+        }
+    }
