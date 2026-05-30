@@ -173,16 +173,6 @@ body {
   position: sticky; top: 0; z-index: 500;
   box-shadow: var(--shadow-sm);
 }
-@media (min-width: 992px) {
-  .admin-topbar {
-    position: fixed;
-    top: 0;
-    left: var(--sidebar-w, 240px);
-    right: 0;
-    z-index: 500;
-  }
-  .adm-main { padding-top: var(--topbar-h); }
-}
 
 .topbar-toggle {
   background: none; border: none; cursor: pointer;
