@@ -6,7 +6,13 @@
   </div>
 </div>
 
-<?php if(empty($courses)): ?>
+<?php if(!empty($error)): ?>
+<div class="alert alert-warning d-flex align-items-center gap-2">
+  <i class="bi bi-exclamation-triangle-fill"></i>
+  <?=$e($error)?>
+  <a href="<?=$url('admin/database')?>" class="btn btn-sm btn-warning ms-auto">Run Migrations</a>
+</div>
+<?php elseif(empty($courses)): ?>
 <div class="card border-0 shadow-sm">
   <div class="card-body text-center py-5">
     <i class="bi bi-clipboard-x" style="font-size:3rem;opacity:.3"></i>

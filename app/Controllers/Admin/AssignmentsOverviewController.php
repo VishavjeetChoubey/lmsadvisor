@@ -12,25 +12,42 @@ class AssignmentsOverviewController extends Controller
     public function index(array $p): void
     {
         AuthMiddleware::handle();
-        $pdo = Database::getInstance();
+        $pdo     = Database::getInstance();
+        $courses = [];
+        $error   = null;
 
-        // All courses that have at least one assignment lesson with submissions
-        $courses = $pdo->query(
-            "SELECT c.uuid, c.title, c.status,
-                    COUNT(DISTINCT l.id) AS assignment_count,
-                    COUNT(DISTINCT s.id) AS submission_count,
-                    COUNT(DISTINCT CASE WHEN s.status='pending' THEN s.id END) AS pending_count
-             FROM courses c
-             JOIN lessons l ON l.course_id=c.id AND l.type='assignment'
-             LEFT JOIN assignment_submissions s ON s.lesson_id=l.id
-             WHERE c.status='published'
-             GROUP BY c.id
-             ORDER BY pending_count DESC, c.title"
-        )->fetchAll();
+        try {
+            // Check assignment_submissions table exists first
+            $tableCheck = $pdo->query(
+                "SELECT COUNT(*) FROM information_schema.tables
+                 WHERE table_schema = DATABASE()
+                 AND table_name = 'assignment_submissions'"
+            )->fetchColumn();
+
+            if (!$tableCheck) {
+                $error = 'Run pending migrations first — the assignment_submissions table is missing. Go to Admin → Database → Run Pending Migrations.';
+            } else {
+                $courses = $pdo->query(
+                    "SELECT c.uuid, c.title, c.status,
+                            COUNT(DISTINCT l.id)  AS assignment_count,
+                            COUNT(DISTINCT s.id)  AS submission_count,
+                            COUNT(DISTINCT CASE WHEN s.status='pending' THEN s.id END) AS pending_count
+                     FROM courses c
+                     INNER JOIN lessons l ON l.course_id = c.id
+                     LEFT JOIN assignment_submissions s ON s.lesson_id = l.id
+                     WHERE l.type = 'assignment'
+                     GROUP BY c.id, c.uuid, c.title, c.status
+                     ORDER BY pending_count DESC, c.title"
+                )->fetchAll();
+            }
+        } catch (\Throwable $e) {
+            $error = 'Database error: ' . $e->getMessage();
+        }
 
         $this->view('admin.assignments.index', [
             'title'     => 'Assignments',
             'courses'   => $courses,
+            'error'     => $error,
             'flash'     => $this->getFlash(),
             'auth_user' => AuthService::user(),
         ]);
