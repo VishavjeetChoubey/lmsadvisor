@@ -177,11 +177,11 @@ body {
   .admin-topbar {
     position: fixed;
     top: 0;
-    left: var(--sidebar-width);
+    left: var(--sidebar-w, 240px);
     right: 0;
     z-index: 500;
   }
-  .admin-content { padding-top: calc(var(--topbar-h) + 24px) !important; }
+  .adm-main { padding-top: var(--topbar-h); }
 }
 
 .topbar-toggle {
