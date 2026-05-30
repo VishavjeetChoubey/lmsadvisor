@@ -175,6 +175,36 @@ if (!empty($authUser['id'])) {
     <div class="stu-topbar-title"><?= $e($page_title ?? '') ?></div>
 
     <div class="stu-topbar-right">
+
+      <!-- ── Admin-only tools (desktop) ─────────────────────────────────── -->
+      <?php if(in_array($authUser['role'] ?? '', ['super_admin','admin','manager'], true)): ?>
+      <div class="d-none d-lg-flex align-items-center gap-2 me-1">
+
+        <!-- Admin View -->
+        <a href="<?= $url('admin/dashboard') ?>"
+           style="display:inline-flex;align-items:center;gap:6px;padding:5px 14px;border-radius:20px;border:1px solid var(--nav-active);color:var(--nav-active);background:transparent;font-size:12px;font-weight:600;text-decoration:none;white-space:nowrap;transition:all .15s"
+           onmouseover="this.style.background='var(--nav-active)';this.style.color='#fff'"
+           onmouseout="this.style.background='transparent';this.style.color='var(--nav-active)'">
+          <i class="bi bi-shield-fill" style="font-size:12px"></i> Admin View
+        </a>
+
+        <!-- Page load speed -->
+        <span title="Page load time"
+              style="display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:600;color:var(--text-2)">
+          <i class="bi bi-lightning-charge-fill" style="color:#f59e0b;font-size:13px"></i>
+          <span id="stuLoadMs">—</span>
+        </span>
+
+        <!-- WiFi / connectivity -->
+        <span title="Network status"
+              style="display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:600">
+          <i class="bi bi-wifi" id="stuWifiIcon" style="font-size:15px;color:#9ca3af"></i>
+          <span id="stuNetLabel" style="color:#9ca3af">—</span>
+        </span>
+
+      </div>
+      <?php endif; ?>
+
       <!-- Notification bell with live count -->
       <div class="dropdown">
         <button class="stu-topbar-btn position-relative" id="stuNotifBell" title="Notifications" data-bs-toggle="dropdown">
@@ -258,6 +288,41 @@ if (!empty($authUser['id'])) {
 <?php if ($customJsFooter): ?><script id="custom-js-footer"><?= $customJsFooter ?></script><?php endif; ?>
 <script>
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('<?= APP_URL ?>/sw.js');
+</script>
+<script>
+(function(){
+  // Page load time
+  window.addEventListener('load', function(){
+    var el = document.getElementById('stuLoadMs');
+    if(!el || !window.performance) return;
+    setTimeout(function(){
+      var nav = performance.getEntriesByType('navigation')[0];
+      var ms  = nav ? Math.round(nav.duration) : Math.round(performance.now());
+      el.textContent = ms + 'ms';
+      el.style.color = ms < 800 ? '#059669' : ms < 2000 ? '#d97706' : '#dc2626';
+    }, 100);
+  });
+  // WiFi status
+  function updateNet(){
+    var icon  = document.getElementById('stuWifiIcon');
+    var label = document.getElementById('stuNetLabel');
+    if(!icon || !label) return;
+    if(!navigator.onLine){
+      icon.style.color = label.style.color = '#dc2626';
+      label.textContent = 'Offline'; return;
+    }
+    var conn  = navigator.connection || navigator.mozConnection || navigator.webkitConnection;
+    var speed = conn ? conn.downlink : null;
+    var color = speed === null ? '#6366f1' : speed >= 5 ? '#059669' : speed >= 1 ? '#d97706' : '#dc2626';
+    var text  = speed === null ? 'Online'  : speed >= 5 ? speed.toFixed(0)+' Mbps' : speed >= 1 ? speed.toFixed(1)+' Mbps' : 'Slow';
+    icon.style.color = label.style.color = color;
+    label.textContent = text;
+  }
+  updateNet();
+  window.addEventListener('online',  updateNet);
+  window.addEventListener('offline', updateNet);
+  if(navigator.connection) navigator.connection.addEventListener('change', updateNet);
+})();
 </script>
 </body>
 </html>
