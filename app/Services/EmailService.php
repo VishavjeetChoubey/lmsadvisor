@@ -98,13 +98,216 @@ class EmailService
         return ['sent' => $sent, 'failed' => $failed];
     }
 
-    /** Send email via SMTP — clean pure-PHP implementation */
+    /**
+     * Send email via SMTP.
+     * @param bool $debug If true, returns full SMTP conversation instead of throwing
+     */
     private static function sendSmtp(
         string $toEmail,
         string $toName,
         string $subject,
-        string $bodyHtml
+        string $bodyHtml,
+        bool   $debug = false
     ): bool {
+        $host       = Setting::get('smtp_host', '');
+        $port       = (int)Setting::get('smtp_port', '587');
+        $user       = Setting::get('smtp_user', '');
+        $pass       = \App\Helpers\Encryption::decryptIfNeeded(Setting::get('smtp_pass', ''));
+        $fromName   = Setting::get('smtp_from_name', Setting::get('site_name', 'LMS Advisor'));
+        $fromEmail  = Setting::get('smtp_from_email', $user);
+        $encryption = Setting::get('smtp_encryption', 'tls'); // tls | ssl | none
+
+        $log = []; // debug conversation log
+
+        if (!$host || !$fromEmail) {
+            throw new \RuntimeException('SMTP not configured. Set host and from email in Settings → Email.');
+        }
+
+        // ssl:// prefix for port 465 (SSL/TLS), plain socket for 587 (STARTTLS)
+        $prefix  = ($encryption === 'ssl' || $port === 465) ? 'ssl://' : '';
+        $context = stream_context_create([
+            'ssl' => [
+                // Allow self-signed / mismatched certs (common on cPanel shared hosting)
+                'verify_peer'       => false,
+                'verify_peer_name'  => false,
+                'allow_self_signed' => true,
+            ]
+        ]);
+
+        $socket = @stream_socket_client(
+            "{$prefix}{$host}:{$port}",
+            $errno, $errstr, 15,
+            STREAM_CLIENT_CONNECT,
+            $context
+        );
+
+        if (!$socket) {
+            throw new \RuntimeException("Cannot connect to {$host}:{$port} — {$errstr} (error {$errno}). Check host/port and that port {$port} is not blocked by your firewall.");
+        }
+
+        stream_set_timeout($socket, 15);
+
+        // Read one complete SMTP response (handles multi-line 250-OK\r\n250 OK)
+        $read = function() use ($socket, &$log, $debug): string {
+            $response = '';
+            while ($line = fgets($socket, 1024)) {
+                $response .= $line;
+                if ($debug) $log[] = "S: " . rtrim($line);
+                // Last line of response has space after code: "250 OK"
+                if (strlen($line) >= 4 && $line[3] === ' ') break;
+            }
+            return $response;
+        };
+
+        $cmd = function(string $command, bool $hideValue = false) use ($socket, $read, &$log, $debug): string {
+            fwrite($socket, $command . "\r\n");
+            if ($debug) $log[] = "C: " . ($hideValue ? '***HIDDEN***' : rtrim($command));
+            return $read();
+        };
+
+        // EHLO uses 'localhost' as fallback — gethostname() can return FQDN that
+        // remote servers reject. 'localhost' is universally accepted.
+        $myHost = 'localhost';
+
+        $banner = $read(); // Server greeting
+
+        // EHLO
+        $ehloResp = $cmd("EHLO {$myHost}");
+        if (!str_starts_with($ehloResp, '2')) {
+            $cmd("HELO {$myHost}");
+        }
+
+        // STARTTLS for port 587
+        if ($encryption === 'tls' && $port !== 465) {
+            $tlsResp = $cmd("STARTTLS");
+            if (!str_starts_with($tlsResp, '220')) {
+                @fclose($socket);
+                throw new \RuntimeException("STARTTLS rejected by server: {$tlsResp}");
+            }
+            // Enable crypto — allow self-signed certs (cPanel/shared hosting)
+            $ok = @stream_socket_enable_crypto(
+                $socket, true,
+                STREAM_CRYPTO_METHOD_TLSv1_2_CLIENT |
+                STREAM_CRYPTO_METHOD_TLSv1_1_CLIENT |
+                STREAM_CRYPTO_METHOD_TLS_CLIENT
+            );
+            if (!$ok) {
+                @fclose($socket);
+                throw new \RuntimeException("TLS handshake failed with {$host}:{$port}. Try setting Encryption to 'SSL' and Port to 465, or 'None' with Port 587.");
+            }
+            // Re-EHLO after TLS
+            $cmd("EHLO {$myHost}");
+        }
+
+        // AUTH LOGIN
+        if ($user && $pass) {
+            $authResp = $cmd("AUTH LOGIN");
+            if (!str_starts_with($authResp, '334')) {
+                @fclose($socket);
+                throw new \RuntimeException("AUTH LOGIN not accepted: {$authResp}. Server may require AUTH PLAIN or different auth method.");
+            }
+            $cmd(base64_encode($user), true);
+            $authResult = $cmd(base64_encode($pass), true);
+            if (!str_starts_with($authResult, '235')) {
+                @fclose($socket);
+                throw new \RuntimeException("Authentication failed (535): Wrong username or password. Used: {$user}");
+            }
+        }
+
+        // Envelope
+        $mailResp = $cmd("MAIL FROM:<{$fromEmail}>");
+        if (!str_starts_with($mailResp, '250')) {
+            @fclose($socket);
+            throw new \RuntimeException("MAIL FROM rejected: {$mailResp}");
+        }
+
+        $rcptResp = $cmd("RCPT TO:<{$toEmail}>");
+        if (!str_starts_with($rcptResp, '250') && !str_starts_with($rcptResp, '251')) {
+            @fclose($socket);
+            throw new \RuntimeException("RCPT TO <{$toEmail}> rejected: {$rcptResp}");
+        }
+
+        // Build multipart message
+        $boundary = 'LMS_' . bin2hex(random_bytes(8));
+        $bodyText = strip_tags(str_replace(['<br>','<br/>','</p>','<p>'], "\n", $bodyHtml));
+
+        $message  = implode("\r\n", [
+            "From: =?UTF-8?B?" . base64_encode($fromName) . "?= <{$fromEmail}>",
+            "To: =?UTF-8?B?"   . base64_encode($toName ?: $toEmail) . "?= <{$toEmail}>",
+            "Subject: =?UTF-8?B?" . base64_encode($subject) . "?=",
+            "MIME-Version: 1.0",
+            "Content-Type: multipart/alternative; boundary=\"{$boundary}\"",
+            "X-Mailer: LMSAdvisor/" . (defined('APP_VERSION') ? APP_VERSION : '3.0'),
+            "Date: " . date('r'),
+            "",
+            "--{$boundary}",
+            "Content-Type: text/plain; charset=UTF-8",
+            "Content-Transfer-Encoding: base64",
+            "",
+            chunk_split(base64_encode($bodyText)),
+            "--{$boundary}",
+            "Content-Type: text/html; charset=UTF-8",
+            "Content-Transfer-Encoding: base64",
+            "",
+            chunk_split(base64_encode($bodyHtml)),
+            "--{$boundary}--",
+        ]);
+
+        $cmd("DATA");
+        fwrite($socket, $message . "\r\n.\r\n");
+        if ($debug) $log[] = "C: [message body sent]";
+        $dataResp = $read();
+
+        $cmd("QUIT");
+        @fclose($socket);
+
+        if (!str_starts_with(trim($dataResp), '250')) {
+            throw new \RuntimeException("Server rejected message: {$dataResp}");
+        }
+
+        if ($debug) {
+            // Store conversation in session for super_admin to retrieve
+            $_SESSION['smtp_debug_log'] = $log;
+        }
+
+        return true;
+    }
+
+    /**
+     * Test SMTP and return full debug transcript — super_admin only.
+     */
+    public static function testSmtp(string $toEmail): array
+    {
+        $host      = Setting::get('smtp_host', '');
+        $port      = Setting::get('smtp_port', '587');
+        $user      = Setting::get('smtp_user', '');
+        $fromEmail = Setting::get('smtp_from_email', $user);
+
+        try {
+            self::sendSmtp(
+                $toEmail,
+                $toEmail,
+                'LMS Advisor — SMTP Test',
+                '<p>This is a test email from LMS Advisor. If you received this, SMTP is working correctly.</p><p>Sent at: ' . date('Y-m-d H:i:s') . '</p>',
+                true // debug mode
+            );
+            $log = $_SESSION['smtp_debug_log'] ?? [];
+            return [
+                'success' => true,
+                'message' => "✓ Email sent successfully to {$toEmail}",
+                'config'  => "Host: {$host}:{$port} | From: {$fromEmail}",
+                'log'     => $log,
+            ];
+        } catch (\Throwable $e) {
+            $log = $_SESSION['smtp_debug_log'] ?? [];
+            return [
+                'success' => false,
+                'message' => $e->getMessage(),
+                'config'  => "Host: {$host}:{$port} | From: {$fromEmail}",
+                'log'     => $log,
+            ];
+        }
+    }
         $host      = Setting::get('smtp_host', '');
         $port      = (int)Setting::get('smtp_port', '587');
         $user      = Setting::get('smtp_user', '');

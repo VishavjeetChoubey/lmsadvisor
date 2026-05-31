@@ -262,6 +262,36 @@ $tabIcons = [
                 </div>
               </div>
             </div>
+
+            <?php if(($authUser['role']??'')==='super_admin'): ?>
+            <!-- SMTP Debug — super_admin only -->
+            <div class="col-12">
+              <hr class="my-2">
+              <div class="settings-section-label d-flex align-items-center gap-2">
+                <i class="bi bi-bug-fill text-danger"></i> SMTP Debug Mode
+                <span class="badge bg-danger" style="font-size:10px">Super Admin Only</span>
+              </div>
+              <p class="text-muted" style="font-size:12.5px">Shows the full SMTP conversation — every command and server response — to diagnose connection issues.</p>
+              <div class="row g-2 align-items-end">
+                <div class="col-md-6">
+                  <input type="email" class="form-control" id="smtpDebugEmail"
+                         placeholder="Send test to this email"
+                         value="<?=$e($authUser['email']??'')?>">
+                </div>
+                <div class="col-md-3">
+                  <button type="button" class="btn btn-danger w-100" id="smtpDebugBtn">
+                    <i class="bi bi-bug me-1"></i> Test + Show Debug
+                  </button>
+                </div>
+              </div>
+              <div id="smtpDebugResult" class="mt-3" style="display:none">
+                <div id="smtpDebugStatus" class="alert mb-2" style="font-size:13px"></div>
+                <div id="smtpDebugConfig" class="text-muted mb-2" style="font-size:12px"></div>
+                <pre id="smtpDebugLog"
+                     style="background:#0f172a;color:#e2e8f0;padding:16px;border-radius:10px;font-size:12px;max-height:400px;overflow-y:auto;white-space:pre-wrap;word-break:break-all"></pre>
+              </div>
+            </div>
+            <?php endif; ?>
           </div>
 
           <!-- ═══════════════════════════════════════════════════
@@ -801,6 +831,41 @@ if (picker) {
 document.getElementById('sendTestEmail')?.addEventListener('click', function () {
   const to  = document.getElementById('testEmailTo').value.trim();
   const res = document.getElementById('testEmailResult');
+
+  // SMTP Debug button
+  document.getElementById('smtpDebugBtn')?.addEventListener('click', function() {
+    const email  = document.getElementById('smtpDebugEmail').value.trim();
+    const result = document.getElementById('smtpDebugResult');
+    const status = document.getElementById('smtpDebugStatus');
+    const config = document.getElementById('smtpDebugConfig');
+    const logEl  = document.getElementById('smtpDebugLog');
+    if (!email) { alert('Enter a test email address.'); return; }
+    this.disabled = true;
+    this.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span> Testing…';
+    result.style.display = 'none';
+    fetch(BASE + '/admin/settings/smtp-test', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+      body: 'csrf_token=' + encodeURIComponent(CSRF) + '&test_email=' + encodeURIComponent(email)
+    })
+    .then(r => r.json())
+    .then(d => {
+      result.style.display = 'block';
+      status.className = 'alert mb-2 alert-' + (d.success ? 'success' : 'danger');
+      status.textContent = d.message;
+      config.textContent = d.config || '';
+      logEl.textContent  = d.log && d.log.length ? d.log.join('\n') : '(no SMTP conversation captured — error occurred before connection)';
+      this.disabled = false;
+      this.innerHTML = '<i class="bi bi-bug me-1"></i> Test + Show Debug';
+    })
+    .catch(e => {
+      result.style.display = 'block';
+      status.className = 'alert mb-2 alert-danger';
+      status.textContent = 'Request failed: ' + e.message;
+      this.disabled = false;
+      this.innerHTML = '<i class="bi bi-bug me-1"></i> Test + Show Debug';
+    });
+  });
   if (!to) { res.innerHTML = '<span class="text-danger">Enter a recipient email.</span>'; return; }
 
   this.disabled = true;
