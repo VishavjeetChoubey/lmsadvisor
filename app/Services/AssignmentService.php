@@ -11,7 +11,24 @@ class AssignmentService
         $pdo  = Database::getInstance();
         $stmt = $pdo->prepare('SELECT * FROM assignments WHERE lesson_id=? LIMIT 1');
         $stmt->execute([$lessonId]);
-        return $stmt->fetch() ?: null;
+        $row = $stmt->fetch() ?: null;
+
+        // Auto-create default row if lesson exists with type=assignment but no config yet
+        if (!$row) {
+            $lessonStmt = $pdo->prepare("SELECT id, title FROM lessons WHERE id=? AND type='assignment' LIMIT 1");
+            $lessonStmt->execute([$lessonId]);
+            $lesson = $lessonStmt->fetch();
+            if ($lesson) {
+                $pdo->prepare(
+                    'INSERT IGNORE INTO assignments (lesson_id, title, brief, max_score, pass_score, max_attempts, allowed_types, max_file_mb)
+                     VALUES (?, ?, \'\', 100, 50, 3, \'pdf,zip,doc,docx,jpg,png\', 20)'
+                )->execute([$lessonId, $lesson['title']]);
+                $stmt->execute([$lessonId]);
+                $row = $stmt->fetch() ?: null;
+            }
+        }
+
+        return $row;
     }
 
     public static function create(int $lessonId, array $data): int

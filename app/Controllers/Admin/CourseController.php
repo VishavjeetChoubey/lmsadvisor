@@ -553,6 +553,14 @@ class CourseController extends Controller
             'sort_order'    => $count,
         ]);
 
+        // Auto-create assignment config row so student can submit immediately
+        if ($type === 'assignment') {
+            $pdo->prepare(
+                'INSERT IGNORE INTO assignments (lesson_id, title, brief, max_score, pass_score, max_attempts, allowed_types, max_file_mb)
+                 VALUES (?, ?, \'\', 100, 50, 3, \'pdf,zip,doc,docx,jpg,png\', 20)'
+            )->execute([$id, $title]);
+        }
+
         $this->json(['success' => true, 'id' => $id, 'title' => $title, 'type' => $type]);
     }
 
