@@ -88,17 +88,13 @@ class SettingsController extends Controller
         $this->json($result);
     }
 
-    /** SMTP debug test — super_admin only, shows full SMTP conversation */
+    /** SMTP debug test — shows full SMTP conversation on email settings tab */
     public function smtpTest(array $p): void
     {
         AuthMiddleware::handle();
         CsrfMiddleware::verify();
 
-        $user = \App\Services\AuthService::user();
-        if (($user['role'] ?? '') !== 'super_admin') {
-            $this->json(['success' => false, 'message' => 'Access denied. Super admin only.']);
-        }
-
+        $user    = \App\Services\AuthService::user();
         $toEmail = trim($this->request->post('test_email', $user['email'] ?? ''));
         if (!filter_var($toEmail, FILTER_VALIDATE_EMAIL)) {
             $this->json(['success' => false, 'message' => 'Invalid email address.']);

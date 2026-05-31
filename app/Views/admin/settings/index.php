@@ -263,13 +263,11 @@ $tabIcons = [
               </div>
             </div>
 
-            <?php if(($authUser['role']??'')==='super_admin'): ?>
-            <!-- SMTP Debug — super_admin only -->
+            <!-- SMTP Debug — visible to all admins on email tab -->
             <div class="col-12">
               <hr class="my-2">
               <div class="settings-section-label d-flex align-items-center gap-2">
                 <i class="bi bi-bug-fill text-danger"></i> SMTP Debug Mode
-                <span class="badge bg-danger" style="font-size:10px">Super Admin Only</span>
               </div>
               <p class="text-muted" style="font-size:12.5px">Shows the full SMTP conversation — every command and server response — to diagnose connection issues.</p>
               <div class="row g-2 align-items-end">
@@ -291,7 +289,6 @@ $tabIcons = [
                      style="background:#0f172a;color:#e2e8f0;padding:16px;border-radius:10px;font-size:12px;max-height:400px;overflow-y:auto;white-space:pre-wrap;word-break:break-all"></pre>
               </div>
             </div>
-            <?php endif; ?>
           </div>
 
           <!-- ═══════════════════════════════════════════════════
