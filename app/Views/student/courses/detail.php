@@ -12,7 +12,7 @@ $playerUrl= $url('learn/courses/' . $course['uuid'] . '/learn' . ($resumeLessonI
 $levelColors = ['beginner'=>'#0e9f6e','intermediate'=>'#1a56db','advanced'=>'#e02424'];
 $levelColor  = $levelColors[$course['level'] ?? 'beginner'] ?? '#6366f1';
 
-$typeIcons = ['text'=>'bi-file-text','video'=>'bi-play-circle-fill','document'=>'bi-file-pdf','scorm'=>'bi-box-seam','quiz'=>'bi-patch-question-fill'];
+$typeIcons = ['text'=>'bi-file-text','video'=>'bi-play-circle-fill','document'=>'bi-file-pdf','scorm'=>'bi-box-seam','quiz'=>'bi-patch-question-fill','assignment'=>'bi-clipboard-check-fill'];
 $typeColors= ['text'=>'secondary','video'=>'danger','document'=>'warning','scorm'=>'info','quiz'=>'success'];
 ?>
 

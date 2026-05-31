@@ -3,8 +3,8 @@ use App\Core\View;
 $e   = fn(mixed $v): string => View::e($v);
 $url = fn(string $p = ''): string => View::url($p);
 
-$typeIcons   = ['text'=>'bi-file-text','video'=>'bi-play-circle-fill','document'=>'bi-file-pdf','scorm'=>'bi-box-seam','quiz'=>'bi-patch-question-fill'];
-$typeColors  = ['text'=>'rgba(255,255,255,.5)','video'=>'#f87171','document'=>'#fbbf24','scorm'=>'#38bdf8','quiz'=>'#a78bfa'];
+$typeIcons   = ['text'=>'bi-file-text','video'=>'bi-play-circle-fill','document'=>'bi-file-pdf','scorm'=>'bi-box-seam','quiz'=>'bi-patch-question-fill','assignment'=>'bi-clipboard-check-fill'];
+$typeColors  = ['text'=>'rgba(255,255,255,.5)','video'=>'#f87171','document'=>'#fbbf24','scorm'=>'#38bdf8','quiz'=>'#a78bfa','assignment'=>'#34d399'];
 ?>
 
 <!-- Full player shell — overrides student layout padding -->
@@ -216,15 +216,58 @@ $typeColors  = ['text'=>'rgba(255,255,255,.5)','video'=>'#f87171','document'=>'#
         <!-- ── DOCUMENT ── -->
         <?php elseif ($type === 'document'): ?>
           <?php if ($currentLesson['file_path']): ?>
-          <div class="lp-doc-wrap">
-            <i class="bi bi-file-pdf-fill lp-doc-icon"></i>
-            <h4><?= $e($currentLesson['title']) ?></h4>
-            <p>Click below to open the document.</p>
-            <a href="<?= $e(APP_URL . '/storage/uploads/' . $currentLesson['file_path']) ?>"
-               target="_blank" class="lp-cta-btn">
-              <i class="bi bi-box-arrow-up-right me-2"></i> Open Document
-            </a>
+          <?php
+            $docUrl  = $e(APP_URL . '/storage/uploads/' . $currentLesson['file_path']);
+            $docExt  = strtolower(pathinfo($currentLesson['file_path'], PATHINFO_EXTENSION));
+            $isPdf   = $docExt === 'pdf';
+            $isOffice= in_array($docExt, ['doc','docx','xls','xlsx','ppt','pptx']);
+          ?>
+          <div style="display:flex;flex-direction:column;height:100%;min-height:500px">
+            <!-- Toolbar -->
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:var(--card);border-bottom:1px solid var(--border);flex-shrink:0">
+              <div style="display:flex;align-items:center;gap:8px;font-size:13.5px;font-weight:600;color:var(--text-1)">
+                <i class="bi bi-file-<?=$isPdf?'pdf':'earmark-text'?>-fill" style="color:<?=$isPdf?'#ef4444':'#3b82f6'?>;font-size:18px"></i>
+                <?= $e($currentLesson['title']) ?>
+                <span style="font-size:11px;background:var(--bg);color:var(--text-2);padding:2px 8px;border-radius:10px;text-transform:uppercase;font-weight:500"><?=$docExt?></span>
+              </div>
+              <a href="<?=$docUrl?>" download target="_blank"
+                 style="display:inline-flex;align-items:center;gap:6px;padding:5px 12px;border-radius:8px;background:var(--bg);color:var(--text-2);font-size:12.5px;text-decoration:none;border:1px solid var(--border)">
+                <i class="bi bi-download"></i> Download
+              </a>
+            </div>
+
+            <?php if ($isPdf): ?>
+            <!-- Native PDF embed -->
+            <iframe src="<?=$docUrl?>"
+                    style="flex:1;width:100%;border:none;min-height:600px"
+                    title="<?= $e($currentLesson['title']) ?>">
+              <p>Your browser cannot display the PDF inline.
+                <a href="<?=$docUrl?>" target="_blank">Open PDF</a>
+              </p>
+            </iframe>
+
+            <?php elseif ($isOffice): ?>
+            <!-- Office docs via Google Docs Viewer (no sign-in required for public files) -->
+            <iframe src="https://docs.google.com/gview?url=<?=urlencode($docUrl)?>&embedded=true"
+                    style="flex:1;width:100%;border:none;min-height:600px"
+                    title="<?= $e($currentLesson['title']) ?>">
+            </iframe>
+            <div style="text-align:center;padding:8px;font-size:12px;color:var(--text-2)">
+              Can't see the document? <a href="<?=$docUrl?>" target="_blank">Download it</a>
+            </div>
+
+            <?php else: ?>
+            <!-- Other file types — show download prompt -->
+            <div class="lp-doc-wrap">
+              <i class="bi bi-file-earmark-fill lp-doc-icon" style="color:#6366f1"></i>
+              <p style="color:var(--text-2)">This file type cannot be previewed in the browser.</p>
+              <a href="<?=$docUrl?>" download class="lp-cta-btn">
+                <i class="bi bi-download me-2"></i> Download File
+              </a>
+            </div>
+            <?php endif; ?>
           </div>
+
           <?php else: ?>
             <div class="lp-empty"><i class="bi bi-file-earmark-x"></i><p>Document not uploaded yet.</p></div>
           <?php endif; ?>
@@ -1153,8 +1196,7 @@ body:not(.collab-panel-hidden) .lp-ai-panel {
   height: 100vh !important;
   max-height: 100vh !important;
   border-radius: 0;
-  /* Use student theme vars — --bg and --text-1 are correct for student layout */
-  background: var(--bg) !important;
+  background: var(--card) !important;
   color: var(--text-1) !important;
 }
 </style>
@@ -1483,7 +1525,7 @@ button#collabCloseBtn {
   height: 100%;
   max-height: 100%;
   overflow: hidden;
-  background: var(--content-bg);
+  background: var(--card);
 }
 
 /* ── Sidebar ─────────────────────────────────────────────── */
