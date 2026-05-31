@@ -203,6 +203,19 @@ $tabIcons = [
           <?php elseif ($activeTab === 'email'): ?>
 
           <div class="row g-4">
+            <div class="col-12">
+              <div class="form-check form-switch">
+                <input class="form-check-input" type="checkbox" role="switch"
+                       name="smtp_enabled" id="smtp_enabled" value="1"
+                       <?= $bool('smtp_enabled') ? 'checked' : '' ?>>
+                <label class="form-check-label fw-semibold" for="smtp_enabled">
+                  Enable SMTP Email Sending
+                </label>
+                <div class="text-muted" style="font-size:12.5px;margin-top:3px">
+                  Must be ON for the system to send any emails (enrollment confirmations, quiz results, certificates, etc.)
+                </div>
+              </div>
+            </div>
             <div class="col-md-8">
               <label class="form-label fw-semibold">SMTP Host</label>
               <input type="text" class="form-control" name="smtp_host"

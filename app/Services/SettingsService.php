@@ -46,6 +46,7 @@ class SettingsService
         'zoom_enabled',
         'gmeet_enabled',
         'ai_enabled',
+        'smtp_enabled',
         'reviews_enabled',
         'reviews_auto_approve',
         'leaderboard_enabled',
@@ -220,7 +221,7 @@ class SettingsService
 
     /**
      * Send a test email via the configured SMTP settings.
-     * Returns ['success' => bool, 'message' => string].
+     * Bypasses the queue and smtp_enabled flag so it always attempts delivery.
      */
     public static function sendTestEmail(string $to): array
     {
@@ -231,7 +232,7 @@ class SettingsService
         if (!$host || !$fromEmail) {
             return [
                 'success' => false,
-                'message' => 'SMTP not configured. Please fill in SMTP Host, Username, and From Email in Email Settings.',
+                'message' => 'SMTP not configured. Please fill in SMTP Host, Username, and From Email.',
             ];
         }
 
@@ -239,33 +240,7 @@ class SettingsService
             return ['success' => false, 'message' => 'Invalid recipient email address.'];
         }
 
-        try {
-            \App\Services\EmailService::queue(
-                $to,
-                'Test Recipient',
-                'enrollment_confirmation',
-                [
-                    'student_name'    => 'Test User',
-                    'course_title'    => 'LMSAdvisor Test Email',
-                    'course_level'    => 'Beginner',
-                    'course_duration' => '1 hour',
-                    'grade_points'    => 100,
-                    'course_url'      => rtrim(APP_URL, '/') . '/learn',
-                ]
-            );
-
-            // Process immediately (don't wait for cron)
-            $result = \App\Services\EmailService::processQueue(1);
-
-            if ($result['sent'] > 0) {
-                return ['success' => true, 'message' => "Test email sent to {$to} via SMTP. Check your inbox."];
-            }
-            return [
-                'success' => false,
-                'message' => 'SMTP send failed. Check your SMTP credentials and try again. See server error log for details.',
-            ];
-        } catch (\Throwable $e) {
-            return ['success' => false, 'message' => 'SMTP error: ' . $e->getMessage()];
-        }
+        // Use testSmtp which bypasses the queue entirely
+        return \App\Services\EmailService::testSmtp($to);
     }
 }
