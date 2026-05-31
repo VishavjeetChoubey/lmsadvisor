@@ -147,7 +147,8 @@ $typeColors  = ['text'=>'rgba(255,255,255,.5)','video'=>'#f87171','document'=>'#
         <!-- Next lesson -->
         <?php if ($nextLesson): ?>
         <a href="<?= $url('learn/courses/' . $course['uuid'] . '/learn?lesson=' . $nextLesson['id']) ?>"
-           class="lp-topbar-btn lp-next-btn" title="Next: <?= $e($nextLesson['title']) ?>">
+           class="lp-topbar-btn lp-next-btn" title="Next: <?= $e($nextLesson['title']) ?>"
+           onclick="if(document.fullscreenElement||document.webkitFullscreenElement)sessionStorage.setItem('lms_fullscreen','1')">
           <i class="bi bi-skip-forward-fill"></i>
         </a>
         <?php endif; ?>
@@ -693,7 +694,8 @@ $typeColors  = ['text'=>'rgba(255,255,255,.5)','video'=>'#f87171','document'=>'#
           <!-- Next lesson shortcut -->
           <?php if ($nextLesson): ?>
           <a href="<?= $url('learn/courses/' . $course['uuid'] . '/learn?lesson=' . $nextLesson['id']) ?>"
-             class="lp-cta-btn lp-cta-next">
+             class="lp-cta-btn lp-cta-next"
+             onclick="if(document.fullscreenElement||document.webkitFullscreenElement)sessionStorage.setItem('lms_fullscreen','1')">
             Next: <?= $e(mb_strimwidth($nextLesson['title'], 0, 32, '…')) ?>
             <i class="bi bi-arrow-right ms-2"></i>
           </a>
@@ -1909,19 +1911,29 @@ function toggleSection(idx) {
   var icon  = document.getElementById('lpFsIcon');
   if (!btn || !shell) return;
 
-  // Capture the current theme ONCE at page load — don't read it during fullscreen
-  // because some browsers reset data-theme when entering fullscreen
   var pageTheme = document.documentElement.getAttribute('data-theme') || 'light';
+
+  // ── Restore fullscreen if user was in it before navigating ──────────────────
+  // Browser always exits fullscreen on navigation (security policy).
+  // We save the state in sessionStorage and re-enter on next page load.
+  if (sessionStorage.getItem('lms_fullscreen') === '1') {
+    // Small delay so page is fully rendered before requesting fullscreen
+    setTimeout(function() {
+      if      (shell.requestFullscreen)        shell.requestFullscreen();
+      else if (shell.webkitRequestFullscreen)  shell.webkitRequestFullscreen();
+      else if (shell.mozRequestFullScreen)     shell.mozRequestFullScreen();
+    }, 300);
+  }
 
   btn.addEventListener('click', function() {
     var isFs = !!(document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement);
     if (isFs) {
-      // Safe exit — check each method exists before calling
+      sessionStorage.removeItem('lms_fullscreen'); // user explicitly exited
       if      (document.exitFullscreen)        document.exitFullscreen();
       else if (document.webkitExitFullscreen)  document.webkitExitFullscreen();
       else if (document.mozCancelFullScreen)   document.mozCancelFullScreen();
     } else {
-      // Safe enter
+      sessionStorage.setItem('lms_fullscreen', '1'); // remember intent
       if      (shell.requestFullscreen)        shell.requestFullscreen();
       else if (shell.webkitRequestFullscreen)  shell.webkitRequestFullscreen();
       else if (shell.mozRequestFullScreen)     shell.mozRequestFullScreen();
@@ -1930,21 +1942,19 @@ function toggleSection(idx) {
 
   function onFsChange() {
     var isFs = !!(document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement);
-
-    // Update icon
     if (icon) icon.className = isFs ? 'bi bi-fullscreen-exit' : 'bi bi-fullscreen';
-
-    // Update button title
     btn.title = isFs ? 'Exit Fullscreen' : 'Fullscreen';
-
-    // Toggle class for CSS
     if (shell) shell.classList.toggle('fullscreen', isFs);
-
-    // Re-stamp the original theme — browser resets it on fullscreen entry
     document.documentElement.setAttribute('data-theme', pageTheme);
+
+    // If user pressed Escape (isFs=false but sessionStorage still set),
+    // treat it as explicit exit — clear the saved state
+    if (!isFs) {
+      sessionStorage.removeItem('lms_fullscreen');
+    }
   }
 
-  // Listen on dark mode toggle so pageTheme stays in sync
+  // Track dark mode toggle so pageTheme stays in sync
   var darkBtn = document.getElementById('stuDarkToggle');
   if (darkBtn) {
     darkBtn.addEventListener('click', function() {
@@ -1985,6 +1995,10 @@ function lpMarkComplete() {
           btn.disabled = false;
           btn.innerHTML = '<i class="bi bi-check-circle me-2"></i> Mark as Complete';
         } else {
+          // Save fullscreen state before reload — browser exits it on navigation
+          if (document.fullscreenElement || document.webkitFullscreenElement) {
+            sessionStorage.setItem('lms_fullscreen', '1');
+          }
           window.location.reload();
         }
       });
