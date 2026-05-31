@@ -27,8 +27,8 @@ class AssignmentController extends Controller
         if (!$course) { $this->redirect('/admin/courses'); }
 
         $submissions = AssignmentService::submissionsForCourse($course['id']);
-        $this->view('admin.assignments.index', [
-            'title'       => 'Assignments',
+        $this->view('admin.assignments.review', [
+            'title'       => 'Assignment Submissions',
             'page_title'  => 'Assignment Submissions',
             'breadcrumbs' => [['label'=>'Courses','url'=>'admin/courses'],['label'=>'Assignments']],
             'auth_user'   => AuthService::user(),
