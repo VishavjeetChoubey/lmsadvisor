@@ -128,20 +128,32 @@ class AssignmentService
         $sub  = $stmt->fetch();
         if (!$sub) return;
 
-        $asgn = $pdo->prepare('SELECT * FROM assignments WHERE id=?');
+        $asgn = $pdo->prepare('SELECT * FROM assignments WHERE id=? LIMIT 1');
         $asgn->execute([$sub['assignment_id']]);
         $asgn = $asgn->fetch();
 
-        $status = $score >= (int)($asgn['pass_score'] ?? 50) ? 'pass' : 'fail';
+        $passed = $score >= (int)($asgn['pass_score'] ?? 50);
 
         $pdo->prepare(
             'UPDATE assignment_submissions
-             SET score=?, feedback=?, status=?, graded_at=NOW(), graded_by=? WHERE id=?'
-        )->execute([$score, $feedback, $status, $gradedBy, $submissionId]);
+             SET score=?, feedback=?, status=\'graded\', graded_at=NOW(), graded_by=? WHERE id=?'
+        )->execute([$score, $feedback, $gradedBy, $submissionId]);
 
-        // If passed, mark lesson complete
-        if ($status === 'pass') {
-            EnrollmentService::markLessonComplete($sub['enrollment_id'], $asgn['lesson_id'] ?? 0);
+        // If passed and enrollment exists, mark lesson progress complete
+        if ($passed && !empty($sub['enrollment_id']) && !empty($asgn['lesson_id'])) {
+            try {
+                $pdo->prepare(
+                    'INSERT INTO lesson_progress (enrollment_id, lesson_id, user_id, status, progress_pct, completed_at, last_accessed)
+                     VALUES (?, ?, ?, \'completed\', 100, NOW(), NOW())
+                     ON DUPLICATE KEY UPDATE status=\'completed\', progress_pct=100, completed_at=NOW(), last_accessed=NOW()'
+                )->execute([
+                    $sub['enrollment_id'],
+                    $asgn['lesson_id'],
+                    $sub['user_id'],
+                ]);
+            } catch (\Throwable $e) {
+                error_log('[Assignment grade] lesson_progress update failed: ' . $e->getMessage());
+            }
         }
     }
 

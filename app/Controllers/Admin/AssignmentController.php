@@ -42,10 +42,15 @@ class AssignmentController extends Controller
     public function grade(array $p): void
     {
         CsrfMiddleware::verify();
-        $user    = AuthService::user();
-        $score   = (int)$this->request->post('score', 0);
-        $feedback= trim($this->request->post('feedback', ''));
-        AssignmentService::grade((int)$p['sub_id'], $score, $feedback, (int)$user['id']);
-        $this->json(['success'=>true,'message'=>'Submission graded.']);
+        try {
+            $user     = AuthService::user();
+            $score    = (int)$this->request->post('score', 0);
+            $feedback = trim($this->request->post('feedback', ''));
+            AssignmentService::grade((int)$p['sub_id'], $score, $feedback, (int)$user['id']);
+            $this->json(['success' => true, 'message' => 'Submission graded.']);
+        } catch (\Throwable $e) {
+            error_log('[AssignmentGrade] ' . $e->getMessage());
+            $this->json(['success' => false, 'message' => $e->getMessage()]);
+        }
     }
 }
