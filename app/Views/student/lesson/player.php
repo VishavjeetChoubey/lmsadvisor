@@ -584,8 +584,54 @@ $typeColors  = ['text'=>'rgba(255,255,255,.5)','video'=>'#f87171','document'=>'#
         <!-- ── Actions bar ── -->
         <div class="lp-actions">
 
-          <!-- Mark complete -->
-          <?php if (!$isCompleted): ?>
+        <!-- Mark complete -->
+          <?php
+          $isAssignment = ($currentLesson['type'] ?? '') === 'assignment';
+          ?>
+          <?php if ($isCompleted): ?>
+            <div class="lp-completed-badge">
+              <i class="bi bi-check-circle-fill me-2"></i> Lesson Completed
+            </div>
+          <?php elseif ($isAssignment): ?>
+            <?php
+              // Show contextual status for assignment lesson
+              $pdo = \App\Core\Database::getInstance();
+              $subStmt = $pdo->prepare(
+                "SELECT s.status, s.score, a.pass_score
+                 FROM assignment_submissions s
+                 JOIN assignments a ON a.id = s.assignment_id
+                 WHERE a.lesson_id = ? AND s.user_id = ?
+                 ORDER BY s.submitted_at DESC LIMIT 1"
+              );
+              $subStmt->execute([(int)$currentLesson['id'], (int)($authUser['id'] ?? 0)]);
+              $latestSub = $subStmt->fetch();
+            ?>
+            <?php if (!$latestSub): ?>
+              <div class="lp-assignment-status" style="background:#fef9c3;border:1px solid #fde047;border-radius:10px;padding:12px 16px;font-size:13.5px;color:#713f12;display:flex;align-items:center;gap:10px">
+                <i class="bi bi-exclamation-circle-fill" style="flex-shrink:0;font-size:16px"></i>
+                <span>Submit your assignment above to complete this lesson.</span>
+              </div>
+            <?php elseif ($latestSub['status'] === 'submitted'): ?>
+              <div class="lp-assignment-status" style="background:#fffbeb;border:1px solid #fbbf24;border-radius:10px;padding:12px 16px;font-size:13.5px;color:#92400e;display:flex;align-items:center;gap:10px">
+                <i class="bi bi-hourglass-split" style="flex-shrink:0;font-size:16px"></i>
+                <span>Assignment submitted — awaiting instructor review. This lesson will complete automatically once graded.</span>
+              </div>
+            <?php elseif ($latestSub['status'] === 'graded' && (int)$latestSub['score'] < (int)$latestSub['pass_score']): ?>
+              <div class="lp-assignment-status" style="background:#fef2f2;border:1px solid #fca5a5;border-radius:10px;padding:12px 16px;font-size:13.5px;color:#991b1b;display:flex;align-items:center;gap:10px">
+                <i class="bi bi-x-circle-fill" style="flex-shrink:0;font-size:16px"></i>
+                <span>Score <?=$latestSub['score']?>/<?=$latestSub['pass_score']?> required — please resubmit to pass.</span>
+              </div>
+            <?php else: ?>
+              <!-- Graded and passed — should already be completed, but show button as fallback -->
+              <form id="lpCompleteForm" action="<?= $url('learn/courses/' . $course['uuid'] . '/complete-lesson') ?>" method="POST">
+                <input type="hidden" name="csrf_token" value="<?= $e($csrf_token) ?>">
+                <input type="hidden" name="lesson_id" value="<?= (int)$currentLesson['id'] ?>">
+                <button type="button" class="lp-cta-btn" id="lpMarkCompleteBtn" onclick="lpMarkComplete()">
+                  <i class="bi bi-check-circle me-2"></i> Mark as Complete
+                </button>
+              </form>
+            <?php endif; ?>
+          <?php else: ?>
           <form id="lpCompleteForm"
                 action="<?= $url('learn/courses/' . $course['uuid'] . '/complete-lesson') ?>"
                 method="POST">
@@ -599,10 +645,6 @@ $typeColors  = ['text'=>'rgba(255,255,255,.5)','video'=>'#f87171','document'=>'#
             <i class="bi bi-shield-lock-fill" style="flex-shrink:0;margin-top:2px;font-size:15px"></i>
             <span id="lpQuizGateTxt"></span>
           </div>
-          <?php else: ?>
-            <div class="lp-completed-badge">
-              <i class="bi bi-check-circle-fill me-2"></i> Lesson Completed
-            </div>
           <?php endif; ?>
 
           <!-- Next lesson shortcut -->

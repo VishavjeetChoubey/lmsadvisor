@@ -364,8 +364,57 @@ class DashboardController extends Controller
         $lessonId = (int)$this->request->post('lesson_id', 0);
         if ($lessonId) {
 
-            // ── Quiz gating: check if lesson has a required quiz not yet passed ──
             $pdo = \App\Core\Database::getInstance();
+
+            // ── Assignment gating ─────────────────────────────────────────────
+            // If this lesson is type=assignment, it cannot be manually marked complete.
+            // It completes automatically when admin grades the submission as passed.
+            $lessonTypeStmt = $pdo->prepare("SELECT type, is_mandatory FROM lessons WHERE id=? LIMIT 1");
+            $lessonTypeStmt->execute([$lessonId]);
+            $lesson = $lessonTypeStmt->fetch();
+
+            if ($lesson && $lesson['type'] === 'assignment') {
+                // Check if student has a graded+passing submission
+                $gradedStmt = $pdo->prepare(
+                    "SELECT s.score, a.pass_score
+                     FROM assignment_submissions s
+                     JOIN assignments a ON a.id = s.assignment_id
+                     WHERE a.lesson_id = ? AND s.user_id = ? AND s.status = 'graded'
+                     ORDER BY s.score DESC LIMIT 1"
+                );
+                $gradedStmt->execute([$lessonId, (int)$user['id']]);
+                $graded = $gradedStmt->fetch();
+
+                if (!$graded) {
+                    // No submission or not yet reviewed
+                    $hasSubmission = $pdo->prepare(
+                        "SELECT COUNT(*) FROM assignment_submissions s
+                         JOIN assignments a ON a.id = s.assignment_id
+                         WHERE a.lesson_id = ? AND s.user_id = ?"
+                    );
+                    $hasSubmission->execute([$lessonId, (int)$user['id']]);
+                    $submitted = (int)$hasSubmission->fetchColumn() > 0;
+
+                    $msg = $submitted
+                        ? 'Your assignment is submitted and awaiting instructor review. This lesson will complete automatically once graded.'
+                        : 'You must submit this assignment before it can be marked complete.';
+
+                    $this->json(['success' => false, 'blocked' => true, 'message' => $msg]);
+                }
+
+                if ((int)$graded['score'] < (int)$graded['pass_score']) {
+                    $this->json([
+                        'success' => false,
+                        'blocked' => true,
+                        'message' => 'Your assignment score (' . $graded['score'] . ') did not meet the passing score (' . $graded['pass_score'] . '). Please resubmit.',
+                    ]);
+                }
+
+                // Passed — fall through to mark complete
+            }
+            // ── End assignment gating ─────────────────────────────────────────
+
+            // ── Quiz gating ───────────────────────────────────────────────────
             $quizGateStmt = $pdo->prepare(
                 "SELECT q.id, q.title, q.pass_percentage
                  FROM quizzes q
@@ -377,7 +426,6 @@ class DashboardController extends Controller
             $requiredQuiz = $quizGateStmt->fetch();
 
             if ($requiredQuiz) {
-                // Check if student has a passing attempt
                 $passedStmt = $pdo->prepare(
                     "SELECT COUNT(*) FROM quiz_attempts
                      WHERE quiz_id = ? AND user_id = ? AND passed = 1
@@ -407,9 +455,29 @@ class DashboardController extends Controller
 
         // Check if all lessons are complete → mark enrollment complete
         $pdo  = \App\Core\Database::getInstance();
-        $totalStmt = $pdo->prepare('SELECT COUNT(*) FROM lessons WHERE course_id = ?');
+
+        // Only count mandatory lessons for completion
+        $totalStmt = $pdo->prepare(
+            'SELECT COUNT(*) FROM lessons WHERE course_id = ? AND is_mandatory = 1'
+        );
         $totalStmt->execute([$course['id']]);
         $total = (int)$totalStmt->fetchColumn();
+
+        // For mandatory assignment lessons, they must be graded and passed
+        $mandatoryAssignmentBlockStmt = $pdo->prepare(
+            "SELECT COUNT(*) FROM lessons l
+             JOIN assignments a ON a.lesson_id = l.id
+             WHERE l.course_id = ? AND l.type = 'assignment' AND l.is_mandatory = 1
+             AND NOT EXISTS (
+               SELECT 1 FROM assignment_submissions s
+               WHERE s.assignment_id = a.id
+               AND s.user_id = ?
+               AND s.status = 'graded'
+               AND s.score >= a.pass_score
+             )"
+        );
+        $mandatoryAssignmentBlockStmt->execute([$course['id'], (int)$user['id']]);
+        $blockedByAssignment = (int)$mandatoryAssignmentBlockStmt->fetchColumn() > 0;
 
         $doneStmt = $pdo->prepare(
             'SELECT COUNT(*) FROM lesson_progress WHERE enrollment_id = ? AND status = "completed"'
@@ -417,7 +485,7 @@ class DashboardController extends Controller
         $doneStmt->execute([$enrollment['id']]);
         $done = (int)$doneStmt->fetchColumn();
 
-        if ($total > 0 && $done >= $total) {
+        if ($total > 0 && $done >= $total && !$blockedByAssignment) {
             $enrollModel->updateStatus((int)$enrollment['id'], 'completed');
             $this->flash('success', '🎉 Congratulations! You have completed this course.');
 
