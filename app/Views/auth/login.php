@@ -18,7 +18,7 @@ $recaptchaSiteKey  = $recaptcha_site_key ?? '';
       <div style="width:72px;height:72px;background:rgba(255,255,255,.15);border-radius:20px;display:flex;align-items:center;justify-content:center;margin:0 auto 20px;backdrop-filter:blur(10px)">
         <i class="fas fa-graduation-cap" style="font-size:32px;color:#fff"></i>
       </div>
-      <h1 style="color:#fff;font-size:2rem;font-weight:800;margin-bottom:8px;letter-spacing:-.5px">LMSAdvisor</h1>
+      <h1 style="color:#fff;font-size:2rem;font-weight:800;margin-bottom:8px;letter-spacing:-.5px">LMS Advisor</h1>
       <p style="color:rgba(255,255,255,.6);font-size:15px;margin-bottom:0">Enterprise Learning Management System</p>
     </div>
 
@@ -76,7 +76,7 @@ $recaptchaSiteKey  = $recaptcha_site_key ?? '';
         <div style="width:56px;height:56px;background:#6366f1;border-radius:14px;display:flex;align-items:center;justify-content:center;margin:0 auto 12px">
           <i class="fas fa-graduation-cap" style="font-size:24px;color:#fff"></i>
         </div>
-        <h2 style="font-size:1.4rem;font-weight:800;color:var(--text-primary)">LMSAdvisor</h2>
+        <h2 style="font-size:1.4rem;font-weight:800;color:var(--text-primary)">LMS Advisor</h2>
       </div>
 
       <h2 style="font-size:1.6rem;font-weight:800;color:var(--text-primary);margin-bottom:4px">Welcome back 👋</h2>
@@ -170,7 +170,7 @@ if($googleEnabled || $githubEnabled):
 </form>
 
       <p style="text-align:center;font-size:12.5px;color:var(--text-muted);margin-top:24px">
-        Protected by enterprise-grade security · <?= date('Y') ?> LMSAdvisor
+        Protected by enterprise-grade security · <?= date('Y') ?> LMS Advisor
       </p>
     </div>
   </div>
