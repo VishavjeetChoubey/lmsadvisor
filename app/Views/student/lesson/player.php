@@ -1153,18 +1153,9 @@ body:not(.collab-panel-hidden) .lp-ai-panel {
   height: 100vh !important;
   max-height: 100vh !important;
   border-radius: 0;
-  /* Force the page theme — browsers reset color-scheme in fullscreen */
-  background: var(--page-bg, #f1f5f9) !important;
-  color: var(--text-primary, #0f172a) !important;
-  color-scheme: light !important;
-}
-/* Keep dark mode working if user had it on before going fullscreen */
-[data-theme="dark"] .lp-shell:fullscreen,
-[data-theme="dark"] .lp-shell:-webkit-full-screen,
-[data-theme="dark"] .lp-shell:-moz-full-screen {
-  background: var(--page-bg, #0f172a) !important;
-  color: var(--text-primary, #f1f5f9) !important;
-  color-scheme: dark !important;
+  /* Use student theme vars — --bg and --text-1 are correct for student layout */
+  background: var(--bg) !important;
+  color: var(--text-1) !important;
 }
 </style>
 
@@ -1876,28 +1867,49 @@ function toggleSection(idx) {
   var icon  = document.getElementById('lpFsIcon');
   if (!btn || !shell) return;
 
+  // Capture the current theme ONCE at page load — don't read it during fullscreen
+  // because some browsers reset data-theme when entering fullscreen
+  var pageTheme = document.documentElement.getAttribute('data-theme') || 'light';
+
   btn.addEventListener('click', function() {
     var isFs = !!(document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement);
     if (isFs) {
-      (document.exitFullscreen || document.webkitExitFullscreen || document.mozCancelFullScreen).call(document);
+      // Safe exit — check each method exists before calling
+      if      (document.exitFullscreen)        document.exitFullscreen();
+      else if (document.webkitExitFullscreen)  document.webkitExitFullscreen();
+      else if (document.mozCancelFullScreen)   document.mozCancelFullScreen();
     } else {
-      var req = shell.requestFullscreen || shell.webkitRequestFullscreen || shell.mozRequestFullScreen;
-      if (req) req.call(shell);
+      // Safe enter
+      if      (shell.requestFullscreen)        shell.requestFullscreen();
+      else if (shell.webkitRequestFullscreen)  shell.webkitRequestFullscreen();
+      else if (shell.mozRequestFullScreen)     shell.mozRequestFullScreen();
     }
   });
 
   function onFsChange() {
     var isFs = !!(document.fullscreenElement || document.webkitFullscreenElement || document.mozFullScreenElement);
-    if (icon) {
-      icon.className = isFs ? 'bi bi-fullscreen-exit' : 'bi bi-fullscreen';
-    }
-    if (shell) {
-      shell.classList.toggle('fullscreen', isFs);
-    }
-    // Re-stamp data-theme on <html> — browsers can reset color-scheme in fullscreen
-    var currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
-    document.documentElement.setAttribute('data-theme', currentTheme);
+
+    // Update icon
+    if (icon) icon.className = isFs ? 'bi bi-fullscreen-exit' : 'bi bi-fullscreen';
+
+    // Update button title
+    btn.title = isFs ? 'Exit Fullscreen' : 'Fullscreen';
+
+    // Toggle class for CSS
+    if (shell) shell.classList.toggle('fullscreen', isFs);
+
+    // Re-stamp the original theme — browser resets it on fullscreen entry
+    document.documentElement.setAttribute('data-theme', pageTheme);
   }
+
+  // Listen on dark mode toggle so pageTheme stays in sync
+  var darkBtn = document.getElementById('stuDarkToggle');
+  if (darkBtn) {
+    darkBtn.addEventListener('click', function() {
+      pageTheme = document.documentElement.getAttribute('data-theme') || 'light';
+    });
+  }
+
   document.addEventListener('fullscreenchange',       onFsChange);
   document.addEventListener('webkitfullscreenchange', onFsChange);
   document.addEventListener('mozfullscreenchange',    onFsChange);
