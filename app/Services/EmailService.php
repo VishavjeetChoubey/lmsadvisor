@@ -38,8 +38,13 @@ class EmailService
 
         $vars['unsubscribe_url'] = rtrim(Setting::get('site_url', APP_URL), '/')
                                  . '/unsubscribe/' . $token;
-        $vars['site_name']  = Setting::get('site_name', 'LMSAdvisor');
-        $vars['site_logo']  = Setting::get('site_logo', '');
+        $vars['site_name']  = Setting::get('site_name', 'LMS Advisor');
+        $logoPath = Setting::get('site_logo', '');
+        // Logo must be a full URL for email clients — relative paths show as broken images
+        if ($logoPath && !str_starts_with($logoPath, 'http')) {
+            $logoPath = rtrim(Setting::get('site_url', APP_URL), '/') . '/' . ltrim($logoPath, '/');
+        }
+        $vars['site_logo']  = $logoPath;
 
         $subject  = self::render($template['subject'],  $vars);
         $bodyHtml = self::render($template['body_html'], $vars);
@@ -320,10 +325,59 @@ class EmailService
     /** Replace {{variable}} placeholders in template. */
     public static function render(string $template, array $vars): string
     {
+        // Replace all {{variable}} placeholders
         foreach ($vars as $key => $val) {
             $template = str_replace('{{' . $key . '}}', (string)$val, $template);
         }
-        return $template;
+
+        $siteName = $vars['site_name'] ?? 'LMS Advisor';
+        $logo     = $vars['site_logo'] ?? '';
+        $unsub    = $vars['unsubscribe_url'] ?? '';
+        $year     = date('Y');
+
+        // Wrap in professional email layout with logo header
+        return '<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>' . htmlspecialchars($siteName) . '</title>
+</head>
+<body style="margin:0;padding:0;background:#f1f5f9;font-family:Arial,Helvetica,sans-serif">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#f1f5f9;padding:32px 16px">
+  <tr><td align="center">
+    <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%">
+
+      <!-- Header with logo -->
+      <tr>
+        <td style="background:#6366f1;border-radius:12px 12px 0 0;padding:24px 32px;text-align:center">
+          ' . ($logo
+            ? '<img src="' . htmlspecialchars($logo) . '" alt="' . htmlspecialchars($siteName) . '" style="max-height:48px;max-width:200px;object-fit:contain">'
+            : '<span style="color:#fff;font-size:22px;font-weight:700;letter-spacing:-0.5px">' . htmlspecialchars($siteName) . '</span>'
+          ) . '
+        </td>
+      </tr>
+
+      <!-- Body -->
+      <tr>
+        <td style="background:#ffffff;padding:32px;color:#1e293b;font-size:15px;line-height:1.7;border-left:1px solid #e2e8f0;border-right:1px solid #e2e8f0">
+          ' . $template . '
+        </td>
+      </tr>
+
+      <!-- Footer -->
+      <tr>
+        <td style="background:#f8fafc;border:1px solid #e2e8f0;border-top:none;border-radius:0 0 12px 12px;padding:20px 32px;text-align:center;font-size:12px;color:#94a3b8">
+          &copy; ' . $year . ' ' . htmlspecialchars($siteName) . ' — All rights reserved<br>
+          ' . ($unsub ? '<a href="' . htmlspecialchars($unsub) . '" style="color:#94a3b8">Unsubscribe</a>' : '') . '
+        </td>
+      </tr>
+
+    </table>
+  </td></tr>
+</table>
+</body>
+</html>';
     }
 
     // ── Trigger helpers — called from controllers ─────────────────────────
