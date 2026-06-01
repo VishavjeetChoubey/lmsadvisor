@@ -123,7 +123,8 @@ class EmailController extends Controller
         // Add site vars
         $logoPath = \App\Models\Setting::get('site_logo', '');
         if ($logoPath && !str_starts_with($logoPath, 'http')) {
-            $logoPath = rtrim(\App\Models\Setting::get('site_url', APP_URL), '/') . '/' . ltrim($logoPath, '/');
+            $siteUrl  = rtrim(\App\Models\Setting::get('site_url', APP_URL), '/');
+            $logoPath = $siteUrl . '/assets/' . ltrim($logoPath, '/');
         }
         $vars['site_name'] = \App\Models\Setting::get('site_name', 'LMS Advisor');
         $vars['site_logo'] = $logoPath;

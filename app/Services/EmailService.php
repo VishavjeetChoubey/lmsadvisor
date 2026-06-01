@@ -40,9 +40,10 @@ class EmailService
                                  . '/unsubscribe/' . $token;
         $vars['site_name']  = Setting::get('site_name', 'LMS Advisor');
         $logoPath = Setting::get('site_logo', '');
-        // Logo must be a full URL for email clients — relative paths show as broken images
+        // Logo stored as 'uploads/filename.png' — served from /assets/uploads/
         if ($logoPath && !str_starts_with($logoPath, 'http')) {
-            $logoPath = rtrim(Setting::get('site_url', APP_URL), '/') . '/' . ltrim($logoPath, '/');
+            $siteUrl  = rtrim(Setting::get('site_url', APP_URL), '/');
+            $logoPath = $siteUrl . '/assets/' . ltrim($logoPath, '/');
         }
         $vars['site_logo']  = $logoPath;
 
@@ -237,31 +238,35 @@ class EmailService
             throw new \RuntimeException("RCPT TO <{$toEmail}> rejected: {$rcptResp}");
         }
 
-        // Build multipart message
+        // Build multipart message — headers and body must be carefully separated
         $boundary = 'LMS_' . bin2hex(random_bytes(8));
         $bodyText = strip_tags(str_replace(['<br>','<br/>','</p>','<p>'], "\n", $bodyHtml));
 
-        $message  = implode("\r\n", [
-            "From: =?UTF-8?B?" . base64_encode($fromName) . "?= <{$fromEmail}>",
-            "To: =?UTF-8?B?"   . base64_encode($toName ?: $toEmail) . "?= <{$toEmail}>",
-            "Subject: =?UTF-8?B?" . base64_encode($subject) . "?=",
-            "MIME-Version: 1.0",
-            "Content-Type: multipart/alternative; boundary=\"{$boundary}\"",
-            "X-Mailer: LMSAdvisor/" . (defined('APP_VERSION') ? APP_VERSION : '3.0'),
-            "Date: " . date('r'),
-            "",
-            "--{$boundary}",
-            "Content-Type: text/plain; charset=UTF-8",
-            "Content-Transfer-Encoding: base64",
-            "",
-            chunk_split(base64_encode($bodyText)),
-            "--{$boundary}",
-            "Content-Type: text/html; charset=UTF-8",
-            "Content-Transfer-Encoding: base64",
-            "",
-            chunk_split(base64_encode($bodyHtml)),
-            "--{$boundary}--",
-        ]);
+        // Headers block (ends with blank line)
+        $headers = "From: =?UTF-8?B?" . base64_encode($fromName) . "?= <{$fromEmail}>\r\n"
+                 . "To: =?UTF-8?B?" . base64_encode($toName ?: $toEmail) . "?= <{$toEmail}>\r\n"
+                 . "Subject: =?UTF-8?B?" . base64_encode($subject) . "?=\r\n"
+                 . "MIME-Version: 1.0\r\n"
+                 . "Content-Type: multipart/alternative; boundary=\"{$boundary}\"\r\n"
+                 . "X-Mailer: LMSAdvisor/" . (defined('APP_VERSION') ? APP_VERSION : '3.0') . "\r\n"
+                 . "Date: " . date('r') . "\r\n";
+
+        // Body parts
+        $body = "--{$boundary}\r\n"
+              . "Content-Type: text/plain; charset=UTF-8\r\n"
+              . "Content-Transfer-Encoding: base64\r\n"
+              . "\r\n"
+              . rtrim(chunk_split(base64_encode($bodyText), 76, "\r\n")) . "\r\n"
+              . "\r\n"
+              . "--{$boundary}\r\n"
+              . "Content-Type: text/html; charset=UTF-8\r\n"
+              . "Content-Transfer-Encoding: base64\r\n"
+              . "\r\n"
+              . rtrim(chunk_split(base64_encode($bodyHtml), 76, "\r\n")) . "\r\n"
+              . "\r\n"
+              . "--{$boundary}--\r\n";
+
+        $message = $headers . "\r\n" . $body;
 
         $cmd("DATA");
         fwrite($socket, $message . "\r\n.\r\n");
