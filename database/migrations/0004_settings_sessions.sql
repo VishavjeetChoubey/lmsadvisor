@@ -28,12 +28,14 @@ INSERT IGNORE INTO settings (`key`, value, type, label, group_name) VALUES
 ('login_max_attempts',   '5',           'text',    'Max Login Attempts',       'security'),
 ('login_lockout_min',    '15',          'text',    'Lockout Duration (min)',   'security'),
 -- Email
+('smtp_enabled',         '0',           'boolean', 'Enable SMTP',              'email'),
 ('smtp_host',            '',            'text',    'SMTP Host',                'email'),
 ('smtp_port',            '587',         'text',    'SMTP Port',                'email'),
 ('smtp_user',            '',            'text',    'SMTP Username',            'email'),
 ('smtp_pass',            '',            'password','SMTP Password',            'email'),
-('smtp_from',            '',            'text',    'From Address',             'email'),
-('smtp_from_name',       'LMSAdvisor',  'text',    'From Name',                'email'),
+('smtp_from_email',      '',            'text',    'From Email Address',       'email'),
+('smtp_from',            '',            'text',    'From Address (legacy)',     'email'),
+('smtp_from_name',       'LMS Advisor', 'text',    'From Name',                'email'),
 ('smtp_encryption',      'tls',         'text',    'Encryption (tls/ssl)',     'email'),
 -- Certificates
 ('cert_signer_name',     '',            'text',    'Signatory Name',           'certificates'),
