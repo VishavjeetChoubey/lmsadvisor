@@ -240,7 +240,13 @@ class EmailService
 
         // Build multipart message — headers and body must be carefully separated
         $boundary = 'LMS_' . bin2hex(random_bytes(8));
-        $bodyText = strip_tags(str_replace(['<br>','<br/>','</p>','<p>'], "\n", $bodyHtml));
+        $bodyText = strip_tags(str_replace(
+            ['<br>','<br/>','<br />','</p>','</tr>','</td>','</div>','</h1>','</h2>','</h3>'],
+            "\n",
+            $bodyHtml
+        ));
+        $bodyText = html_entity_decode(preg_replace('/\n{3,}/', "\n\n", $bodyText), ENT_QUOTES | ENT_HTML5, 'UTF-8');
+        $bodyText = trim($bodyText);
 
         // Headers block (ends with blank line)
         $headers = "From: =?UTF-8?B?" . base64_encode($fromName) . "?= <{$fromEmail}>\r\n"
@@ -251,13 +257,14 @@ class EmailService
                  . "X-Mailer: LMSAdvisor/" . (defined('APP_VERSION') ? APP_VERSION : '3.0') . "\r\n"
                  . "Date: " . date('r') . "\r\n";
 
-        // Body parts
+        // Plain text part — 7bit, no encoding, so Gmail preview shows readable text
         $body = "--{$boundary}\r\n"
               . "Content-Type: text/plain; charset=UTF-8\r\n"
-              . "Content-Transfer-Encoding: base64\r\n"
+              . "Content-Transfer-Encoding: 7bit\r\n"
               . "\r\n"
-              . rtrim(chunk_split(base64_encode($bodyText), 76, "\r\n")) . "\r\n"
+              . wordwrap($bodyText, 998, "\r\n", true) . "\r\n"
               . "\r\n"
+        // HTML part — base64 encoded
               . "--{$boundary}\r\n"
               . "Content-Type: text/html; charset=UTF-8\r\n"
               . "Content-Transfer-Encoding: base64\r\n"
