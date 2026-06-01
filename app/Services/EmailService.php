@@ -322,7 +322,6 @@ class EmailService
             ];
         }
     }
-    }
 
     /** Replace {{variable}} placeholders in template. */
     public static function render(string $template, array $vars): string
