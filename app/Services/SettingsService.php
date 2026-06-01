@@ -227,9 +227,9 @@ class SettingsService
     {
         $host      = Setting::get('smtp_host', '');
         $user      = Setting::get('smtp_user', '');
-        $fromEmail = Setting::get('smtp_from_email', $user);
+        $fromEmail = Setting::get('smtp_from_email', '') ?: $user;
 
-        if (!$host || !$fromEmail) {
+        if (!$host) {
             return [
                 'success' => false,
                 'message' => 'SMTP not configured. Please fill in SMTP Host, Username, and From Email.',

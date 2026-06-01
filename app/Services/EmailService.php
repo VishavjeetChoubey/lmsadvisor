@@ -114,13 +114,16 @@ class EmailService
         $user       = Setting::get('smtp_user', '');
         $pass       = \App\Helpers\Encryption::decryptIfNeeded(Setting::get('smtp_pass', ''));
         $fromName   = Setting::get('smtp_from_name', Setting::get('site_name', 'LMS Advisor'));
-        $fromEmail  = Setting::get('smtp_from_email', $user);
-        $encryption = Setting::get('smtp_encryption', 'tls'); // tls | ssl | none
+        $fromEmail  = Setting::get('smtp_from_email', '') ?: $user; // fallback to username
+        $encryption = Setting::get('smtp_encryption', 'tls');
 
         $log = []; // debug conversation log
 
-        if (!$host || !$fromEmail) {
-            throw new \RuntimeException('SMTP not configured. Set host and from email in Settings → Email.');
+        if (!$host) {
+            throw new \RuntimeException('SMTP not configured. Set SMTP Host in Settings → Email.');
+        }
+        if (!$fromEmail) {
+            throw new \RuntimeException('No From Email set. Add From Email or Username in Settings → Email.');
         }
 
         // ssl:// prefix for port 465 (SSL/TLS), plain socket for 587 (STARTTLS)
@@ -281,7 +284,7 @@ class EmailService
         $host      = Setting::get('smtp_host', '');
         $port      = Setting::get('smtp_port', '587');
         $user      = Setting::get('smtp_user', '');
-        $fromEmail = Setting::get('smtp_from_email', $user);
+        $fromEmail = Setting::get('smtp_from_email', '') ?: $user;
 
         try {
             self::sendSmtp(
