@@ -109,6 +109,8 @@ class EmailService
         string $bodyHtml,
         bool   $debug = false
     ): bool {
+        // Always read fresh from DB — never use cached values for SMTP
+        \App\Models\Setting::clearCache();
         $host       = Setting::get('smtp_host', '');
         $port       = (int)Setting::get('smtp_port', '587');
         $user       = Setting::get('smtp_user', '');
@@ -281,6 +283,9 @@ class EmailService
      */
     public static function testSmtp(string $toEmail): array
     {
+        // Clear static cache to ensure fresh values from DB
+        \App\Models\Setting::clearCache();
+
         $host      = Setting::get('smtp_host', '');
         $port      = Setting::get('smtp_port', '587');
         $user      = Setting::get('smtp_user', '');

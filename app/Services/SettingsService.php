@@ -158,6 +158,8 @@ class SettingsService
                 }
             }
         }
+        // Clear static cache so next read fetches fresh values from DB
+        \App\Models\Setting::clearCache();
     }
 
     // ── File upload ───────────────────────────────────────────────────────────

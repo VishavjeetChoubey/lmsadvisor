@@ -39,6 +39,11 @@ class Setting extends Model
         self::$cache[$key] = $value;
     }
 
+    public static function clearCache(): void
+    {
+        self::$cache = [];
+    }
+
     public static function group(string $groupName): array
     {
         $instance = new self();
