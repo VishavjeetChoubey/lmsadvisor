@@ -83,16 +83,22 @@ class EmailController extends Controller
             $this->json(['success'=>false,'message'=>'Invalid email address.']);
         }
 
-        // Check SMTP is configured before queuing
-        $smtpHost = \App\Models\Setting::get('smtp_host', '');
-        $smtpEnabled = (bool)(int)\App\Models\Setting::get('smtp_enabled', '0');
-        if (!$smtpEnabled || !$smtpHost) {
-            $this->json(['success'=>false,'message'=>'SMTP is not enabled or configured. Go to Settings → Email and fill in SMTP Host, enable SMTP, then try again.']);
+        // Clear cache so fresh settings are read
+        \App\Models\Setting::clearCache();
+
+        $pdo = \App\Core\Database::getInstance();
+
+        // Load template
+        $tpl = $pdo->prepare('SELECT * FROM email_templates WHERE slug=? LIMIT 1');
+        $tpl->execute([$slug]);
+        $template = $tpl->fetch();
+        if (!$template) {
+            $this->json(['success'=>false,'message'=>"Template '{$slug}' not found."]);
         }
 
-        $user   = AuthService::user();
-        $queued = EmailService::queue($to, $user['name'] ?? 'Test User', $slug, [
-            'student_name'    => 'Test Student',
+        $user = AuthService::user();
+        $vars = [
+            'student_name'    => $user['first_name'] ?? 'Test Student',
             'course_title'    => 'Sample Course Title',
             'course_level'    => 'Beginner',
             'course_duration' => '12 hours',
@@ -111,22 +117,27 @@ class EmailController extends Controller
             'result_color'    => '#059669',
             'quiz_title'      => 'Sample Quiz',
             'certificate_url' => APP_URL . '/certificate/verify/sample',
-        ]);
+            'unsubscribe_url' => APP_URL . '/unsubscribe/test',
+        ];
 
-        if (!$queued) {
-            $this->json(['success'=>false,'message'=>'Could not queue email. Check that SMTP is enabled and the email address is not unsubscribed.']);
+        // Add site vars
+        $logoPath = \App\Models\Setting::get('site_logo', '');
+        if ($logoPath && !str_starts_with($logoPath, 'http')) {
+            $logoPath = rtrim(\App\Models\Setting::get('site_url', APP_URL), '/') . '/' . ltrim($logoPath, '/');
         }
+        $vars['site_name'] = \App\Models\Setting::get('site_name', 'LMS Advisor');
+        $vars['site_logo'] = $logoPath;
 
-        $result = EmailService::processQueue(1);
-        if ($result['sent'] > 0) {
+        $subject  = EmailService::render($template['subject'],  $vars);
+        $bodyHtml = EmailService::render($template['body_html'], $vars);
+
+        // Send directly — bypass queue and unsubscribe check for admin test
+        $result = EmailService::testSmtp($to, $subject, $bodyHtml);
+
+        if ($result['success']) {
             $this->json(['success'=>true,'message'=>'Test email sent to ' . $to . '. Check your inbox.']);
         }
-
-        // Check queue for error message
-        $pdo  = \App\Core\Database::getInstance();
-        $last = $pdo->query("SELECT error_msg FROM email_queue WHERE status IN ('failed','pending') ORDER BY id DESC LIMIT 1")->fetch();
-        $errMsg = $last['error_msg'] ?? 'SMTP send failed. Check your SMTP credentials.';
-        $this->json(['success'=>false,'message'=>$errMsg]);
+        $this->json(['success'=>false,'message'=>$result['message']]);
     }
 
     /** POST /admin/email/process-queue */

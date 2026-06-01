@@ -286,7 +286,7 @@ class EmailService
     /**
      * Test SMTP and return full debug transcript — super_admin only.
      */
-    public static function testSmtp(string $toEmail): array
+    public static function testSmtp(string $toEmail, string $subject = '', string $bodyHtml = ''): array
     {
         // Clear static cache to ensure fresh values from DB
         \App\Models\Setting::clearCache();
@@ -296,14 +296,15 @@ class EmailService
         $user      = Setting::get('smtp_user', '');
         $fromEmail = Setting::get('smtp_from_email', '') ?: $user;
 
+        if (!$subject) {
+            $subject  = 'LMS Advisor — SMTP Test';
+        }
+        if (!$bodyHtml) {
+            $bodyHtml = '<p>This is a test email from LMS Advisor. SMTP is working correctly.</p><p>Sent at: ' . date('Y-m-d H:i:s') . '</p>';
+        }
+
         try {
-            self::sendSmtp(
-                $toEmail,
-                $toEmail,
-                'LMS Advisor — SMTP Test',
-                '<p>This is a test email from LMS Advisor. If you received this, SMTP is working correctly.</p><p>Sent at: ' . date('Y-m-d H:i:s') . '</p>',
-                true // debug mode
-            );
+            self::sendSmtp($toEmail, $toEmail, $subject, $bodyHtml, true);
             $log = $_SESSION['smtp_debug_log'] ?? [];
             return [
                 'success' => true,
@@ -320,6 +321,7 @@ class EmailService
                 'log'     => $log,
             ];
         }
+    }
     }
 
     /** Replace {{variable}} placeholders in template. */
